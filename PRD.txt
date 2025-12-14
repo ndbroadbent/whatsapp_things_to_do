@@ -1,0 +1,205 @@
+# WhatsApp Things To Do - Product Requirements Document
+
+## Overview
+
+Extract "things to do" suggestions from a WhatsApp chat history between Nathan and Masha Broadbent, focusing on activities in New Zealand. Surface these suggestions in a spreadsheet and interactive map.
+
+## Data Source
+
+- WhatsApp iOS export: `~/Downloads/WhatsApp Chat - Masha Broadbent.zip`
+- ~15,000 messages spanning Oct 2023 - Dec 2025
+- ~1,540 media files (photos, videos, GIFs, stickers, audio)
+- 362 URLs including TikTok, YouTube, Google Maps, Airbnb, etc.
+
+## Goals
+
+1. Extract every instance where Nathan or Masha suggested "we should do this" - explicitly or implicitly
+2. Focus on activities doable in New Zealand
+3. Output to spreadsheet with all relevant data
+4. Visualize on OpenStreetMap with pins for geolocated activities
+
+## Target Extraction Rate
+
+~70% of actual suggestions (per user expectation - not aiming for 100%)
+
+## Output Requirements
+
+### Spreadsheet Columns
+- Date of message
+- Sender (Nathan/Masha)
+- Original message text
+- Extracted activity/suggestion
+- Location (if applicable)
+- GPS coordinates (lat/lng)
+- Confidence score
+- Source URL (if applicable - TikTok, YouTube, website, etc.)
+- Google Maps link (if geocoded)
+- Link back to WhatsApp message (if possible)
+- Status (pending/done/skipped)
+
+### Map Visualization
+- OpenStreetMap base layer
+- Pins for all geocoded suggestions
+- Popup with: activity name, date, message snippet, links
+- Clustering for dense areas
+- Filter by status, date range, sender
+
+---
+
+## Technical Architecture
+
+### Pipeline Stages
+
+```
+1. PARSE
+   └── WhatsApp export → SQLite database
+       - messages table (id, timestamp, sender, content)
+       - urls table (message_id, url, url_type, resolved_url, title)
+       - suggestions table (message_id, type, confidence, location, coords)
+
+2. EXTRACT URLs
+   └── Regex extraction → classify by type
+       - tiktok, youtube, instagram, google_maps
+       - airbnb, booking, tripadvisor, event
+       - generic website
+
+3. RESOLVE URLs
+   └── Google Maps API for coordinates
+   └── Web scraping for titles/metadata
+
+4. FIND SUGGESTIONS (Multi-pass)
+
+   Pass 1: Regex patterns (high precision)
+   └── "we should", "let's go", "wanna go", etc.
+   └── Activity keywords boost confidence
+
+   Pass 2: URL-based (medium precision)
+   └── Google Maps links → likely places to visit
+   └── Airbnb/booking links → travel plans
+   └── TikTok/YouTube with suggestion context
+
+   Pass 3: Semantic search (broad recall)
+   └── Embed ALL messages with OpenAI text-embedding-3-small
+   └── Search for messages similar to activity phrases
+   └── Filter to top N candidates
+
+   Pass 4: LLM classification (high precision on candidates)
+   └── Only process Pass 3 candidates (cost optimization)
+   └── Claude classifies: is this a "thing to do" suggestion?
+   └── Extract: activity, location, implicit/explicit
+
+5. GEOCODE
+   └── Google Geocoding API for NZ place names
+   └── Extract coords from Google Maps URLs
+   └── NZ-biased search for ambiguous names
+
+6. OUTPUT
+   └── CSV/Excel spreadsheet
+   └── Static HTML + Leaflet.js map
+```
+
+---
+
+## Cost Optimization Strategy
+
+### Embedding Strategy (IMPORTANT)
+- Embed ALL 15k messages upfront (~$0.02 total)
+- Use semantic search to find candidates BEFORE calling Claude
+- Search queries: "we should visit", "let's go to", "bucket list", "looks fun", etc.
+- Only send top ~500-1000 semantic matches to Claude (~$1-2)
+
+### API Usage Estimates
+- OpenAI Embeddings: ~$0.02 (15k messages × ~50 tokens avg)
+- Google Maps Geocoding: ~$5 (1000 requests × $0.005)
+- Google Places API: ~$5-10 (if needed for URL resolution)
+- Claude API: ~$2-5 (500-1000 classifications)
+- **Total estimate: $15-25**
+
+---
+
+## Suggestion Detection Heuristics
+
+### Explicit Patterns (regex)
+- "we should [go/try/visit/do]"
+- "let's [go/try/do]"
+- "wanna go to"
+- "want to [go/try/visit]"
+- "should we [go/try]"
+- "we could [go/try]"
+- "bucket list"
+- "must visit/go"
+- "would be fun/cool/nice"
+- "one day we should"
+- "next time we should"
+- "can we [go/try]"
+
+### Activity Keywords (boost confidence)
+- Places: restaurant, cafe, beach, lake, waterfall, hot springs, hike, trail, park, museum, market, winery
+- Events: concert, show, festival, movie
+- Travel: hotel, airbnb, bach, camping, road trip
+- Activities: kayak, surf, ski, bungy, tour
+
+### NZ-Specific Keywords
+- Regions: Queenstown, Rotorua, Wellington, Taupo, Coromandel, Bay of Islands
+- Auckland area: Waiheke, Matakana, Piha, Muriwai, Raglan
+- Attractions: Hobbiton, Milford Sound, Waitomo, Tongariro
+
+### Exclusion Patterns
+- Work/chores: meeting, email, pay, bill, clean, groceries
+- Medical: doctor, dentist, appointment
+- Negative: "should not", "shouldn't", "can't"
+
+---
+
+## File Structure
+
+```
+whatsapp_things_to_do/
+├── .env                  # API keys (gitignored)
+├── .env.example          # Template for API keys
+├── .gitignore
+├── requirements.txt
+├── PRD.txt               # This file - source of truth
+├── CLAUDE.md             # Guidelines for AI assistant
+├── TODO.md               # Progress tracking
+├── data/
+│   ├── _chat.txt         # Extracted chat (gitignored)
+│   ├── chat.db           # SQLite database (gitignored)
+│   └── media/            # Extracted media (gitignored)
+├── src/
+│   ├── parser.py         # WhatsApp export parser
+│   ├── suggestion_extractor.py  # Regex-based extraction
+│   ├── url_resolver.py   # URL metadata extraction
+│   ├── geocoder.py       # Location geocoding
+│   ├── embeddings.py     # OpenAI embeddings + semantic search
+│   ├── classifier.py     # Claude-based classification
+│   ├── export.py         # Spreadsheet + map generation
+│   └── test_api_keys.py  # API verification
+└── output/
+    ├── suggestions.csv
+    ├── suggestions.xlsx
+    └── map.html
+```
+
+---
+
+## Future Ideas / Nice-to-haves
+
+- [ ] Process images with vision API to detect place names/activities
+- [ ] Extract audio transcriptions from voice messages
+- [ ] Link TikTok videos to specific NZ locations mentioned
+- [ ] Integration with Google My Maps for collaborative editing
+- [ ] Mobile-friendly map view
+- [ ] "Mark as done" functionality that syncs back
+
+---
+
+## Changelog
+
+### 2024-12-14
+- Initial project setup
+- Parser complete: 14,822 messages parsed
+- URL extraction complete: 362 URLs classified
+- Regex suggestion extraction: 238 suggestions found
+- API keys configured and tested (OpenAI, Google Maps, Anthropic)
+- Decided on embedding-first approach for cost optimization

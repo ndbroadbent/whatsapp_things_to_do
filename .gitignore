@@ -1,0 +1,20 @@
+# Environment and secrets
+.env
+*.env.local
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Data files (large/personal)
+data/_chat.txt
+data/media/
+data/*.db
+
+# Output
+output/
+
+# OS
+.DS_Store
