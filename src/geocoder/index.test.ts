@@ -85,7 +85,8 @@ function createSuggestion(
     confidence: 0.9,
     originalMessage: originalMessage ?? activity,
     sender: 'Test User',
-    timestamp: new Date('2025-01-15T10:30:00Z')
+    timestamp: new Date('2025-01-15T10:30:00Z'),
+    isMappable: location !== undefined
   }
 }
 

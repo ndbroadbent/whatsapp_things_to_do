@@ -147,6 +147,13 @@ export interface ClassifiedSuggestion {
   readonly originalMessage: string
   readonly sender: string
   readonly timestamp: Date
+  /**
+   * Whether this activity has a specific location that can be geocoded.
+   * - true: Mappable (specific place like "Queenstown", "Coffee Lab", Google Maps URL)
+   * - false: General activity idea without location (like "see a movie", "go kayaking")
+   * Both types are valuable - general ideas appear in the list but not on the map.
+   */
+  readonly isMappable: boolean
 }
 
 export interface ClassifierConfig {
@@ -171,6 +178,43 @@ export interface ClassifierResponse {
   readonly activity_score: number
   readonly category: string
   readonly confidence: number
+  /**
+   * Whether this activity can be geocoded to a map location.
+   * - true: Has specific place name (Queenstown, Coffee Lab, URL)
+   * - false: General activity idea (see a movie, go kayaking)
+   */
+  readonly is_mappable: boolean
+}
+
+// ============================================================================
+// Aggregation Types
+// ============================================================================
+
+/**
+ * A single message that mentioned an activity/location.
+ * Used for tracking multiple mentions of the same thing.
+ */
+export interface SourceMessage {
+  readonly messageId: number
+  readonly content: string
+  readonly sender: string
+  readonly timestamp: Date
+  readonly context?: string | undefined
+}
+
+/**
+ * An aggregated suggestion combining multiple mentions of the same activity/location.
+ * Activities mentioned multiple times are MORE valuable, not duplicates.
+ */
+export interface AggregatedSuggestion extends ClassifiedSuggestion {
+  /** Number of times this activity/location was mentioned */
+  readonly mentionCount: number
+  /** Timestamp of first mention */
+  readonly firstMentionedAt: Date
+  /** Timestamp of most recent mention */
+  readonly lastMentionedAt: Date
+  /** All source messages that mentioned this activity */
+  readonly sourceMessages: readonly SourceMessage[]
 }
 
 // ============================================================================

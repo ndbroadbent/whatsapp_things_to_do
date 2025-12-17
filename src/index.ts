@@ -85,6 +85,8 @@ export { quickScan, quickScanMessages } from './scanner/index.js'
 export type {
   // Classifier types
   ActivityCategory,
+  // Aggregation types
+  AggregatedSuggestion,
   ApiError,
   // Result types
   ApiErrorType,
@@ -120,6 +122,7 @@ export type {
   ProcessingStats,
   Result,
   SemanticSearchConfig,
+  SourceMessage,
   UrlType,
   WhatsAppFormat
 } from './types.js'

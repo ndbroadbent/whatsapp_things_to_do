@@ -60,6 +60,7 @@ For each message marked with >>>, determine:
 3. If yes, what location is mentioned (if any)?
 4. Activity score: 0.0 (errand like vet/mechanic) to 1.0 (fun activity)
 5. Category: restaurant, cafe, bar, hike, nature, beach, trip, hotel, event, concert, museum, entertainment, adventure, family, errand, appointment, other
+6. Is mappable: Can this be pinned on a map? (yes if specific location like "Queenstown", "Coffee Lab", Google Maps URL; no if general idea like "see a movie", "go kayaking" without a specific venue)
 
 Focus on:
 - Suggestions to visit places (restaurants, beaches, parks, cities)
@@ -86,7 +87,8 @@ Respond in this exact JSON format (array of objects, one per message analyzed):
     "location": "<place/location mentioned - null if none or not a suggestion>",
     "activity_score": <0.0-1.0>,
     "category": "<category>",
-    "confidence": <0.0-1.0 how confident you are>
+    "confidence": <0.0-1.0 how confident you are>,
+    "is_mappable": true/false
   }
 ]
 \`\`\`
@@ -107,6 +109,7 @@ export function parseClassificationResponse(response: string): Array<{
   activity_score: number
   category: string
   confidence: number
+  is_mappable: boolean
 }> {
   // Try to extract JSON from response (might be wrapped in ```json```)
   const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/)
@@ -136,16 +139,21 @@ export function parseClassificationResponse(response: string): Array<{
 
     const obj = item as Record<string, unknown>
 
+    // Default is_mappable based on whether location is present
+    const location = typeof obj.location === 'string' ? obj.location : null
+    const defaultMappable = location !== null && location.trim().length > 0
+
     return {
       message_id: typeof obj.message_id === 'number' ? obj.message_id : 0,
       is_activity: obj.is_activity === true,
       activity: typeof obj.activity === 'string' ? obj.activity : null,
-      location: typeof obj.location === 'string' ? obj.location : null,
+      location,
       activity_score:
         typeof obj.activity_score === 'number' ? Math.max(0, Math.min(1, obj.activity_score)) : 0.5,
       category: typeof obj.category === 'string' ? obj.category : 'other',
       confidence:
-        typeof obj.confidence === 'number' ? Math.max(0, Math.min(1, obj.confidence)) : 0.5
+        typeof obj.confidence === 'number' ? Math.max(0, Math.min(1, obj.confidence)) : 0.5,
+      is_mappable: typeof obj.is_mappable === 'boolean' ? obj.is_mappable : defaultMappable
     }
   })
 }

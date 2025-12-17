@@ -19,7 +19,8 @@ function createSuggestion(
     sender: 'Test User',
     timestamp: new Date('2025-01-15T10:30:00Z'),
     latitude: 41.9,
-    longitude: 12.5
+    longitude: 12.5,
+    isMappable: true
   }
 }
 
@@ -130,7 +131,8 @@ describe('JSON Export', () => {
         confidence: 0.9,
         originalMessage: 'Message',
         sender: 'User',
-        timestamp: new Date()
+        timestamp: new Date(),
+        isMappable: false
       }
 
       const json = exportToJSON([suggestion])
@@ -151,7 +153,8 @@ describe('JSON Export', () => {
         confidence: 0.9,
         originalMessage: 'Message',
         sender: 'User',
-        timestamp: new Date()
+        timestamp: new Date(),
+        isMappable: false
       }
 
       const json = exportToJSON([withCoords, withoutCoords])

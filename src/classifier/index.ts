@@ -181,7 +181,8 @@ function toClassifiedSuggestion(
     confidence: response.confidence,
     originalMessage: candidate.content,
     sender: candidate.sender,
-    timestamp: candidate.timestamp
+    timestamp: candidate.timestamp,
+    isMappable: response.is_mappable
   }
 }
 

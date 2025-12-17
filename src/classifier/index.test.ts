@@ -443,7 +443,8 @@ describe('Classifier Module', () => {
         confidence: 0.9,
         originalMessage: 'Test',
         sender: 'User',
-        timestamp: new Date()
+        timestamp: new Date(),
+        isMappable: true
       }
     }
 
@@ -494,7 +495,8 @@ describe('Classifier Module', () => {
         confidence: 0.9,
         originalMessage: 'Test',
         sender: 'User',
-        timestamp: new Date()
+        timestamp: new Date(),
+        isMappable: true
       }
     }
 

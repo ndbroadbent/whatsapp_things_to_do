@@ -51,7 +51,8 @@ function createSuggestion(
     sender: 'Test User',
     timestamp: new Date('2025-01-15T10:30:00Z'),
     latitude: lat,
-    longitude: lng
+    longitude: lng,
+    isMappable: lat !== undefined
   }
 }
 
