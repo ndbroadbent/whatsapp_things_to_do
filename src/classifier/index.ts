@@ -5,6 +5,8 @@
  * and extract activity/location details.
  */
 
+import { generateClassifierCacheKey } from '../cache/key.js'
+import { DEFAULT_CACHE_TTL_SECONDS } from '../cache/types.js'
 import { emptyResponseError, handleHttpError, handleNetworkError, httpFetch } from '../http.js'
 import type {
   ActivityCategory,
@@ -12,6 +14,7 @@ import type {
   ClassifiedSuggestion,
   ClassifierConfig,
   ClassifierResponse,
+  ResponseCache,
   Result
 } from '../types.js'
 import { buildClassificationPrompt, parseClassificationResponse } from './prompt.js'
@@ -185,10 +188,26 @@ function toClassifiedSuggestion(
  */
 async function classifyBatch(
   candidates: readonly CandidateMessage[],
-  config: ClassifierConfig
+  config: ClassifierConfig,
+  cache?: ResponseCache
 ): Promise<Result<ClassifiedSuggestion[]>> {
-  const prompt = buildClassificationPrompt(candidates)
+  const model = config.model ?? DEFAULT_MODELS[config.provider]
 
+  // Check cache first
+  const cacheKey = generateClassifierCacheKey(
+    config.provider,
+    model,
+    candidates.map((c) => ({ messageId: c.messageId, content: c.content }))
+  )
+
+  if (cache) {
+    const cached = await cache.get<ClassifiedSuggestion[]>(cacheKey)
+    if (cached) {
+      return { ok: true, value: cached.data }
+    }
+  }
+
+  const prompt = buildClassificationPrompt(candidates)
   const responseResult = await callProvider(prompt, config)
   if (!responseResult.ok) {
     return responseResult
@@ -207,6 +226,15 @@ async function classifyBatch(
       }
     }
 
+    // Cache the results
+    if (cache) {
+      await cache.set(
+        cacheKey,
+        { data: suggestions, cachedAt: Date.now() },
+        DEFAULT_CACHE_TTL_SECONDS
+      )
+    }
+
     return { ok: true, value: suggestions }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
@@ -222,11 +250,13 @@ async function classifyBatch(
  *
  * @param candidates Candidate messages to classify
  * @param config Classifier configuration
+ * @param cache Optional response cache to prevent duplicate API calls
  * @returns Classified suggestions or error
  */
 export async function classifyMessages(
   candidates: readonly CandidateMessage[],
-  config: ClassifierConfig
+  config: ClassifierConfig,
+  cache?: ResponseCache
 ): Promise<Result<ClassifiedSuggestion[]>> {
   const batchSize = config.batchSize ?? DEFAULT_BATCH_SIZE
   const results: ClassifiedSuggestion[] = []
@@ -235,7 +265,7 @@ export async function classifyMessages(
   for (let i = 0; i < candidates.length; i += batchSize) {
     const batch = candidates.slice(i, i + batchSize)
 
-    const batchResult = await classifyBatch(batch, config)
+    const batchResult = await classifyBatch(batch, config, cache)
     if (!batchResult.ok) {
       return batchResult
     }

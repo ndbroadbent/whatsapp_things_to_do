@@ -5,6 +5,8 @@
  * activity suggestions that don't match explicit patterns.
  */
 
+import { generateEmbeddingCacheKey } from '../cache/key.js'
+import { DEFAULT_CACHE_TTL_SECONDS } from '../cache/types.js'
 import { handleHttpError, handleNetworkError, httpFetch } from '../http.js'
 import type {
   CandidateMessage,
@@ -12,6 +14,7 @@ import type {
   EmbeddedMessage,
   EmbeddingConfig,
   ParsedMessage,
+  ResponseCache,
   Result,
   SemanticSearchConfig
 } from '../types.js'
@@ -59,9 +62,19 @@ interface OpenAIEmbeddingResponse {
  */
 async function embedBatch(
   texts: readonly string[],
-  config: EmbeddingConfig
+  config: EmbeddingConfig,
+  cache?: ResponseCache
 ): Promise<Result<Float32Array[]>> {
   const model = config.model ?? DEFAULT_MODEL
+
+  // Check cache first (store as number[][] since Float32Array doesn't serialize well)
+  const cacheKey = generateEmbeddingCacheKey(model, texts)
+  if (cache) {
+    const cached = await cache.get<number[][]>(cacheKey)
+    if (cached) {
+      return { ok: true, value: cached.data.map((arr) => new Float32Array(arr)) }
+    }
+  }
 
   try {
     const response = await httpFetch('https://api.openai.com/v1/embeddings', {
@@ -88,6 +101,16 @@ async function embedBatch(
       embeddings[item.index] = new Float32Array(item.embedding)
     }
 
+    // Cache the results (convert to number[][] for JSON serialization)
+    if (cache) {
+      const serializable = embeddings.map((e) => Array.from(e))
+      await cache.set(
+        cacheKey,
+        { data: serializable, cachedAt: Date.now() },
+        DEFAULT_CACHE_TTL_SECONDS
+      )
+    }
+
     return { ok: true, value: embeddings }
   } catch (error) {
     return handleNetworkError(error)
@@ -99,11 +122,13 @@ async function embedBatch(
  *
  * @param messages Messages to embed (id and content required)
  * @param config OpenAI API configuration
+ * @param cache Optional response cache to prevent duplicate API calls
  * @returns Array of embedded messages
  */
 export async function embedMessages(
   messages: readonly { id: number; content: string }[],
-  config: EmbeddingConfig
+  config: EmbeddingConfig,
+  cache?: ResponseCache
 ): Promise<Result<EmbeddedMessage[]>> {
   const batchSize = Math.min(config.batchSize ?? DEFAULT_BATCH_SIZE, MAX_OPENAI_BATCH_SIZE)
 
@@ -114,7 +139,7 @@ export async function embedMessages(
     const batch = messages.slice(i, i + batchSize)
     const texts = batch.map((m) => m.content)
 
-    const embedResult = await embedBatch(texts, config)
+    const embedResult = await embedBatch(texts, config, cache)
 
     if (!embedResult.ok) {
       return embedResult
@@ -141,9 +166,10 @@ export async function embedMessages(
  */
 export async function embedQueries(
   queries: readonly string[],
-  config: EmbeddingConfig
+  config: EmbeddingConfig,
+  cache?: ResponseCache
 ): Promise<Result<Float32Array[]>> {
-  return embedBatch(queries, config)
+  return embedBatch(queries, config, cache)
 }
 
 /**
@@ -226,13 +252,16 @@ export function findSemanticCandidates(
  * Full semantic search pipeline: embed messages, embed queries, find candidates.
  *
  * @param messages Parsed messages to search
- * @param config Embedding and search configuration
+ * @param embeddingConfig Embedding configuration
+ * @param searchConfig Search configuration
+ * @param cache Optional response cache to prevent duplicate API calls
  * @returns Semantic candidates or error
  */
 export async function semanticSearch(
   messages: readonly ParsedMessage[],
   embeddingConfig: EmbeddingConfig,
-  searchConfig?: SemanticSearchConfig
+  searchConfig?: SemanticSearchConfig,
+  cache?: ResponseCache
 ): Promise<Result<CandidateMessage[]>> {
   // Filter messages with content
   const messagesToEmbed = messages
@@ -240,14 +269,14 @@ export async function semanticSearch(
     .map((m) => ({ id: m.id, content: m.content }))
 
   // Embed all messages
-  const messageEmbeddingsResult = await embedMessages(messagesToEmbed, embeddingConfig)
+  const messageEmbeddingsResult = await embedMessages(messagesToEmbed, embeddingConfig, cache)
   if (!messageEmbeddingsResult.ok) {
     return messageEmbeddingsResult
   }
 
   // Embed query strings
   const queries = searchConfig?.queries ?? DEFAULT_ACTIVITY_QUERIES
-  const queryEmbeddingsResult = await embedQueries(queries, embeddingConfig)
+  const queryEmbeddingsResult = await embedQueries(queries, embeddingConfig, cache)
   if (!queryEmbeddingsResult.ok) {
     return queryEmbeddingsResult
   }

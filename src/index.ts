@@ -9,6 +9,16 @@
  * @license AGPL-3.0
  */
 
+export type { CachedResponse, CacheKeyComponents, ResponseCache } from './cache/index.js'
+// Cache module
+export {
+  DEFAULT_CACHE_TTL_SECONDS,
+  FilesystemCache,
+  generateCacheKey,
+  generateClassifierCacheKey,
+  generateEmbeddingCacheKey,
+  generateGeocodeCacheKey
+} from './cache/index.js'
 // Classifier module
 export {
   buildClassificationPrompt,
@@ -66,6 +76,9 @@ export {
   parseWhatsAppChat,
   parseWhatsAppChatStream
 } from './parser/index.js'
+// Scanner module (zero API cost heuristic scanning)
+export type { QuickScanOptions, QuickScanResult } from './scanner/index.js'
+export { quickScan, quickScanMessages } from './scanner/index.js'
 // Types
 export type {
   // Classifier types

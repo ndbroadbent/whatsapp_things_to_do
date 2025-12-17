@@ -4,6 +4,8 @@
  * Convert location text to coordinates using Google Maps APIs.
  */
 
+import { generateGeocodeCacheKey } from '../cache/key.js'
+import { DEFAULT_CACHE_TTL_SECONDS } from '../cache/types.js'
 import { extractGoogleMapsCoords } from '../extractor/url-classifier.js'
 import { httpFetch } from '../http.js'
 import type {
@@ -11,6 +13,7 @@ import type {
   GeocodedSuggestion,
   GeocodeResult,
   GeocoderConfig,
+  ResponseCache,
   Result
 } from '../types.js'
 
@@ -34,8 +37,18 @@ interface GoogleGeocodingResponse {
  */
 async function geocodeText(
   location: string,
-  config: GeocoderConfig
+  config: GeocoderConfig,
+  cache?: ResponseCache
 ): Promise<Result<GeocodeResult>> {
+  // Check cache first
+  const cacheKey = generateGeocodeCacheKey(location, config.regionBias)
+  if (cache) {
+    const cached = await cache.get<GeocodeResult>(cacheKey)
+    if (cached) {
+      return { ok: true, value: cached.data }
+    }
+  }
+
   // Build the query, optionally adding region bias
   let query = location
   if (
@@ -112,15 +125,23 @@ async function geocodeText(
       }
     }
 
-    return {
-      ok: true,
-      value: {
-        latitude: result.geometry.location.lat,
-        longitude: result.geometry.location.lng,
-        formattedAddress: result.formatted_address,
-        placeId: result.place_id
-      }
+    const geocodeResult: GeocodeResult = {
+      latitude: result.geometry.location.lat,
+      longitude: result.geometry.location.lng,
+      formattedAddress: result.formatted_address,
+      placeId: result.place_id
     }
+
+    // Cache the successful result
+    if (cache) {
+      await cache.set(
+        cacheKey,
+        { data: geocodeResult, cachedAt: Date.now() },
+        DEFAULT_CACHE_TTL_SECONDS
+      )
+    }
+
+    return { ok: true, value: geocodeResult }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     return {
@@ -164,7 +185,8 @@ function tryExtractFromUrl(suggestion: ClassifiedSuggestion): GeocodeResult | nu
  */
 async function geocodeSuggestion(
   suggestion: ClassifiedSuggestion,
-  config: GeocoderConfig
+  config: GeocoderConfig,
+  cache?: ResponseCache
 ): Promise<GeocodedSuggestion> {
   // First, try to extract coords from Google Maps URL
   const urlCoords = tryExtractFromUrl(suggestion)
@@ -184,7 +206,7 @@ async function geocodeSuggestion(
   }
 
   // Try geocoding the location text
-  const result = await geocodeText(suggestion.location, config)
+  const result = await geocodeText(suggestion.location, config, cache)
 
   if (result.ok) {
     return {
@@ -198,7 +220,7 @@ async function geocodeSuggestion(
   }
 
   // If location geocoding fails, try the activity text
-  const activityResult = await geocodeText(suggestion.activity, config)
+  const activityResult = await geocodeText(suggestion.activity, config, cache)
 
   if (activityResult.ok) {
     return {
@@ -220,16 +242,18 @@ async function geocodeSuggestion(
  *
  * @param suggestions Classified suggestions to geocode
  * @param config Geocoder configuration
+ * @param cache Optional response cache to prevent duplicate API calls
  * @returns Geocoded suggestions (some may not have coordinates if geocoding failed)
  */
 export async function geocodeSuggestions(
   suggestions: readonly ClassifiedSuggestion[],
-  config: GeocoderConfig
+  config: GeocoderConfig,
+  cache?: ResponseCache
 ): Promise<GeocodedSuggestion[]> {
   const results: GeocodedSuggestion[] = []
 
   for (const suggestion of suggestions) {
-    const geocoded = await geocodeSuggestion(suggestion, config)
+    const geocoded = await geocodeSuggestion(suggestion, config, cache)
     results.push(geocoded)
   }
 
