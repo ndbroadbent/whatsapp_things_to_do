@@ -241,6 +241,26 @@ export type Result<T> =
   | { readonly ok: false; readonly error: ApiError }
 
 // ============================================================================
+// Cache Types
+// ============================================================================
+
+/**
+ * Cached response wrapper with metadata
+ */
+export interface CachedResponse<T = unknown> {
+  readonly data: T
+  readonly cachedAt: number
+}
+
+/**
+ * Pluggable cache interface for API responses.
+ */
+export interface ResponseCache {
+  get<T = unknown>(hash: string): Promise<CachedResponse<T> | null>
+  set<T = unknown>(hash: string, response: CachedResponse<T>, ttlSeconds: number): Promise<void>
+}
+
+// ============================================================================
 // CLI Types
 // ============================================================================
 
