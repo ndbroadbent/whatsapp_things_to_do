@@ -1,58 +1,115 @@
 /**
- * ChatToMap - Core Library
+ * ChatToMap Core Library
  *
- * Pure functions for transforming chat exports into geocoded activity suggestions.
+ * Transform chat exports into geocoded activity suggestions.
+ *
+ * Design principle: Pure functions only. No IO, no progress reporting, no orchestration.
+ * The library is stateless and side-effect-free (except for API calls to external services).
  *
  * @license AGPL-3.0
  */
 
-// Classifier
-export { classifyMessages } from './classifier/index.js'
-// Embeddings
-export { cosineSimilarity, embedMessages, findSemanticCandidates } from './embeddings/index.js'
-// Export
+// Classifier module
+export {
+  buildClassificationPrompt,
+  classifyMessages,
+  filterActivities,
+  groupByCategory,
+  parseClassificationResponse
+} from './classifier/index.js'
+// Embeddings module
+export {
+  cosineSimilarity,
+  DEFAULT_ACTIVITY_QUERIES,
+  embedMessages,
+  embedQueries,
+  findSemanticCandidates,
+  findTopK,
+  semanticSearch
+} from './embeddings/index.js'
+// Export module
 export {
   exportToCSV,
   exportToExcel,
   exportToJSON,
   exportToMapHTML,
-  exportToPDF
+  exportToPDF,
+  parseJSON
 } from './export/index.js'
-// Extractor
-export { extractCandidates } from './extractor/index.js'
-// Geocoder
-export { extractGoogleMapsCoords, geocodeLocation, geocodeSuggestions } from './geocoder/index.js'
-// Parser
-export { parseWhatsAppChat, parseWhatsAppChatStream } from './parser/index.js'
+// Extractor module
+export {
+  ACTIVITY_KEYWORDS,
+  classifyUrl,
+  EXCLUSION_PATTERNS,
+  extractCandidates,
+  extractGoogleMapsCoords,
+  isActivityUrl,
+  SUGGESTION_PATTERNS
+} from './extractor/index.js'
+// Geocoder module
+export {
+  calculateCenter,
+  countGeocoded,
+  filterGeocoded,
+  geocodeLocation,
+  geocodeSuggestions
+} from './geocoder/index.js'
+// Parser module
+export {
+  detectChatSource,
+  detectFormat,
+  parseChat,
+  parseChatStream,
+  parseChatWithStats,
+  parseIMessageChat,
+  parseIMessageChatStream,
+  parseWhatsAppChat,
+  parseWhatsAppChatStream
+} from './parser/index.js'
 // Types
 export type {
-  // Classifier
+  // Classifier types
   ActivityCategory,
   ApiError,
-  // Results
+  // Result types
   ApiErrorType,
   CandidateMessage,
-  // Extractor
+  // Extractor types
   CandidateSource,
+  // Chat sources
+  ChatSource,
+  // CLI types
+  CLIOptions,
   ClassifiedSuggestion,
   ClassifierConfig,
+  ClassifierResponse,
   EmbeddedMessage,
-  // Embeddings
+  // Embeddings types
   EmbeddingConfig,
+  ExportMetadata,
   ExtractorOptions,
+  ExtractorResult,
   GeocodedSuggestion,
   GeocodeResult,
   GeocoderConfig,
-  // Geocoder
+  // Geocoder types
   GeocodeSource,
-  // Export
+  // Export types
   MapConfig,
-  // Parser
+  // Parser types
   MediaType,
   ParsedMessage,
+  ParseResult,
   ParserOptions,
   PDFConfig,
+  ProcessingStats,
   Result,
   SemanticSearchConfig,
-  UrlType
+  UrlType,
+  WhatsAppFormat
 } from './types.js'
+
+/**
+ * Library version.
+ */
+export const VERSION = '0.1.0'
