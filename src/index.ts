@@ -86,13 +86,16 @@ export { quickScan, quickScanMessages } from './scanner/index.js'
 // Scraper module (social media metadata extraction)
 export type { ScrapedMetadata, ScrapeOutcome, ScraperConfig } from './scraper/index.js'
 export {
+  buildYouTubeUrl,
   detectPlatform,
   extractTikTokVideoId,
+  extractYouTubeVideoId,
   resolveTikTokUrl,
   scrapeActivityLinks,
   scrapeTikTok,
   scrapeUrl,
-  scrapeUrls
+  scrapeUrls,
+  scrapeYouTube
 } from './scraper/index.js'
 // Types
 export type {

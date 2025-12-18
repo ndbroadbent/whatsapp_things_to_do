@@ -1,130 +1,75 @@
 # ChatToMap
 
-Extract "things to do" from chat exports and visualize them on an interactive map.
+Transform chat exports into geocoded activity suggestions.
 
-![npm](https://img.shields.io/npm/v/chat-to-map)
-![License](https://img.shields.io/badge/License-AGPL--3.0-blue)
-![Node](https://img.shields.io/badge/Node-18%2B-green)
+[![npm](https://img.shields.io/npm/v/chat-to-map)](https://www.npmjs.com/package/chat-to-map)
+[![License](https://img.shields.io/badge/License-AGPL--3.0-blue)](LICENSE)
 
-## What It Does
+## Overview
 
-This tool parses WhatsApp (iOS/Android) and iMessage exports to find activity suggestions like:
-- "We should go to..."
-- "Let's try..."
-- "Wanna visit..."
-- "This looks fun!"
+ChatToMap extracts "things to do" from WhatsApp and iMessage exports - restaurants to try, places to visit, trips to take. It finds suggestions buried in years of chat history and puts them on a map.
 
-It then:
-1. **Extracts** suggestions using regex patterns and URL detection
-2. **Classifies** them with AI (activity vs errand, mappable vs general)
-3. **Geocodes** locations to map coordinates
-4. **Exports** to CSV, Excel, JSON, PDF, and interactive HTML map
-
-## Quick Start (npx)
-
-**Zero installation required!** Run directly with npx:
-
-```bash
-# Free scan - see what patterns match (no API key needed)
-npx chat-to-map scan "WhatsApp Chat.zip"
-
-# AI preview - classify top candidates (~$0.01)
-npx chat-to-map preview "WhatsApp Chat.zip"
-
-# Full analysis (~$1-2 depending on chat size)
-npx chat-to-map analyze "WhatsApp Chat.zip"
-```
+**Features:**
+- Parse WhatsApp (iOS/Android) and iMessage exports
+- Extract suggestions using regex patterns and URL detection
+- Classify with AI (activity vs errand, mappable vs general)
+- Scrape metadata from TikTok and YouTube links
+- Geocode locations to coordinates
+- Export to CSV, Excel, JSON, PDF, and interactive HTML map
 
 ## Installation
 
-For repeated use, install globally:
-
 ```bash
+# Run directly with npx (zero install)
+npx chat-to-map scan "WhatsApp Chat.zip"
+
+# Or install globally
 npm install -g chat-to-map
-```
 
-Or as a project dependency:
-
-```bash
+# Or as a library
 npm install chat-to-map
 ```
 
-## Usage
-
-### Commands
+## CLI Usage
 
 ```bash
-chat-to-map scan <input>      # Heuristic scan (free, no API key)
-chat-to-map preview <input>   # AI preview of top candidates (~$0.01)
-chat-to-map analyze <input>   # Full pipeline with all exports
-chat-to-map list              # Show previously processed chats
+# Free scan - find patterns without API calls
+chat-to-map scan <input>
+
+# AI preview - classify top candidates (~$0.01)
+chat-to-map preview <input>
+
+# Full analysis with exports
+chat-to-map analyze <input>
+
+# List previously processed chats
+chat-to-map list
 ```
 
 ### Options
 
-```bash
--o, --output-dir <dir>      Output directory (default: ./chat-to-map/output)
--f, --format <formats>      Output formats: csv,excel,json,map,pdf (default: all)
--r, --region <code>         Region bias for geocoding (e.g., NZ, US, UK)
--n, --limit <num>           Max results for preview/scan (default: 10)
---min-confidence <0-1>      Minimum confidence threshold (default: 0.5)
---activities-only           Exclude errands (activity_score > 0.5)
---category <cat>            Filter by category
---skip-geocoding            Skip geocoding step
--q, --quiet                 Minimal output
--v, --verbose               Verbose output
+```
+-o, --output-dir <dir>    Output directory (default: ./chat-to-map/output)
+-f, --format <formats>    Output formats: csv,excel,json,map,pdf
+-r, --region <code>       Region bias for geocoding (e.g., NZ, US, UK)
+-n, --limit <num>         Max results for preview/scan
+--min-confidence <0-1>    Minimum confidence threshold
+--activities-only         Exclude errands (activity_score > 0.5)
+--category <cat>          Filter by category
+--skip-geocoding          Skip geocoding step
+-q, --quiet               Minimal output
+-v, --verbose             Verbose output
 ```
 
 ### API Keys
 
-Set via environment variables:
-
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...     # Required for classification
-export GOOGLE_MAPS_API_KEY=AIza...      # Required for geocoding
-export OPENAI_API_KEY=sk-...            # Optional for embeddings
+export ANTHROPIC_API_KEY=sk-ant-...   # Required for classification
+export GOOGLE_MAPS_API_KEY=AIza...    # Required for geocoding
+export OPENAI_API_KEY=sk-...          # Optional for embeddings
 ```
 
-Or use OpenRouter as a fallback:
-```bash
-export OPENROUTER_API_KEY=sk-or-...
-```
-
-## Examples
-
-```bash
-# Quick scan to see pattern matches (free)
-chat-to-map scan "WhatsApp Chat with Travel Group.zip"
-
-# Preview top 5 candidates with AI classification
-chat-to-map preview "WhatsApp Chat.zip" -n 5
-
-# Full analysis with NZ region bias
-chat-to-map analyze "WhatsApp Chat.zip" -r NZ
-
-# Export only CSV and map formats
-chat-to-map analyze chat.txt -f csv,map
-
-# Filter to activities only (exclude errands)
-chat-to-map analyze chat.zip --activities-only
-
-# Custom output directory
-chat-to-map analyze chat.zip -o ./my-results
-```
-
-## Output Formats
-
-| Format | Description |
-|--------|-------------|
-| **CSV** | Spreadsheet-compatible, all fields |
-| **Excel** | Formatted .xlsx with filters |
-| **JSON** | Machine-readable with metadata |
-| **Map** | Interactive Leaflet.js HTML |
-| **PDF** | Printable report with summary |
-
-## As a Library
-
-Use the core functions in your own code:
+## Library Usage
 
 ```typescript
 import {
@@ -132,13 +77,18 @@ import {
   extractCandidates,
   classifyMessages,
   geocodeSuggestions,
-  exportToMapHTML
+  exportToMapHTML,
+  quickScan
 } from 'chat-to-map'
 
-// Parse a chat export
-const messages = parseWhatsAppChat(rawChatText)
+// Quick scan (zero API cost)
+const scan = quickScan(chatText)
+console.log(`Found ${scan.candidates.length} candidates`)
 
-// Extract candidates (zero API cost)
+// Parse messages
+const messages = parseWhatsAppChat(chatText)
+
+// Extract candidates
 const { candidates } = extractCandidates(messages)
 
 // Classify with AI
@@ -147,64 +97,67 @@ const result = await classifyMessages(candidates, {
   apiKey: process.env.ANTHROPIC_API_KEY
 })
 
+// Geocode and export
 if (result.ok) {
-  // Geocode locations
   const geocoded = await geocodeSuggestions(
     result.value.filter(s => s.isMappable),
-    { apiKey: process.env.GOOGLE_MAPS_API_KEY, regionBias: 'NZ' }
+    { apiKey: process.env.GOOGLE_MAPS_API_KEY }
   )
-
-  // Generate map
-  const html = exportToMapHTML(geocoded, { title: 'Our Activities' })
+  const html = exportToMapHTML(geocoded)
 }
 ```
 
-## How It Works
+### Social Media Scraping
 
-### 1. Parsing
-Supports WhatsApp iOS/Android formats:
+Extract metadata from TikTok and YouTube links found in chats:
+
+```typescript
+import { scrapeUrl, scrapeTikTok, scrapeYouTube } from 'chat-to-map'
+
+// Auto-detect platform
+const result = await scrapeUrl('https://youtu.be/abc123')
+
+// Or use platform-specific scrapers
+const tiktok = await scrapeTikTok('https://vt.tiktok.com/xxx/')
+const youtube = await scrapeYouTube('https://youtube.com/watch?v=xxx')
+
+if (result.ok) {
+  console.log(result.metadata.title)
+  console.log(result.metadata.description)
+  console.log(result.metadata.hashtags)
+}
 ```
-[10/11/24, 9:36 PM] Alice: We should try that new restaurant!
-10/11/24, 21:36 - Bob: Let's go this weekend
-```
 
-### 2. Candidate Extraction
-- **Regex patterns**: "we should", "let's go", "bucket list", etc.
-- **URL detection**: Google Maps, TikTok, Instagram, Airbnb, etc.
-- **Exclusions**: Work, medical, chores, past tense filtered out
+## Modules
 
-### 3. AI Classification
-Each candidate is classified with:
-- `activityScore`: 0.0 (errand) → 1.0 (fun activity)
-- `category`: restaurant, hike, trip, event, etc.
-- `isMappable`: Has specific location vs general idea
+| Module | Purpose |
+|--------|---------|
+| `parser` | Parse WhatsApp/iMessage exports |
+| `extractor` | Find candidates via regex and URLs |
+| `classifier` | AI classification (Claude/OpenAI) |
+| `embeddings` | Semantic search with embeddings |
+| `geocoder` | Convert locations to coordinates |
+| `scraper` | Extract metadata from social URLs |
+| `export` | CSV, Excel, JSON, PDF, HTML map |
+| `scanner` | Zero-cost heuristic scanning |
+| `cache` | API response caching |
 
-### 4. Geocoding
-- Extracts coordinates from Google Maps URLs
-- Geocodes place names with region bias
-- Deduplicates by location
+## Export Formats
 
-## Cost Estimates
+| Format | Description |
+|--------|-------------|
+| CSV | All fields, spreadsheet-compatible |
+| Excel | Formatted .xlsx with filters |
+| JSON | Machine-readable with full metadata |
+| Map | Interactive Leaflet.js HTML |
+| PDF | Printable report with summary |
 
-| Chat Size | Scan | Preview | Full Analysis |
-|-----------|------|---------|---------------|
-| 1k messages | Free | ~$0.01 | ~$0.20 |
-| 10k messages | Free | ~$0.01 | ~$0.50 |
-| 50k messages | Free | ~$0.01 | ~$2.00 |
+## How to Export WhatsApp
 
-Costs vary based on number of candidates found and API pricing.
-
-## Export WhatsApp Chat
-
-On your phone:
-1. Open the WhatsApp chat
-2. Tap ⋮ (menu) → More → Export chat
+1. Open WhatsApp chat
+2. Tap ⋮ → More → Export chat
 3. Choose "Without media"
-4. Save the `.zip` file
-
-## Contributing
-
-PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+4. Save the .zip file
 
 ## License
 
@@ -212,4 +165,4 @@ AGPL-3.0 - See [LICENSE](LICENSE)
 
 ---
 
-Part of the [ChatToMap](https://chattomap.com) project.
+[ChatToMap.com](https://chattomap.com)
