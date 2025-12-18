@@ -23,6 +23,16 @@ export interface CLIArgs {
   limit: number
 }
 
+/**
+ * Default base directory for chat-to-map data.
+ */
+export const DEFAULT_BASE_DIR = './chat-to-map'
+
+/**
+ * Default output directory under the base directory.
+ */
+export const DEFAULT_OUTPUT_DIR = `${DEFAULT_BASE_DIR}/output`
+
 export const HELP_TEXT = `
 ChatToMap CLI v${VERSION}
 
@@ -32,6 +42,7 @@ USAGE:
   chat-to-map analyze <input> [options]
   chat-to-map preview <input> [options]
   chat-to-map scan <input> [options]
+  chat-to-map list [options]
   chat-to-map parse <input> [options]
   chat-to-map extract <messages.json> [options]
   chat-to-map classify <candidates.json> [options]
@@ -44,6 +55,7 @@ COMMANDS:
   analyze    Run the complete pipeline (parse -> extract -> classify -> geocode -> export)
   preview    AI-powered preview: classify top candidates (requires API key, ~$0.01)
   scan       Heuristic scan: show pattern matches (no API key needed, free)
+  list       Show previously processed chats
   parse      Parse a chat export file
   extract    Extract candidates from parsed messages
   classify   Classify candidates using AI
@@ -51,7 +63,7 @@ COMMANDS:
   export     Generate output files
 
 OPTIONS:
-  -o, --output-dir <dir>      Output directory (default: ./output)
+  -o, --output-dir <dir>      Output directory (default: ./chat-to-map/output)
   -f, --format <formats>      Output formats: csv,excel,json,map,pdf (default: all)
   -r, --region <code>         Region bias for geocoding (e.g., NZ, US)
   -n, --limit <num>           Max results for preview/scan (default: 10)
@@ -79,6 +91,9 @@ EXAMPLES:
 
   # Full analysis (requires API key, ~$1-2)
   chat-to-map analyze "WhatsApp Chat.zip"
+
+  # List previously processed chats
+  chat-to-map list
 
   # Parse and show stats only (no API calls)
   chat-to-map analyze chat.txt --dry-run
@@ -158,7 +173,8 @@ function handleSpecialCommands(command: string, flags: Record<string, string | b
 function buildCliArgs(flags: Record<string, string | boolean>, positionals: string[]): CLIArgs {
   const command = positionals[0] ?? 'help'
   const input = positionals[1] ?? ''
-  const outputDir = typeof flags['output-dir'] === 'string' ? flags['output-dir'] : './output'
+  const outputDir =
+    typeof flags['output-dir'] === 'string' ? flags['output-dir'] : DEFAULT_OUTPUT_DIR
   const format = typeof flags.format === 'string' ? flags.format : 'csv,excel,json,map,pdf'
   const region = typeof flags.region === 'string' ? flags.region : undefined
   const minConfStr = typeof flags['min-confidence'] === 'string' ? flags['min-confidence'] : '0.5'

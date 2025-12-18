@@ -23,11 +23,17 @@ describe('CLI Args', () => {
       expect(HELP_TEXT).toContain('analyze')
       expect(HELP_TEXT).toContain('preview')
       expect(HELP_TEXT).toContain('scan')
+      expect(HELP_TEXT).toContain('list')
       expect(HELP_TEXT).toContain('parse')
       expect(HELP_TEXT).toContain('extract')
       expect(HELP_TEXT).toContain('classify')
       expect(HELP_TEXT).toContain('geocode')
       expect(HELP_TEXT).toContain('export')
+    })
+
+    it('describes list command', () => {
+      expect(HELP_TEXT).toContain('list')
+      expect(HELP_TEXT).toContain('Show previously processed chats')
     })
 
     it('describes preview command', () => {
@@ -176,7 +182,7 @@ describe('CLI Args', () => {
       const { parseCliArgs } = await import('./args.js')
       const args = parseCliArgs()
 
-      expect(args.outputDir).toBe('./output')
+      expect(args.outputDir).toBe('./chat-to-map/output')
       expect(args.formats).toEqual(['csv', 'excel', 'json', 'map', 'pdf'])
       expect(args.minConfidence).toBe(0.5)
       expect(args.limit).toBe(10)

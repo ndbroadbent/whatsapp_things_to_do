@@ -12,6 +12,7 @@ import { writeFile } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import { type CLIArgs, HELP_TEXT, parseCliArgs } from './cli/args.js'
 import { ensureDir, readInputFile } from './cli/io.js'
+import { cmdList } from './cli/list.js'
 import { createLogger, type Logger } from './cli/logger.js'
 import { formatDate, getCategoryEmoji, runQuickScanWithLogs, truncate } from './cli/preview.js'
 import {
@@ -426,6 +427,10 @@ async function main(): Promise<void> {
 
       case 'scan':
         await cmdScan(args, logger)
+        break
+
+      case 'list':
+        await cmdList(args.outputDir, logger)
         break
 
       case 'parse':
