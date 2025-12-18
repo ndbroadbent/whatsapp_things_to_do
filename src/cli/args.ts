@@ -20,6 +20,7 @@ export interface CLIArgs {
   quiet: boolean
   verbose: boolean
   dryRun: boolean
+  limit: number
 }
 
 export const HELP_TEXT = `
@@ -30,6 +31,7 @@ Transform chat exports into interactive maps of activities and places.
 USAGE:
   chat-to-map analyze <input> [options]
   chat-to-map preview <input> [options]
+  chat-to-map scan <input> [options]
   chat-to-map parse <input> [options]
   chat-to-map extract <messages.json> [options]
   chat-to-map classify <candidates.json> [options]
@@ -40,7 +42,8 @@ USAGE:
 
 COMMANDS:
   analyze    Run the complete pipeline (parse -> extract -> classify -> geocode -> export)
-  preview    Quick preview: scan chat + show 5 best activities (single AI call, ~$0.01)
+  preview    AI-powered preview: classify top candidates (requires API key, ~$0.01)
+  scan       Heuristic scan: show pattern matches (no API key needed, free)
   parse      Parse a chat export file
   extract    Extract candidates from parsed messages
   classify   Classify candidates using AI
@@ -51,6 +54,7 @@ OPTIONS:
   -o, --output-dir <dir>      Output directory (default: ./output)
   -f, --format <formats>      Output formats: csv,excel,json,map,pdf (default: all)
   -r, --region <code>         Region bias for geocoding (e.g., NZ, US)
+  -n, --limit <num>           Max results for preview/scan (default: 10)
   --min-confidence <0-1>      Minimum confidence threshold (default: 0.5)
   --activities-only           Exclude errands (activity_score > 0.5)
   --category <cat>            Filter by category
@@ -66,10 +70,14 @@ API KEYS (via environment variables):
   GOOGLE_MAPS_API_KEY         Required for geocoding
 
 EXAMPLES:
-  # Quick preview - see top 5 activities (low cost ~$0.01)
-  chat-to-map preview "WhatsApp Chat.zip"
+  # Heuristic scan - see what patterns match (free, no API key)
+  chat-to-map scan "WhatsApp Chat.zip"
 
-  # Analyze a WhatsApp export (full processing)
+  # AI preview - classify top candidates (requires API key, ~$0.01)
+  chat-to-map preview "WhatsApp Chat.zip"
+  chat-to-map preview "WhatsApp Chat.zip" -n 5   # Limit to 5 results
+
+  # Full analysis (requires API key, ~$1-2)
   chat-to-map analyze "WhatsApp Chat.zip"
 
   # Parse and show stats only (no API calls)
@@ -124,6 +132,7 @@ function mapShortFlags(flags: Record<string, string | boolean>): void {
     o: 'output-dir',
     f: 'format',
     r: 'region',
+    n: 'limit',
     q: 'quiet',
     v: 'verbose',
     h: 'help'
@@ -153,6 +162,7 @@ function buildCliArgs(flags: Record<string, string | boolean>, positionals: stri
   const format = typeof flags.format === 'string' ? flags.format : 'csv,excel,json,map,pdf'
   const region = typeof flags.region === 'string' ? flags.region : undefined
   const minConfStr = typeof flags['min-confidence'] === 'string' ? flags['min-confidence'] : '0.5'
+  const limitStr = typeof flags.limit === 'string' ? flags.limit : '10'
   const category =
     typeof flags.category === 'string' ? (flags.category as ActivityCategory) : undefined
 
@@ -168,7 +178,8 @@ function buildCliArgs(flags: Record<string, string | boolean>, positionals: stri
     skipGeocoding: flags['skip-geocoding'] === true,
     quiet: flags.quiet === true,
     verbose: flags.verbose === true,
-    dryRun: flags['dry-run'] === true
+    dryRun: flags['dry-run'] === true,
+    limit: Number.parseInt(limitStr, 10)
   }
 }
 

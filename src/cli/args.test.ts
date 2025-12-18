@@ -22,6 +22,7 @@ describe('CLI Args', () => {
     it('includes all main commands', () => {
       expect(HELP_TEXT).toContain('analyze')
       expect(HELP_TEXT).toContain('preview')
+      expect(HELP_TEXT).toContain('scan')
       expect(HELP_TEXT).toContain('parse')
       expect(HELP_TEXT).toContain('extract')
       expect(HELP_TEXT).toContain('classify')
@@ -31,11 +32,18 @@ describe('CLI Args', () => {
 
     it('describes preview command', () => {
       expect(HELP_TEXT).toContain('preview')
-      expect(HELP_TEXT).toContain('Quick preview')
-      expect(HELP_TEXT).toContain('single AI call')
+      expect(HELP_TEXT).toContain('AI-powered preview')
+      expect(HELP_TEXT).toContain('requires API key')
     })
 
-    it('includes preview in examples', () => {
+    it('describes scan command', () => {
+      expect(HELP_TEXT).toContain('scan')
+      expect(HELP_TEXT).toContain('Heuristic scan')
+      expect(HELP_TEXT).toContain('no API key needed')
+    })
+
+    it('includes scan and preview in examples', () => {
+      expect(HELP_TEXT).toContain('chat-to-map scan')
       expect(HELP_TEXT).toContain('chat-to-map preview')
     })
 
@@ -43,6 +51,7 @@ describe('CLI Args', () => {
       expect(HELP_TEXT).toContain('--output-dir')
       expect(HELP_TEXT).toContain('--format')
       expect(HELP_TEXT).toContain('--region')
+      expect(HELP_TEXT).toContain('--limit')
       expect(HELP_TEXT).toContain('--min-confidence')
       expect(HELP_TEXT).toContain('--activities-only')
       expect(HELP_TEXT).toContain('--skip-geocoding')
@@ -92,6 +101,17 @@ describe('CLI Args', () => {
       const args = parseCliArgs()
 
       expect(args.command).toBe('preview')
+      expect(args.input).toBe('chat.zip')
+    })
+
+    it('parses scan command with input', async () => {
+      process.argv = ['node', 'cli.js', 'scan', 'chat.zip']
+
+      vi.resetModules()
+      const { parseCliArgs } = await import('./args.js')
+      const args = parseCliArgs()
+
+      expect(args.command).toBe('scan')
       expect(args.input).toBe('chat.zip')
     })
 
@@ -159,11 +179,32 @@ describe('CLI Args', () => {
       expect(args.outputDir).toBe('./output')
       expect(args.formats).toEqual(['csv', 'excel', 'json', 'map', 'pdf'])
       expect(args.minConfidence).toBe(0.5)
+      expect(args.limit).toBe(10)
       expect(args.activitiesOnly).toBe(false)
       expect(args.skipGeocoding).toBe(false)
       expect(args.quiet).toBe(false)
       expect(args.verbose).toBe(false)
       expect(args.dryRun).toBe(false)
+    })
+
+    it('parses limit option with --limit', async () => {
+      process.argv = ['node', 'cli.js', 'preview', 'chat.txt', '--limit', '5']
+
+      vi.resetModules()
+      const { parseCliArgs } = await import('./args.js')
+      const args = parseCliArgs()
+
+      expect(args.limit).toBe(5)
+    })
+
+    it('parses limit option with -n short flag', async () => {
+      process.argv = ['node', 'cli.js', 'scan', 'chat.txt', '-n', '20']
+
+      vi.resetModules()
+      const { parseCliArgs } = await import('./args.js')
+      const args = parseCliArgs()
+
+      expect(args.limit).toBe(20)
     })
 
     it('parses min-confidence option', async () => {

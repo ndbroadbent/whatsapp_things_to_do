@@ -13,6 +13,7 @@ import { basename, dirname, join } from 'node:path'
 import { type CLIArgs, HELP_TEXT, parseCliArgs } from './cli/args.js'
 import { ensureDir, readInputFile } from './cli/io.js'
 import { createLogger, type Logger } from './cli/logger.js'
+import { formatDate, getCategoryEmoji, runQuickScanWithLogs, truncate } from './cli/preview.js'
 import {
   classifyMessages,
   exportToCSV,
@@ -24,11 +25,9 @@ import {
   filterActivities,
   geocodeSuggestions,
   parseChatWithStats,
-  quickScan,
   VERSION
 } from './index.js'
 import type {
-  ActivityCategory,
   CandidateMessage,
   ClassifiedSuggestion,
   ClassifierConfig,
@@ -231,43 +230,6 @@ async function runExport(
 }
 
 // ============================================================================
-// Preview Helpers
-// ============================================================================
-
-const CATEGORY_EMOJI: Record<ActivityCategory, string> = {
-  restaurant: '🍽️',
-  cafe: '☕',
-  bar: '🍺',
-  hike: '🥾',
-  nature: '🌲',
-  beach: '🏖️',
-  trip: '✈️',
-  hotel: '🏨',
-  event: '🎉',
-  concert: '🎵',
-  museum: '🏛️',
-  entertainment: '🎬',
-  adventure: '🎢',
-  family: '👨‍👩‍👧',
-  errand: '📋',
-  appointment: '📅',
-  other: '📍'
-}
-
-function getCategoryEmoji(category: ActivityCategory): string {
-  return CATEGORY_EMOJI[category] || '📍'
-}
-
-function formatDate(date: Date): string {
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
-
-function truncate(text: string, maxLength: number): string {
-  if (text.length <= maxLength) return text
-  return `${text.slice(0, maxLength - 3)}...`
-}
-
-// ============================================================================
 // Commands
 // ============================================================================
 
@@ -279,21 +241,11 @@ async function cmdPreview(args: CLIArgs, logger: Logger): Promise<void> {
   logger.log(`\nChatToMap Preview v${VERSION}`)
   logger.log(`\n📁 ${basename(args.input)}`)
 
-  // Step 1: Quick scan (free - no API calls)
-  const content = await readInputFile(args.input)
-  const scanResult = quickScan(content)
-
-  const startDate = formatDate(scanResult.dateRange.start)
-  const endDate = formatDate(scanResult.dateRange.end)
-  logger.log(
-    `   ${scanResult.messageCount.toLocaleString()} messages from ${scanResult.senderCount} senders`
-  )
-  logger.log(`   Date range: ${startDate} to ${endDate}`)
+  const { scanResult, hasNoCandidates } = await runQuickScanWithLogs(args.input, logger)
 
   logger.log(`\n🔍 Quick scan found ${scanResult.stats.totalUnique} potential activities`)
 
-  if (scanResult.candidates.length === 0) {
-    logger.log('\n⚠️  No activity suggestions found in this chat.')
+  if (hasNoCandidates) {
     return
   }
 
@@ -305,10 +257,12 @@ async function cmdPreview(args: CLIArgs, logger: Logger): Promise<void> {
     )
   }
 
-  // Step 3: Take top 20 candidates and classify (single AI call)
-  const topCandidates = scanResult.candidates.slice(0, 20)
+  // Step 3: Take top candidates and classify (single AI call)
+  // Classify 2x the limit to account for filtering out non-activities
+  const classifyCount = Math.min(args.limit * 2, scanResult.candidates.length)
+  const topCandidates = scanResult.candidates.slice(0, classifyCount)
 
-  logger.log('\n✨ Top 5 suggestions (AI-classified):')
+  logger.log(`\n✨ Top ${args.limit} suggestions (AI-classified):`)
   logger.log('')
 
   const provider: ClassifierConfig['provider'] = process.env.ANTHROPIC_API_KEY
@@ -318,7 +272,7 @@ async function cmdPreview(args: CLIArgs, logger: Logger): Promise<void> {
   const classifyResult = await classifyMessages(topCandidates, {
     provider,
     apiKey,
-    batchSize: 20 // Single batch for all candidates
+    batchSize: classifyCount // Single batch for all candidates
   })
 
   if (!classifyResult.ok) {
@@ -329,7 +283,7 @@ async function cmdPreview(args: CLIArgs, logger: Logger): Promise<void> {
   const activities = classifyResult.value
     .filter((s) => s.isActivity && s.activityScore >= 0.5)
     .sort((a, b) => b.activityScore - a.activityScore)
-    .slice(0, 5)
+    .slice(0, args.limit)
 
   if (activities.length === 0) {
     logger.log('   No activities found after AI classification.')
@@ -357,6 +311,48 @@ async function cmdPreview(args: CLIArgs, logger: Logger): Promise<void> {
   logger.log(
     `💡 Run 'chat-to-map analyze ${basename(args.input)}' to process all ${totalCandidates} candidates`
   )
+}
+
+async function cmdScan(args: CLIArgs, logger: Logger): Promise<void> {
+  if (!args.input) {
+    throw new Error('No input file specified')
+  }
+
+  logger.log(`\nChatToMap Scan v${VERSION}`)
+  logger.log(`\n📁 ${basename(args.input)}`)
+
+  const { scanResult, hasNoCandidates } = await runQuickScanWithLogs(args.input, logger)
+
+  logger.log(`\n🔍 Heuristic scan found ${scanResult.stats.totalUnique} potential activities`)
+  logger.log(`   Regex patterns: ${scanResult.stats.regexMatches} matches`)
+  logger.log(`   URL-based: ${scanResult.stats.urlMatches} matches`)
+
+  if (hasNoCandidates) {
+    return
+  }
+
+  const candidates = scanResult.candidates.slice(0, args.limit)
+  logger.log(`\n📋 Top ${candidates.length} candidates (by confidence):`)
+  logger.log('')
+
+  for (let i = 0; i < candidates.length; i++) {
+    const c = candidates[i]
+    if (!c) continue
+    const msg = truncate(c.content, 70)
+    logger.log(`${i + 1}. "${msg}"`)
+    logger.log(
+      `   ${c.sender} • ${formatDate(c.timestamp)} • confidence: ${c.confidence.toFixed(2)}`
+    )
+    logger.log('')
+  }
+
+  const remaining = scanResult.stats.totalUnique - candidates.length
+  if (remaining > 0) {
+    logger.log(`   ... and ${remaining} more candidates`)
+    logger.log('')
+  }
+
+  logger.log(`💡 Run 'chat-to-map preview ${basename(args.input)}' for AI-powered classification`)
 }
 
 async function cmdAnalyze(args: CLIArgs, logger: Logger): Promise<void> {
@@ -426,6 +422,10 @@ async function main(): Promise<void> {
 
       case 'preview':
         await cmdPreview(args, logger)
+        break
+
+      case 'scan':
+        await cmdScan(args, logger)
         break
 
       case 'parse':
