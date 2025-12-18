@@ -74,6 +74,9 @@ Ignore:
 - Past events (things they already did)
 - Vague statements without actionable suggestions
 - Just sharing links without suggesting to go/do something
+- Romantic/intimate invitations (coming over, staying the night, "netflix and chill")
+- Adult or suggestive content (explicit messages, flirting, intimate conversations)
+- Private relationship moments - these should NEVER appear in results
 
 ${messagesText}
 

@@ -8,9 +8,11 @@
 import type { SocialPlatform } from '../types.js'
 import { scrapeTikTok } from './tiktok.js'
 import type { ScrapedMetadata, ScrapeOutcome, ScraperConfig } from './types.js'
+import { scrapeYouTube } from './youtube.js'
 
 export { extractTikTokVideoId, resolveTikTokUrl, scrapeTikTok } from './tiktok.js'
 export type { ScrapedMetadata, ScrapeOutcome, ScraperConfig } from './types.js'
+export { buildYouTubeUrl, extractYouTubeVideoId, scrapeYouTube } from './youtube.js'
 
 /**
  * Check if URL matches a domain pattern.
@@ -88,15 +90,7 @@ export async function scrapeUrl(url: string, config: ScraperConfig = {}): Promis
       }
 
     case 'youtube':
-      // YouTube has a Data API - scraping is backup
-      return {
-        ok: false,
-        error: {
-          type: 'unsupported',
-          message: 'YouTube scraping not yet implemented (use YouTube Data API)',
-          url
-        }
-      }
+      return scrapeYouTube(url, config)
 
     case 'x':
       // X requires authentication for most content

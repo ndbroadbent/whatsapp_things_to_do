@@ -81,6 +81,18 @@ describe('Classifier Prompt', () => {
       expect(prompt).toContain('beach')
       expect(prompt).toContain('concert')
     })
+
+    it('includes adult content filter instructions', () => {
+      const candidates = [createCandidate(1, 'Test message')]
+
+      const prompt = buildClassificationPrompt(candidates)
+
+      // Must filter romantic/intimate content
+      expect(prompt).toContain('Romantic/intimate')
+      expect(prompt).toContain('Adult or suggestive')
+      expect(prompt).toContain('Private relationship moments')
+      expect(prompt).toContain('NEVER appear in results')
+    })
   })
 
   describe('parseClassificationResponse', () => {

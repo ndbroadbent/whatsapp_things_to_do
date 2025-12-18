@@ -11,8 +11,8 @@
  * Short URLs (vt.tiktok.com) redirect to full URLs with video IDs.
  */
 
-import { httpFetch } from '../http.js'
-import type { ScrapedMetadata, ScrapeOutcome, ScraperConfig } from './types.js'
+import type { FetchFn, ScrapedMetadata, ScrapeOutcome, ScraperConfig } from './types.js'
+import { extractHashtags, getNestedValue, networkError, wrapParseResult } from './utils.js'
 
 /**
  * Minimal response interface for redirect handling.
@@ -21,6 +21,16 @@ import type { ScrapedMetadata, ScrapeOutcome, ScraperConfig } from './types.js'
 interface RedirectResponse {
   status: number
   headers: { get(name: string): string | null }
+}
+
+/**
+ * Full response interface for content fetching.
+ * Uses type assertion to work around Bun's Response type conflicts.
+ */
+interface FullResponse {
+  ok: boolean
+  status: number
+  text(): Promise<string>
 }
 
 const DEFAULT_USER_AGENT =
@@ -57,6 +67,7 @@ export async function resolveTikTokUrl(
   const timeout = config.timeout ?? 10000
   const maxRedirects = config.maxRedirects ?? 5
   const userAgent = config.userAgent ?? DEFAULT_USER_AGENT
+  const fetchFn: FetchFn = config.fetch ?? fetch
 
   let currentUrl = shortUrl
   let redirectCount = 0
@@ -66,7 +77,7 @@ export async function resolveTikTokUrl(
     const timeoutId = setTimeout(() => controller.abort(), timeout)
 
     try {
-      const rawResponse = await fetch(currentUrl, {
+      const rawResponse = await fetchFn(currentUrl, {
         method: 'HEAD',
         redirect: 'manual',
         signal: controller.signal,
@@ -158,28 +169,6 @@ function extractTikTokJson(html: string): unknown | null {
   }
 
   return null
-}
-
-/**
- * Navigate nested object safely.
- */
-function getNestedValue(obj: unknown, path: string[]): unknown {
-  let current = obj
-  for (const key of path) {
-    if (current === null || current === undefined || typeof current !== 'object') {
-      return undefined
-    }
-    current = (current as Record<string, unknown>)[key]
-  }
-  return current
-}
-
-/**
- * Extract hashtags from description text.
- */
-function extractHashtags(text: string): string[] {
-  const matches = text.match(/#[\w\u00C0-\u024F]+/g)
-  return matches ? matches.map((tag) => tag.slice(1).toLowerCase()) : []
 }
 
 /**
@@ -281,13 +270,14 @@ export async function scrapeTikTok(
 ): Promise<ScrapeOutcome> {
   const timeout = config.timeout ?? 10000
   const userAgent = config.userAgent ?? DEFAULT_USER_AGENT
+  const fetchFn: FetchFn = config.fetch ?? fetch
 
   try {
     // First resolve the URL to get canonical form and video ID
     const { canonicalUrl, videoId } = await resolveTikTokUrl(url, config)
 
-    // Fetch the HTML page using httpFetch to work around Bun's Response type
-    const response = await httpFetch(canonicalUrl, {
+    // Fetch the HTML page
+    const rawResponse = await fetchFn(canonicalUrl, {
       signal: AbortSignal.timeout(timeout),
       headers: {
         'User-Agent': userAgent,
@@ -296,6 +286,8 @@ export async function scrapeTikTok(
         'Cache-Control': 'no-cache'
       }
     })
+    // Cast to work around Bun's Response type conflicts
+    const response = rawResponse as unknown as FullResponse
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -328,19 +320,8 @@ export async function scrapeTikTok(
     }
 
     const metadata = parseTikTokData(jsonData, canonicalUrl, videoId)
-    if (!metadata) {
-      return {
-        ok: false,
-        error: { type: 'parse', message: 'Could not parse video data', url }
-      }
-    }
-
-    return { ok: true, metadata }
+    return wrapParseResult(metadata, url)
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    return {
-      ok: false,
-      error: { type: 'network', message, url }
-    }
+    return networkError(error, url)
   }
 }

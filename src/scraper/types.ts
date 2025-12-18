@@ -7,6 +7,11 @@
 import type { SocialPlatform } from '../types.js'
 
 /**
+ * Fetch function type for dependency injection.
+ */
+export type FetchFn = typeof fetch
+
+/**
  * Configuration for the scraper.
  */
 export interface ScraperConfig {
@@ -18,6 +23,8 @@ export interface ScraperConfig {
   readonly maxRedirects?: number
   /** Rate limit delay between requests in ms (default: 500) */
   readonly rateLimitMs?: number
+  /** Custom fetch function for testing/mocking */
+  readonly fetch?: FetchFn
 }
 
 /**
@@ -38,6 +45,8 @@ export interface ScrapedMetadata {
   readonly hashtags: readonly string[]
   /** Creator/author username */
   readonly creator: string | null
+  /** Creator/channel ID (platform-specific) */
+  readonly creatorId?: string | null
   /** Thumbnail URL if available */
   readonly thumbnailUrl: string | null
   /** Content categories/labels from the platform */
