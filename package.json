@@ -1,6 +1,6 @@
 {
   "name": "chat-to-map",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Extract 'things to do' from chat exports and visualize them on a map",
   "type": "module",
   "license": "AGPL-3.0",
@@ -8,13 +8,23 @@
     "type": "git",
     "url": "git+https://github.com/DocSpring/chat_to_map.git"
   },
+  "homepage": "https://github.com/DocSpring/chat_to_map#readme",
+  "bugs": {
+    "url": "https://github.com/DocSpring/chat_to_map/issues"
+  },
   "keywords": [
     "whatsapp",
+    "imessage",
     "chat",
+    "export",
     "map",
     "activities",
     "travel",
-    "geocoding"
+    "geocoding",
+    "cli",
+    "parser",
+    "suggestions",
+    "places"
   ],
   "author": "DocSpring",
   "bin": {
@@ -29,7 +39,9 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "dev": "bun run --watch src/cli.ts",
@@ -38,7 +50,8 @@
     "check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "prepublishOnly": "bun run build && bun run test"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.0",

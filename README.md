@@ -1,270 +1,215 @@
-# WhatsApp Things To Do
+# ChatToMap
 
-Extract "things to do" suggestions from your WhatsApp chat history and visualize them on a map.
+Extract "things to do" from chat exports and visualize them on an interactive map.
 
-![Map Preview](https://img.shields.io/badge/Output-Interactive%20Map-blue)
-![Python](https://img.shields.io/badge/Python-3.11+-green)
+![npm](https://img.shields.io/npm/v/chat-to-map)
 ![License](https://img.shields.io/badge/License-AGPL--3.0-blue)
-
-![Screenshot](images/web_ui_screenshot.jpeg)
+![Node](https://img.shields.io/badge/Node-18%2B-green)
 
 ## What It Does
 
-This tool parses a WhatsApp chat export and finds all the times you and your chat partner said things like:
+This tool parses WhatsApp (iOS/Android) and iMessage exports to find activity suggestions like:
 - "We should go to..."
 - "Let's try..."
 - "Wanna visit..."
 - "This looks fun!"
 
 It then:
-1. Extracts suggestions using regex patterns and semantic search
-2. Geocodes locations mentioned (biased to New Zealand, but configurable)
-3. Exports to CSV/Excel spreadsheet
-4. Generates an interactive map with all geocoded suggestions
+1. **Extracts** suggestions using regex patterns and URL detection
+2. **Classifies** them with AI (activity vs errand, mappable vs general)
+3. **Geocodes** locations to map coordinates
+4. **Exports** to CSV, Excel, JSON, PDF, and interactive HTML map
 
-## Sample Output
+## Quick Start (npx)
 
-### Spreadsheet
-| Date | Sender | Activity | Location | Coordinates |
-|------|--------|----------|----------|-------------|
-| 2024-04-05 | Person A | Wanna go to bay of islands for our anniversary? | Bay of Islands | -35.21, 174.21 |
-| 2024-10-11 | Person B | Let's go for a hike this weekend in Karangahake Gorge | Karangahake Gorge | -37.42, 175.72 |
-
-### Interactive Map
-- Clustered markers that expand on zoom
-- Color-coded by sender
-- Popups with activity details and source links
-
-## Quick Start
-
-### 1. Export Your WhatsApp Chat
-
-On your phone:
-1. Open the WhatsApp chat
-2. Tap ⋮ (menu) → More → Export chat
-3. Choose "Without media" (or "With media" if you want images)
-4. Save the `.zip` file
-
-### 2. Clone and Setup
+**Zero installation required!** Run directly with npx:
 
 ```bash
-git clone https://github.com/yourusername/whatsapp_things_to_do.git
-cd whatsapp_things_to_do
+# Free scan - see what patterns match (no API key needed)
+npx chat-to-map scan "WhatsApp Chat.zip"
 
-# Create virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
+# AI preview - classify top candidates (~$0.01)
+npx chat-to-map preview "WhatsApp Chat.zip"
 
-# Install dependencies
-pip install -r requirements.txt
+# Full analysis (~$1-2 depending on chat size)
+npx chat-to-map analyze "WhatsApp Chat.zip"
 ```
 
-### 3. Configure API Keys
+## Installation
 
-Copy the example env file and add your API keys:
+For repeated use, install globally:
 
 ```bash
-cp .env.example .env
+npm install -g chat-to-map
 ```
 
-Edit `.env`:
-```
-OPENAI_API_KEY=sk-...
-GOOGLE_MAPS_API_KEY=AIza...
-ANTHROPIC_API_KEY=sk-ant-...  # Optional, for better classification
-```
-
-**Required APIs:**
-- **OpenAI** - For embeddings (~$0.02 for 15k messages)
-- **Google Maps** - Enable "Geocoding API" and "Places API" in Google Cloud Console
-
-**Optional:**
-- **Anthropic** - For Claude-based classification of ambiguous suggestions
-
-### 4. Extract Your Chat
+Or as a project dependency:
 
 ```bash
-# Unzip to data folder
-unzip ~/Downloads/"WhatsApp Chat - Your Chat.zip" -d data/
-
-# Rename if needed
-mv data/_chat.txt data/_chat.txt
+npm install chat-to-map
 ```
 
-### 5. Run the Pipeline
+## Usage
+
+### Commands
 
 ```bash
-source .venv/bin/activate
-
-# Parse the chat
-python src/parser.py
-
-# Extract suggestions (regex-based)
-python src/suggestion_extractor.py
-
-# Resolve Google Maps URLs
-python src/google_maps_resolver.py
-
-# Generate embeddings for semantic search
-python src/embeddings.py
-
-# Classify with Claude (optional, improves accuracy)
-python src/classifier.py
-
-# Geocode locations
-python src/geocoder.py
-
-# Export to CSV, Excel, and map
-python src/export.py
+chat-to-map scan <input>      # Heuristic scan (free, no API key)
+chat-to-map preview <input>   # AI preview of top candidates (~$0.01)
+chat-to-map analyze <input>   # Full pipeline with all exports
+chat-to-map list              # Show previously processed chats
 ```
 
-### 6. View Results
+### Options
 
 ```bash
-open output/map.html           # Interactive map
-open output/suggestions.xlsx   # Spreadsheet
+-o, --output-dir <dir>      Output directory (default: ./chat-to-map/output)
+-f, --format <formats>      Output formats: csv,excel,json,map,pdf (default: all)
+-r, --region <code>         Region bias for geocoding (e.g., NZ, US, UK)
+-n, --limit <num>           Max results for preview/scan (default: 10)
+--min-confidence <0-1>      Minimum confidence threshold (default: 0.5)
+--activities-only           Exclude errands (activity_score > 0.5)
+--category <cat>            Filter by category
+--skip-geocoding            Skip geocoding step
+-q, --quiet                 Minimal output
+-v, --verbose               Verbose output
 ```
 
-## Project Structure
+### API Keys
 
+Set via environment variables:
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...     # Required for classification
+export GOOGLE_MAPS_API_KEY=AIza...      # Required for geocoding
+export OPENAI_API_KEY=sk-...            # Optional for embeddings
 ```
-whatsapp_things_to_do/
-├── .env.example          # API key template
-├── requirements.txt      # Python dependencies
-├── PRD.txt              # Product requirements doc
-├── CLAUDE.md            # AI assistant guidelines
-├── TODO.md              # Progress tracking
-├── data/
-│   ├── _chat.txt        # Your WhatsApp export (gitignored)
-│   └── chat.db          # SQLite database (gitignored)
-├── src/
-│   ├── parser.py                 # WhatsApp export parser
-│   ├── suggestion_extractor.py   # Regex-based extraction
-│   ├── google_maps_resolver.py   # Google Maps URL geocoding
-│   ├── embeddings.py             # OpenAI embeddings + semantic search
-│   ├── classifier.py             # Claude-based classification
-│   ├── geocoder.py               # Text location geocoding
-│   ├── export.py                 # CSV/Excel/Map generation
-│   └── test_api_keys.py          # API verification
-└── output/
-    ├── suggestions.csv
-    ├── suggestions.xlsx
-    └── map.html
+
+Or use OpenRouter as a fallback:
+```bash
+export OPENROUTER_API_KEY=sk-or-...
+```
+
+## Examples
+
+```bash
+# Quick scan to see pattern matches (free)
+chat-to-map scan "WhatsApp Chat with Travel Group.zip"
+
+# Preview top 5 candidates with AI classification
+chat-to-map preview "WhatsApp Chat.zip" -n 5
+
+# Full analysis with NZ region bias
+chat-to-map analyze "WhatsApp Chat.zip" -r NZ
+
+# Export only CSV and map formats
+chat-to-map analyze chat.txt -f csv,map
+
+# Filter to activities only (exclude errands)
+chat-to-map analyze chat.zip --activities-only
+
+# Custom output directory
+chat-to-map analyze chat.zip -o ./my-results
+```
+
+## Output Formats
+
+| Format | Description |
+|--------|-------------|
+| **CSV** | Spreadsheet-compatible, all fields |
+| **Excel** | Formatted .xlsx with filters |
+| **JSON** | Machine-readable with metadata |
+| **Map** | Interactive Leaflet.js HTML |
+| **PDF** | Printable report with summary |
+
+## As a Library
+
+Use the core functions in your own code:
+
+```typescript
+import {
+  parseWhatsAppChat,
+  extractCandidates,
+  classifyMessages,
+  geocodeSuggestions,
+  exportToMapHTML
+} from 'chat-to-map'
+
+// Parse a chat export
+const messages = parseWhatsAppChat(rawChatText)
+
+// Extract candidates (zero API cost)
+const { candidates } = extractCandidates(messages)
+
+// Classify with AI
+const result = await classifyMessages(candidates, {
+  provider: 'anthropic',
+  apiKey: process.env.ANTHROPIC_API_KEY
+})
+
+if (result.ok) {
+  // Geocode locations
+  const geocoded = await geocodeSuggestions(
+    result.value.filter(s => s.isMappable),
+    { apiKey: process.env.GOOGLE_MAPS_API_KEY, regionBias: 'NZ' }
+  )
+
+  // Generate map
+  const html = exportToMapHTML(geocoded, { title: 'Our Activities' })
+}
 ```
 
 ## How It Works
 
 ### 1. Parsing
-Parses WhatsApp iOS/Android export format:
+Supports WhatsApp iOS/Android formats:
 ```
-[10/11/23, 9:36:36 PM] Person A: We should go to a play or something
+[10/11/24, 9:36 PM] Alice: We should try that new restaurant!
+10/11/24, 21:36 - Bob: Let's go this weekend
 ```
 
-### 2. Suggestion Detection (Multi-pass)
+### 2. Candidate Extraction
+- **Regex patterns**: "we should", "let's go", "bucket list", etc.
+- **URL detection**: Google Maps, TikTok, Instagram, Airbnb, etc.
+- **Exclusions**: Work, medical, chores, past tense filtered out
 
-**Pass 1: Regex Patterns**
-- "we should", "let's go", "wanna go", "want to try"
-- "bucket list", "must visit", "would be fun"
+### 3. AI Classification
+Each candidate is classified with:
+- `activityScore`: 0.0 (errand) → 1.0 (fun activity)
+- `category`: restaurant, hike, trip, event, etc.
+- `isMappable`: Has specific location vs general idea
 
-**Pass 2: URL-based**
-- Google Maps links → extract coordinates
-- Airbnb/Booking links → travel suggestions
-- TikTok/YouTube with suggestion context
-
-**Pass 3: Semantic Search**
-- Embeds all messages with OpenAI
-- Searches for messages similar to activity phrases
-- Identifies ~500-1000 candidates
-
-**Pass 4: LLM Classification (Optional)**
-- Claude classifies ambiguous candidates
-- Extracts activity description and location
-
-### 3. Geocoding
+### 4. Geocoding
 - Extracts coordinates from Google Maps URLs
-- Geocodes place names with Google Geocoding API
-- Biased to your region (default: New Zealand)
-
-### 4. Export
-- CSV with all columns
-- Excel with formatted columns
-- Interactive Leaflet.js map with clustering
-
-## Customization
-
-### Change Region Bias
-
-Edit `src/geocoder.py` to change the location bias:
-
-```python
-# NZ places - replace with your region
-NZ_REGIONS = [
-    "auckland", "wellington", "queenstown", ...
-]
-```
-
-And in `geocode_location()`:
-```python
-address = f"{location}, Your Country"
-```
-
-### Add Custom Patterns
-
-Edit `src/suggestion_extractor.py`:
-
-```python
-SUGGESTION_PATTERNS = [
-    SuggestionPattern(
-        "your_pattern",
-        re.compile(r"\byour regex\b", re.IGNORECASE),
-        0.85,  # confidence
-        "Description"
-    ),
-    ...
-]
-```
-
-### Exclude Patterns
-
-Add patterns to ignore (work, chores, etc.):
-
-```python
-EXCLUDE_PATTERNS = [
-    re.compile(r"\b(work|meeting|email)\b", re.IGNORECASE),
-    ...
-]
-```
+- Geocodes place names with region bias
+- Deduplicates by location
 
 ## Cost Estimates
 
-| Service | ~15k Messages |
-|---------|---------------|
-| OpenAI Embeddings | ~$0.02 |
-| Google Geocoding | ~$0.50 |
-| Google Places | ~$0.10 |
-| Claude (Haiku) | ~$0.50 |
-| **Total** | **~$1-2** |
+| Chat Size | Scan | Preview | Full Analysis |
+|-----------|------|---------|---------------|
+| 1k messages | Free | ~$0.01 | ~$0.20 |
+| 10k messages | Free | ~$0.01 | ~$0.50 |
+| 50k messages | Free | ~$0.01 | ~$2.00 |
 
-## Limitations
+Costs vary based on number of candidates found and API pricing.
 
-- **TikTok**: Can't extract video descriptions (API restrictions)
-- **False positives**: "We should" catches some non-activity suggestions
-- **WhatsApp links**: No way to deep-link back to specific messages
-- **Media**: Images/videos not analyzed (could add Vision API)
+## Export WhatsApp Chat
+
+On your phone:
+1. Open the WhatsApp chat
+2. Tap ⋮ (menu) → More → Export chat
+3. Choose "Without media"
+4. Save the `.zip` file
 
 ## Contributing
 
-PRs welcome! Some ideas:
-- [ ] Vision API for image analysis
-- [ ] Voice message transcription
-- [ ] Google My Maps export
-- [ ] "Mark as done" web UI
-- [ ] Support for other chat exports (Telegram, iMessage)
+PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
-AGPL-3.0
+AGPL-3.0 - See [LICENSE](LICENSE)
 
 ---
 
-Built with Claude Code 🤖
+Part of the [ChatToMap](https://chattomap.com) project.

@@ -23,7 +23,7 @@ check_file() {
 
   # Skip excluded patterns
   case "$file" in
-    *.md|*.json|*.yml|*.yaml|*.sql|*.txt|*.lock|*.css|*.html)
+    *.md|*.json|*.yml|*.yaml|*.sql|*.txt|*.lock|*.css|*.html|LICENSE)
       return 0
       ;;
     *node_modules*|*dist/*|*fixtures/*)
