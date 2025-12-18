@@ -29,6 +29,7 @@ Transform chat exports into interactive maps of activities and places.
 
 USAGE:
   chat-to-map analyze <input> [options]
+  chat-to-map preview <input> [options]
   chat-to-map parse <input> [options]
   chat-to-map extract <messages.json> [options]
   chat-to-map classify <candidates.json> [options]
@@ -39,6 +40,7 @@ USAGE:
 
 COMMANDS:
   analyze    Run the complete pipeline (parse -> extract -> classify -> geocode -> export)
+  preview    Quick preview: scan chat + show 5 best activities (single AI call, ~$0.01)
   parse      Parse a chat export file
   extract    Extract candidates from parsed messages
   classify   Classify candidates using AI
@@ -64,10 +66,13 @@ API KEYS (via environment variables):
   GOOGLE_MAPS_API_KEY         Required for geocoding
 
 EXAMPLES:
-  # Analyze a WhatsApp export
+  # Quick preview - see top 5 activities (low cost ~$0.01)
+  chat-to-map preview "WhatsApp Chat.zip"
+
+  # Analyze a WhatsApp export (full processing)
   chat-to-map analyze "WhatsApp Chat.zip"
 
-  # Parse and show stats only
+  # Parse and show stats only (no API calls)
   chat-to-map analyze chat.txt --dry-run
 
   # Custom output directory and formats

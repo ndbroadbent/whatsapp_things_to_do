@@ -24,9 +24,11 @@ import {
   filterActivities,
   geocodeSuggestions,
   parseChatWithStats,
+  quickScan,
   VERSION
 } from './index.js'
 import type {
+  ActivityCategory,
   CandidateMessage,
   ClassifiedSuggestion,
   ClassifierConfig,
@@ -229,8 +231,133 @@ async function runExport(
 }
 
 // ============================================================================
+// Preview Helpers
+// ============================================================================
+
+const CATEGORY_EMOJI: Record<ActivityCategory, string> = {
+  restaurant: '🍽️',
+  cafe: '☕',
+  bar: '🍺',
+  hike: '🥾',
+  nature: '🌲',
+  beach: '🏖️',
+  trip: '✈️',
+  hotel: '🏨',
+  event: '🎉',
+  concert: '🎵',
+  museum: '🏛️',
+  entertainment: '🎬',
+  adventure: '🎢',
+  family: '👨‍👩‍👧',
+  errand: '📋',
+  appointment: '📅',
+  other: '📍'
+}
+
+function getCategoryEmoji(category: ActivityCategory): string {
+  return CATEGORY_EMOJI[category] || '📍'
+}
+
+function formatDate(date: Date): string {
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function truncate(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text
+  return `${text.slice(0, maxLength - 3)}...`
+}
+
+// ============================================================================
 // Commands
 // ============================================================================
+
+async function cmdPreview(args: CLIArgs, logger: Logger): Promise<void> {
+  if (!args.input) {
+    throw new Error('No input file specified')
+  }
+
+  logger.log(`\nChatToMap Preview v${VERSION}`)
+  logger.log(`\n📁 ${basename(args.input)}`)
+
+  // Step 1: Quick scan (free - no API calls)
+  const content = await readInputFile(args.input)
+  const scanResult = quickScan(content)
+
+  const startDate = formatDate(scanResult.dateRange.start)
+  const endDate = formatDate(scanResult.dateRange.end)
+  logger.log(
+    `   ${scanResult.messageCount.toLocaleString()} messages from ${scanResult.senderCount} senders`
+  )
+  logger.log(`   Date range: ${startDate} to ${endDate}`)
+
+  logger.log(`\n🔍 Quick scan found ${scanResult.stats.totalUnique} potential activities`)
+
+  if (scanResult.candidates.length === 0) {
+    logger.log('\n⚠️  No activity suggestions found in this chat.')
+    return
+  }
+
+  // Step 2: Require API key for AI classification
+  const apiKey = process.env.ANTHROPIC_API_KEY ?? process.env.OPENAI_API_KEY
+  if (!apiKey) {
+    throw new Error(
+      'preview command requires ANTHROPIC_API_KEY or OPENAI_API_KEY environment variable'
+    )
+  }
+
+  // Step 3: Take top 20 candidates and classify (single AI call)
+  const topCandidates = scanResult.candidates.slice(0, 20)
+
+  logger.log('\n✨ Top 5 suggestions (AI-classified):')
+  logger.log('')
+
+  const provider: ClassifierConfig['provider'] = process.env.ANTHROPIC_API_KEY
+    ? 'anthropic'
+    : 'openai'
+
+  const classifyResult = await classifyMessages(topCandidates, {
+    provider,
+    apiKey,
+    batchSize: 20 // Single batch for all candidates
+  })
+
+  if (!classifyResult.ok) {
+    throw new Error(`Classification failed: ${classifyResult.error.message}`)
+  }
+
+  // Filter to activities and sort by score
+  const activities = classifyResult.value
+    .filter((s) => s.isActivity && s.activityScore >= 0.5)
+    .sort((a, b) => b.activityScore - a.activityScore)
+    .slice(0, 5)
+
+  if (activities.length === 0) {
+    logger.log('   No activities found after AI classification.')
+    logger.log('')
+    logger.log('💡 Try running full analysis: chat-to-map analyze <input>')
+    return
+  }
+
+  for (let i = 0; i < activities.length; i++) {
+    const s = activities[i]
+    if (!s) continue
+    const emoji = getCategoryEmoji(s.category)
+    const activity = truncate(s.activity, 55)
+    const category = s.category.charAt(0).toUpperCase() + s.category.slice(1)
+
+    logger.log(`${i + 1}. ${emoji}  "${activity}"`)
+    logger.log(`   → ${category} • ${s.sender} • ${formatDate(s.timestamp)}`)
+    if (s.location) {
+      logger.log(`   📍 ${s.location}`)
+    }
+    logger.log('')
+  }
+
+  const totalCandidates = scanResult.stats.totalUnique
+  logger.log(
+    `💡 Run 'chat-to-map analyze ${basename(args.input)}' to process all ${totalCandidates} candidates`
+  )
+}
 
 async function cmdAnalyze(args: CLIArgs, logger: Logger): Promise<void> {
   if (!args.input) {
@@ -295,6 +422,10 @@ async function main(): Promise<void> {
     switch (args.command) {
       case 'analyze':
         await cmdAnalyze(args, logger)
+        break
+
+      case 'preview':
+        await cmdPreview(args, logger)
         break
 
       case 'parse':
