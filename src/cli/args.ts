@@ -33,6 +33,11 @@ export const DEFAULT_BASE_DIR = './chat-to-map'
  */
 export const DEFAULT_OUTPUT_DIR = `${DEFAULT_BASE_DIR}/output`
 
+/**
+ * Default cache directory under the base directory.
+ */
+export const DEFAULT_CACHE_DIR = `${DEFAULT_BASE_DIR}/cache`
+
 export const HELP_TEXT = `
 ChatToMap CLI v${VERSION}
 

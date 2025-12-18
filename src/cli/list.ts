@@ -20,21 +20,6 @@ interface ProcessedChat {
 }
 
 /**
- * Default base directory for chat-to-map data.
- */
-export const DEFAULT_BASE_DIR = './chat-to-map'
-
-/**
- * Default output directory under the base directory.
- */
-export const DEFAULT_OUTPUT_DIR = `${DEFAULT_BASE_DIR}/output`
-
-/**
- * Default cache directory under the base directory.
- */
-export const DEFAULT_CACHE_DIR = `${DEFAULT_BASE_DIR}/cache`
-
-/**
  * Try to read metadata from a processed chat directory.
  */
 async function readChatMetadata(dirPath: string): Promise<ProcessedChat | null> {
