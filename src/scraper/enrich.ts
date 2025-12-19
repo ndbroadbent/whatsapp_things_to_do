@@ -3,11 +3,20 @@
  *
  * Scrape URLs found in candidate contexts and inject metadata inline.
  * Format: URL followed by JSON metadata on the next line.
+ *
+ * Features:
+ * - Parallel scraping (default 5 concurrent)
+ * - Hard timeout per URL (default 4s)
+ * - Caching via ResponseCache interface
  */
 
+import type { ResponseCache } from '../cache/types.js'
 import type { CandidateMessage } from '../types.js'
 import { scrapeUrl } from './index.js'
 import type { ScrapedMetadata, ScraperConfig } from './types.js'
+
+const DEFAULT_TIMEOUT_MS = 4000
+const DEFAULT_CONCURRENCY = 5
 
 /** URL regex - matches http/https URLs */
 const URL_REGEX = /https?:\/\/[^\s<>"{}|\\^`[\]]+/g
@@ -102,11 +111,67 @@ export interface EnrichOptions extends ScraperConfig {
   onScrapeStart?: (info: { urlCount: number }) => void
   /** Callback for each URL scraped */
   onUrlScraped?: (info: { url: string; success: boolean; current: number; total: number }) => void
+  /** Max concurrent scrapes (default 5) */
+  concurrency?: number
+  /** Cache for scrape results */
+  cache?: ResponseCache
+}
+
+/**
+ * Generate cache key for a URL.
+ */
+function getCacheKey(url: string): string {
+  return `scrape:${url}`
+}
+
+/** Cache TTL for scraped metadata (24 hours - URLs don't change often) */
+const SCRAPE_CACHE_TTL_SECONDS = 24 * 60 * 60
+
+/**
+ * Scrape a single URL with timeout and caching.
+ */
+async function scrapeWithCache(
+  url: string,
+  options: EnrichOptions
+): Promise<{ url: string; metadata: ScrapedMetadata | null }> {
+  const cache = options.cache
+  const cacheKey = getCacheKey(url)
+
+  // Check cache first
+  if (cache) {
+    const cached = await cache.get<ScrapedMetadata>(cacheKey)
+    if (cached) {
+      return { url, metadata: cached.data }
+    }
+  }
+
+  // Scrape with timeout
+  const timeoutMs = options.timeout ?? DEFAULT_TIMEOUT_MS
+  try {
+    const result = await scrapeUrl(url, { ...options, timeout: timeoutMs })
+
+    if (result.ok) {
+      // Cache successful result
+      if (cache) {
+        await cache.set(
+          cacheKey,
+          { data: result.metadata, cachedAt: Date.now() },
+          SCRAPE_CACHE_TTL_SECONDS
+        )
+      }
+      return { url, metadata: result.metadata }
+    }
+  } catch {
+    // Timeout or other error - silently skip
+  }
+
+  return { url, metadata: null }
 }
 
 /**
  * Scrape all URLs found in candidates and return enriched candidates.
  * Best-effort: failures are silently skipped (no metadata injected).
+ * Uses parallel scraping with configurable concurrency.
  */
 export async function scrapeAndEnrichCandidates(
   candidates: readonly CandidateMessage[],
@@ -121,24 +186,21 @@ export async function scrapeAndEnrichCandidates(
   options.onScrapeStart?.({ urlCount: urls.length })
 
   const metadataMap = new Map<string, ScrapedMetadata>()
-  const rateLimitMs = options.rateLimitMs ?? 300
+  const concurrency = options.concurrency ?? DEFAULT_CONCURRENCY
+  let completed = 0
 
-  for (let i = 0; i < urls.length; i++) {
-    const url = urls[i]
-    if (!url) continue
+  // Process URLs in parallel batches
+  for (let i = 0; i < urls.length; i += concurrency) {
+    const batch = urls.slice(i, i + concurrency)
+    const results = await Promise.all(batch.map((url) => scrapeWithCache(url, options)))
 
-    const result = await scrapeUrl(url, options)
-    const success = result.ok
-
-    if (result.ok) {
-      metadataMap.set(url, result.metadata)
-    }
-
-    options.onUrlScraped?.({ url, success, current: i + 1, total: urls.length })
-
-    // Rate limit between requests
-    if (rateLimitMs > 0 && i < urls.length - 1) {
-      await new Promise((resolve) => setTimeout(resolve, rateLimitMs))
+    for (const { url, metadata } of results) {
+      completed++
+      const success = metadata !== null
+      if (metadata) {
+        metadataMap.set(url, metadata)
+      }
+      options.onUrlScraped?.({ url, success, current: completed, total: urls.length })
     }
   }
 

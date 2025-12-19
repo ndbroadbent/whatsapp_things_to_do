@@ -53,9 +53,14 @@ export async function cmdPreview(args: CLIArgs, logger: Logger): Promise<void> {
 
   const model = provider === 'anthropic' ? 'claude-haiku-4-5' : 'gpt-5-mini'
 
-  // Scrape URLs to enrich context with metadata
+  const cacheDir = join(homedir(), '.cache', 'chat-to-map')
+  const cache = new FilesystemCache(cacheDir)
+
+  // Scrape URLs to enrich context with metadata (parallel, cached)
   const enrichedCandidates = await scrapeAndEnrichCandidates(topCandidates, {
-    rateLimitMs: 200,
+    timeout: 4000,
+    concurrency: 5,
+    cache,
     onScrapeStart: ({ urlCount }) => {
       if (urlCount > 0) {
         logger.log(`\n🔗 Scraping metadata for ${urlCount} URLs...`)
@@ -82,9 +87,6 @@ export async function cmdPreview(args: CLIArgs, logger: Logger): Promise<void> {
     logger.log(`\n📊 Dry run: would send ${enrichedCandidates.length} messages to ${model}`)
     return
   }
-
-  const cacheDir = join(homedir(), '.cache', 'chat-to-map')
-  const cache = new FilesystemCache(cacheDir)
 
   const classifyResult = await classifyMessages(
     enrichedCandidates,
