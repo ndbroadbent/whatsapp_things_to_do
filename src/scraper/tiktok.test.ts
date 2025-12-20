@@ -2,7 +2,7 @@
  * TikTok Scraper Tests
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { extractTikTokVideoId, scrapeTikTok } from './tiktok.js'
 
 // Sample TikTok JSON data (simplified from real response)
@@ -98,25 +98,27 @@ describe('extractTikTokVideoId', () => {
 })
 
 describe('scrapeTikTok', () => {
-  const originalFetch = globalThis.fetch
-
-  beforeEach(() => {
-    vi.resetAllMocks()
-  })
-
-  afterEach(() => {
-    globalThis.fetch = originalFetch
-  })
+  /**
+   * Create a mock fetch function for tests.
+   * Uses config.fetch instead of globalThis.fetch to avoid CI guard issues.
+   */
+  function createMockFetch(
+    handler: (url: string, options?: RequestInit) => Promise<Response>
+  ): typeof fetch {
+    return handler as typeof fetch
+  }
 
   it('scrapes metadata from TikTok page', async () => {
-    globalThis.fetch = vi.fn().mockImplementation((_url: string, options?: RequestInit) => {
+    const mockFetch = createMockFetch(async (_url, options) => {
       if (options?.method === 'HEAD') {
-        return Promise.resolve(mockResponse({ status: 200 }))
+        return mockResponse({ status: 200 })
       }
-      return Promise.resolve(mockResponse({ text: SAMPLE_HTML }))
-    }) as unknown as typeof fetch
+      return mockResponse({ text: SAMPLE_HTML })
+    })
 
-    const result = await scrapeTikTok('https://www.tiktok.com/@user/video/123456789')
+    const result = await scrapeTikTok('https://www.tiktok.com/@user/video/123456789', {
+      fetch: mockFetch
+    })
 
     expect(result.ok).toBe(true)
     if (result.ok) {
@@ -134,17 +136,17 @@ describe('scrapeTikTok', () => {
   it('follows redirects from short URLs', async () => {
     const redirectUrl = 'https://www.tiktok.com/@user/video/7455066896669461782'
 
-    globalThis.fetch = vi.fn().mockImplementation((url: string, options?: RequestInit) => {
+    const mockFetch = createMockFetch(async (url, options) => {
       if (url.includes('vt.tiktok.com') && options?.method === 'HEAD') {
-        return Promise.resolve(mockResponse({ status: 302, headers: { Location: redirectUrl } }))
+        return mockResponse({ status: 302, headers: { Location: redirectUrl } })
       }
       if (url.includes('tiktok.com/@') && options?.method === 'HEAD') {
-        return Promise.resolve(mockResponse({ status: 200 }))
+        return mockResponse({ status: 200 })
       }
-      return Promise.resolve(mockResponse({ text: SAMPLE_HTML }))
-    }) as unknown as typeof fetch
+      return mockResponse({ text: SAMPLE_HTML })
+    })
 
-    const result = await scrapeTikTok('https://vt.tiktok.com/ZS6myoDYu/')
+    const result = await scrapeTikTok('https://vt.tiktok.com/ZS6myoDYu/', { fetch: mockFetch })
 
     expect(result.ok).toBe(true)
     if (result.ok) {
@@ -154,14 +156,16 @@ describe('scrapeTikTok', () => {
   })
 
   it('handles 404 errors', async () => {
-    globalThis.fetch = vi.fn().mockImplementation((_url: string, options?: RequestInit) => {
+    const mockFetch = createMockFetch(async (_url, options) => {
       if (options?.method === 'HEAD') {
-        return Promise.resolve(mockResponse({ status: 200 }))
+        return mockResponse({ status: 200 })
       }
-      return Promise.resolve(mockResponse({ ok: false, status: 404 }))
-    }) as unknown as typeof fetch
+      return mockResponse({ ok: false, status: 404 })
+    })
 
-    const result = await scrapeTikTok('https://www.tiktok.com/@user/video/999')
+    const result = await scrapeTikTok('https://www.tiktok.com/@user/video/999', {
+      fetch: mockFetch
+    })
 
     expect(result.ok).toBe(false)
     if (!result.ok) {
@@ -170,14 +174,16 @@ describe('scrapeTikTok', () => {
   })
 
   it('handles rate limiting (429)', async () => {
-    globalThis.fetch = vi.fn().mockImplementation((_url: string, options?: RequestInit) => {
+    const mockFetch = createMockFetch(async (_url, options) => {
       if (options?.method === 'HEAD') {
-        return Promise.resolve(mockResponse({ status: 200 }))
+        return mockResponse({ status: 200 })
       }
-      return Promise.resolve(mockResponse({ ok: false, status: 429 }))
-    }) as unknown as typeof fetch
+      return mockResponse({ ok: false, status: 429 })
+    })
 
-    const result = await scrapeTikTok('https://www.tiktok.com/@user/video/123')
+    const result = await scrapeTikTok('https://www.tiktok.com/@user/video/123', {
+      fetch: mockFetch
+    })
 
     expect(result.ok).toBe(false)
     if (!result.ok) {
@@ -186,14 +192,16 @@ describe('scrapeTikTok', () => {
   })
 
   it('handles missing JSON data in page', async () => {
-    globalThis.fetch = vi.fn().mockImplementation((_url: string, options?: RequestInit) => {
+    const mockFetch = createMockFetch(async (_url, options) => {
       if (options?.method === 'HEAD') {
-        return Promise.resolve(mockResponse({ status: 200 }))
+        return mockResponse({ status: 200 })
       }
-      return Promise.resolve(mockResponse({ text: '<html><body>No data here</body></html>' }))
-    }) as unknown as typeof fetch
+      return mockResponse({ text: '<html><body>No data here</body></html>' })
+    })
 
-    const result = await scrapeTikTok('https://www.tiktok.com/@user/video/123')
+    const result = await scrapeTikTok('https://www.tiktok.com/@user/video/123', {
+      fetch: mockFetch
+    })
 
     expect(result.ok).toBe(false)
     if (!result.ok) {
@@ -202,11 +210,13 @@ describe('scrapeTikTok', () => {
   })
 
   it('handles network errors', async () => {
-    globalThis.fetch = vi
-      .fn()
-      .mockRejectedValue(new Error('Network error')) as unknown as typeof fetch
+    const mockFetch = createMockFetch(async () => {
+      throw new Error('Network error')
+    })
 
-    const result = await scrapeTikTok('https://www.tiktok.com/@user/video/123')
+    const result = await scrapeTikTok('https://www.tiktok.com/@user/video/123', {
+      fetch: mockFetch
+    })
 
     expect(result.ok).toBe(false)
     if (!result.ok) {
@@ -230,9 +240,9 @@ describe('scrapeTikTok', () => {
       }
     }
 
-    globalThis.fetch = vi.fn().mockImplementation((_url: string, options?: RequestInit) => {
+    const mockFetch = createMockFetch(async (_url, options) => {
       if (options?.method === 'HEAD') {
-        return Promise.resolve(mockResponse({ status: 200 }))
+        return mockResponse({ status: 200 })
       }
       const html = `
         <html>
@@ -241,10 +251,12 @@ describe('scrapeTikTok', () => {
         </script>
         </html>
       `
-      return Promise.resolve(mockResponse({ text: html }))
-    }) as unknown as typeof fetch
+      return mockResponse({ text: html })
+    })
 
-    const result = await scrapeTikTok('https://www.tiktok.com/@user/video/123')
+    const result = await scrapeTikTok('https://www.tiktok.com/@user/video/123', {
+      fetch: mockFetch
+    })
 
     expect(result.ok).toBe(true)
     if (result.ok) {
