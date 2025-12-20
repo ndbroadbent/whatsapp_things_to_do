@@ -8,6 +8,7 @@
  * - Open Graph meta tags for fallback
  */
 
+import { guardedFetch } from '../http.js'
 import type { FetchFn, ScrapedMetadata, ScrapeOutcome, ScraperConfig } from './types.js'
 import {
   createHtmlFetchHeaders,
@@ -131,7 +132,7 @@ export async function scrapeEventbrite(
 ): Promise<ScrapeOutcome> {
   const timeout = config.timeout ?? 10000
   const userAgent = config.userAgent ?? DEFAULT_USER_AGENT
-  const fetchFn: FetchFn = config.fetch ?? fetch
+  const fetchFn: FetchFn = config.fetch ?? guardedFetch
 
   try {
     // Extract event ID from URL

@@ -1,20 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { VERSION } from '../index.js'
-
-// Since parseCliArgs() reads process.argv directly and may call process.exit(),
-// we need to test the parsing logic more carefully.
-// We'll test the help text content and manual flag parsing.
+import { HELP_TEXT, parseArgs } from './args.js'
 
 describe('CLI Args', () => {
   describe('HELP_TEXT', () => {
-    // Import the help text directly
-    let HELP_TEXT: string
-
-    beforeEach(async () => {
-      const module = await import('./args.js')
-      HELP_TEXT = module.HELP_TEXT
-    })
-
     it('includes version', () => {
       expect(HELP_TEXT).toContain(`v${VERSION}`)
     })
@@ -74,115 +63,55 @@ describe('CLI Args', () => {
     })
   })
 
-  describe('parseCliArgs', () => {
-    let originalArgv: string[]
-    let mockExit: ReturnType<typeof vi.fn>
-
-    beforeEach(() => {
-      originalArgv = process.argv
-      mockExit = vi.fn()
-      vi.spyOn(process, 'exit').mockImplementation(mockExit as never)
-    })
-
-    afterEach(() => {
-      process.argv = originalArgv
-      vi.restoreAllMocks()
-    })
-
-    it('parses analyze command with input', async () => {
-      process.argv = ['node', 'cli.js', 'analyze', 'chat.txt']
-
-      const { parseCliArgs } = await import('./args.js')
-      const args = parseCliArgs()
-
+  describe('parseArgs', () => {
+    it('parses analyze command with input', () => {
+      const args = parseArgs(['analyze', 'chat.txt'], false)
       expect(args.command).toBe('analyze')
       expect(args.input).toBe('chat.txt')
     })
 
-    it('parses preview command with input', async () => {
-      process.argv = ['node', 'cli.js', 'preview', 'chat.zip']
-
-      // Need to reimport to get fresh parse
-      vi.resetModules()
-      const { parseCliArgs } = await import('./args.js')
-      const args = parseCliArgs()
-
+    it('parses preview command with input', () => {
+      const args = parseArgs(['preview', 'chat.zip'], false)
       expect(args.command).toBe('preview')
       expect(args.input).toBe('chat.zip')
     })
 
-    it('parses scan command with input', async () => {
-      process.argv = ['node', 'cli.js', 'scan', 'chat.zip']
-
-      vi.resetModules()
-      const { parseCliArgs } = await import('./args.js')
-      const args = parseCliArgs()
-
+    it('parses scan command with input', () => {
+      const args = parseArgs(['scan', 'chat.zip'], false)
       expect(args.command).toBe('scan')
       expect(args.input).toBe('chat.zip')
     })
 
-    it('parses output-dir option', async () => {
-      process.argv = ['node', 'cli.js', 'analyze', 'chat.txt', '--output-dir', './results']
-
-      vi.resetModules()
-      const { parseCliArgs } = await import('./args.js')
-      const args = parseCliArgs()
-
+    it('parses output-dir option', () => {
+      const args = parseArgs(['analyze', 'chat.txt', '--output-dir', './results'], false)
       expect(args.outputDir).toBe('./results')
     })
 
-    it('parses short flags', async () => {
-      process.argv = ['node', 'cli.js', 'analyze', 'chat.txt', '-o', './out', '-r', 'NZ', '-q']
-
-      vi.resetModules()
-      const { parseCliArgs } = await import('./args.js')
-      const args = parseCliArgs()
-
+    it('parses short flags', () => {
+      const args = parseArgs(['analyze', 'chat.txt', '-o', './out', '-r', 'NZ', '-q'], false)
       expect(args.outputDir).toBe('./out')
       expect(args.region).toBe('NZ')
       expect(args.quiet).toBe(true)
     })
 
-    it('parses format option', async () => {
-      process.argv = ['node', 'cli.js', 'analyze', 'chat.txt', '-f', 'csv,map']
-
-      vi.resetModules()
-      const { parseCliArgs } = await import('./args.js')
-      const args = parseCliArgs()
-
+    it('parses format option', () => {
+      const args = parseArgs(['analyze', 'chat.txt', '-f', 'csv,map'], false)
       expect(args.formats).toEqual(['csv', 'map'])
     })
 
-    it('parses boolean flags', async () => {
-      process.argv = [
-        'node',
-        'cli.js',
-        'analyze',
-        'chat.txt',
-        '--activities-only',
-        '--skip-geocoding',
-        '--dry-run',
-        '--verbose'
-      ]
-
-      vi.resetModules()
-      const { parseCliArgs } = await import('./args.js')
-      const args = parseCliArgs()
-
+    it('parses boolean flags', () => {
+      const args = parseArgs(
+        ['analyze', 'chat.txt', '--activities-only', '--skip-geocoding', '--dry-run', '--verbose'],
+        false
+      )
       expect(args.activitiesOnly).toBe(true)
       expect(args.skipGeocoding).toBe(true)
       expect(args.dryRun).toBe(true)
       expect(args.verbose).toBe(true)
     })
 
-    it('uses default values when options not provided', async () => {
-      process.argv = ['node', 'cli.js', 'analyze', 'chat.txt']
-
-      vi.resetModules()
-      const { parseCliArgs } = await import('./args.js')
-      const args = parseCliArgs()
-
+    it('uses default values when options not provided', () => {
+      const args = parseArgs(['analyze', 'chat.txt'], false)
       expect(args.outputDir).toBe('./chat-to-map/output')
       expect(args.formats).toEqual(['csv', 'excel', 'json', 'map', 'pdf'])
       expect(args.minConfidence).toBe(0.5)
@@ -195,53 +124,28 @@ describe('CLI Args', () => {
       expect(args.dryRun).toBe(false)
     })
 
-    it('parses max-results option with --max-results', async () => {
-      process.argv = ['node', 'cli.js', 'preview', 'chat.txt', '--max-results', '5']
-
-      vi.resetModules()
-      const { parseCliArgs } = await import('./args.js')
-      const args = parseCliArgs()
-
+    it('parses max-results option with --max-results', () => {
+      const args = parseArgs(['preview', 'chat.txt', '--max-results', '5'], false)
       expect(args.maxResults).toBe(5)
     })
 
-    it('parses max-results option with -n short flag', async () => {
-      process.argv = ['node', 'cli.js', 'scan', 'chat.txt', '-n', '20']
-
-      vi.resetModules()
-      const { parseCliArgs } = await import('./args.js')
-      const args = parseCliArgs()
-
+    it('parses max-results option with -n short flag', () => {
+      const args = parseArgs(['scan', 'chat.txt', '-n', '20'], false)
       expect(args.maxResults).toBe(20)
     })
 
-    it('parses max-messages option with --max-messages', async () => {
-      process.argv = ['node', 'cli.js', 'analyze', 'chat.txt', '--max-messages', '100']
-
-      vi.resetModules()
-      const { parseCliArgs } = await import('./args.js')
-      const args = parseCliArgs()
-
+    it('parses max-messages option with --max-messages', () => {
+      const args = parseArgs(['analyze', 'chat.txt', '--max-messages', '100'], false)
       expect(args.maxMessages).toBe(100)
     })
 
-    it('parses max-messages option with -m short flag', async () => {
-      process.argv = ['node', 'cli.js', 'preview', 'chat.txt', '-m', '50']
-
-      vi.resetModules()
-      const { parseCliArgs } = await import('./args.js')
-      const args = parseCliArgs()
-
+    it('parses max-messages option with -m short flag', () => {
+      const args = parseArgs(['preview', 'chat.txt', '-m', '50'], false)
       expect(args.maxMessages).toBe(50)
     })
 
-    it('parses min-confidence option', async () => {
-      process.argv = ['node', 'cli.js', 'analyze', 'chat.txt', '--min-confidence', '0.75']
-
-      vi.resetModules()
-      const { parseCliArgs } = await import('./args.js')
-      const args = parseCliArgs()
-
+    it('parses min-confidence option', () => {
+      const args = parseArgs(['analyze', 'chat.txt', '--min-confidence', '0.75'], false)
       expect(args.minConfidence).toBe(0.75)
     })
   })

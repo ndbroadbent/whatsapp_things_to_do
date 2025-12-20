@@ -11,6 +11,7 @@
  * Short URLs (vt.tiktok.com) redirect to full URLs with video IDs.
  */
 
+import { guardedFetch } from '../http.js'
 import type { FetchFn, ScrapedMetadata, ScrapeOutcome, ScraperConfig } from './types.js'
 import { extractHashtags, getNestedValue, networkError, wrapParseResult } from './utils.js'
 
@@ -67,7 +68,7 @@ export async function resolveTikTokUrl(
   const timeout = config.timeout ?? 10000
   const maxRedirects = config.maxRedirects ?? 5
   const userAgent = config.userAgent ?? DEFAULT_USER_AGENT
-  const fetchFn: FetchFn = config.fetch ?? fetch
+  const fetchFn: FetchFn = config.fetch ?? guardedFetch
 
   let currentUrl = shortUrl
   let redirectCount = 0
@@ -270,7 +271,7 @@ export async function scrapeTikTok(
 ): Promise<ScrapeOutcome> {
   const timeout = config.timeout ?? 10000
   const userAgent = config.userAgent ?? DEFAULT_USER_AGENT
-  const fetchFn: FetchFn = config.fetch ?? fetch
+  const fetchFn: FetchFn = config.fetch ?? guardedFetch
 
   try {
     // First resolve the URL to get canonical form and video ID

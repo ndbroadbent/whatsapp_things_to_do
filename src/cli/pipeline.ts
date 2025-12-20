@@ -5,7 +5,9 @@
  */
 
 import { writeFile } from 'node:fs/promises'
+import { homedir } from 'node:os'
 import { basename, join } from 'node:path'
+import { FilesystemCache } from '../cache/filesystem.js'
 import {
   classifyMessages,
   exportToCSV,
@@ -81,8 +83,6 @@ export async function runClassify(
   args: CLIArgs,
   logger: Logger
 ): Promise<ClassifiedSuggestion[]> {
-  logger.log('\n🤖 Classifying with AI...')
-
   const apiKey = process.env.ANTHROPIC_API_KEY ?? process.env.OPENAI_API_KEY
 
   if (!apiKey) {
@@ -93,31 +93,54 @@ export async function runClassify(
     ? 'anthropic'
     : 'openai'
 
+  const model = provider === 'anthropic' ? 'claude-haiku-4-5' : 'gpt-5-mini'
+  const batchSize = 10
+  const totalBatches = Math.ceil(candidates.length / batchSize)
+
+  logger.log(`\n🤖 Classifying ${candidates.length} candidates with ${model}...`)
+  logger.log(`   Processing in ${totalBatches} batches of ${batchSize}`)
+
+  // Use filesystem cache for API responses
+  const cacheDir = join(homedir(), '.cache', 'chat-to-map')
+  const cache = new FilesystemCache(cacheDir)
+
   const config: ClassifierConfig = {
     provider,
     apiKey,
-    batchSize: 10
+    batchSize,
+    onBatchStart: (info) => {
+      logger.log(
+        `   [${info.batchIndex + 1}/${info.totalBatches}] Sending ${info.candidateCount} candidates...`
+      )
+    },
+    onBatchComplete: (info) => {
+      logger.log(
+        `   [${info.batchIndex + 1}/${info.totalBatches}] ✓ Found ${info.activityCount} activities (${info.durationMs}ms)`
+      )
+    },
+    onCacheCheck: (info) => {
+      if (args.verbose) {
+        const status = info.hit ? '✅ cache hit' : '❌ cache miss'
+        logger.log(`   [${info.batchIndex + 1}] ${status}`)
+      }
+    }
   }
 
-  logger.verbose(`Using ${provider} for classification`)
-
-  const result = await classifyMessages(candidates, config)
+  const result = await classifyMessages(candidates, config, cache)
 
   if (!result.ok) {
     throw new Error(`Classification failed: ${result.error.message}`)
   }
 
-  const activities = result.value.filter((s) => s.isActivity)
+  // Always filter by activity score - low scores are errands/chores, not fun activities
+  const validActivities = filterActivities(result.value)
   const errands = result.value.filter((s) => !s.isActivity || s.activityScore < 0.5)
 
-  logger.success(`Activities: ${activities.length}`)
+  logger.log('')
+  logger.success(`Activities: ${validActivities.length}`)
   logger.success(`Errands (filtered): ${errands.length}`)
 
-  if (args.activitiesOnly) {
-    return filterActivities(result.value)
-  }
-
-  return result.value.filter((s) => s.isActivity)
+  return validActivities
 }
 
 export async function runGeocode(

@@ -10,6 +10,7 @@
  * - Follows max 3 redirects
  */
 
+import { guardedFetch } from '../http.js'
 import type { FetchFn, ScrapedMetadata, ScrapeOutcome, ScraperConfig } from './types.js'
 import {
   createHtmlFetchHeaders,
@@ -134,7 +135,7 @@ export async function scrapeGeneric(
 ): Promise<ScrapeOutcome> {
   const timeout = config.timeout ?? 10000
   const userAgent = config.userAgent ?? DEFAULT_USER_AGENT
-  const fetchFn: FetchFn = config.fetch ?? fetch
+  const fetchFn: FetchFn = config.fetch ?? guardedFetch
 
   // Validate URL
   const validationError = validateUrl(url)

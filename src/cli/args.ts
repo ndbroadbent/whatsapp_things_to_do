@@ -214,12 +214,29 @@ function buildCliArgs(flags: Record<string, string | boolean>, positionals: stri
   }
 }
 
-export function parseCliArgs(): CLIArgs {
-  const args = process.argv.slice(2)
-  const { flags, positionals } = extractFlagsAndPositionals(args)
+/**
+ * Parse CLI arguments from an argv array.
+ * This function is testable since it takes argv as a parameter.
+ *
+ * @param argv - Command line arguments (without node/script path)
+ * @param exitOnHelp - If true, print help and exit. If false, return help command args.
+ */
+export function parseArgs(argv: string[], exitOnHelp = true): CLIArgs {
+  const { flags, positionals } = extractFlagsAndPositionals(argv)
 
   mapShortFlags(flags)
-  handleSpecialCommands(positionals[0] ?? '', flags)
+
+  if (exitOnHelp) {
+    handleSpecialCommands(positionals[0] ?? '', flags)
+  }
 
   return buildCliArgs(flags, positionals)
+}
+
+/**
+ * Parse CLI arguments from process.argv.
+ * Convenience wrapper for parseArgs that reads from process.argv.
+ */
+export function parseCliArgs(): CLIArgs {
+  return parseArgs(process.argv.slice(2))
 }

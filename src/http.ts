@@ -8,6 +8,41 @@
 import type { Result } from './types.js'
 
 /**
+ * Check if running in CI environment.
+ */
+function isCI(): boolean {
+  return process.env.CI === 'true'
+}
+
+/**
+ * Check if running tests.
+ */
+function isTestMode(): boolean {
+  return process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'
+}
+
+/**
+ * Check if running tests in CI - this combination must not make real HTTP requests.
+ */
+function isTestInCI(): boolean {
+  return isCI() && isTestMode()
+}
+
+/**
+ * Error thrown when an uncached HTTP request is made during tests in CI.
+ */
+export class UncachedHttpRequestError extends Error {
+  constructor(url: string) {
+    super(
+      `Uncached HTTP request to ${url} during tests in CI. ` +
+        'All HTTP requests must be cached or mocked when running tests in CI. ' +
+        'Use FixtureCache or HttpRecorder to cache this response.'
+    )
+    this.name = 'UncachedHttpRequestError'
+  }
+}
+
+/**
  * Standard HTTP response interface for API calls.
  * This avoids conflicts with Bun's Response type overrides.
  */
@@ -23,11 +58,37 @@ export interface HttpResponse {
 
 /**
  * Perform a fetch request and return a typed response.
+ *
+ * @throws UncachedHttpRequestError when running tests in CI - all requests must be cached/mocked
  */
 export async function httpFetch(url: string, init?: RequestInit): Promise<HttpResponse> {
+  if (isTestInCI()) {
+    throw new UncachedHttpRequestError(url)
+  }
   const response = await fetch(url, init)
   return response as unknown as HttpResponse
 }
+
+/**
+ * Guarded fetch for scrapers - throws in CI test mode if not mocked.
+ * Use this as the default instead of global fetch.
+ * Type assertion needed to match FetchFn = typeof fetch.
+ */
+export const guardedFetch = ((input: string | URL | Request, init?: RequestInit) => {
+  let url: string
+  if (typeof input === 'string') {
+    url = input
+  } else if (input instanceof URL) {
+    url = input.href
+  } else {
+    // Request object - use String() to get URL
+    url = String(input)
+  }
+  if (isTestInCI()) {
+    throw new UncachedHttpRequestError(url)
+  }
+  return fetch(input, init)
+}) as typeof fetch
 
 /**
  * Handle HTTP error responses uniformly across all API modules.

@@ -362,25 +362,34 @@ export async function classifyMessages(
     const batch = batches[i]
     if (!batch) continue
 
+    // Call onBatchStart BEFORE the API call
+    config.onBatchStart?.({
+      batchIndex: i,
+      totalBatches: batches.length,
+      candidateCount: batch.length,
+      model,
+      provider: config.provider
+    })
+
+    const startTime = Date.now()
     const { result, cacheHit, cacheKey } = await classifyBatch(batch, config, cache)
+    const durationMs = Date.now() - startTime
 
     // Call onCacheCheck for debug logging
     config.onCacheCheck?.({ batchIndex: i, cacheKey, hit: cacheHit })
 
-    // Only call onBatchStart on cache miss (actual API request)
-    if (!cacheHit) {
-      config.onBatchStart?.({
-        batchIndex: i,
-        totalBatches: batches.length,
-        candidateCount: batch.length,
-        model,
-        provider: config.provider
-      })
-    }
-
     if (!result.ok) {
       return result
     }
+
+    // Call onBatchComplete with results
+    const activityCount = result.value.filter((s) => s.isActivity).length
+    config.onBatchComplete?.({
+      batchIndex: i,
+      totalBatches: batches.length,
+      activityCount,
+      durationMs
+    })
 
     results.push(...result.value)
   }

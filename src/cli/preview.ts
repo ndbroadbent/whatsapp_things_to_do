@@ -5,33 +5,13 @@
  */
 
 import { quickScan } from '../index.js'
-import type { ActivityCategory } from '../types.js'
+import { type ActivityCategory, CATEGORY_EMOJI } from '../types.js'
 import { readInputFile } from './io.js'
 import type { Logger } from './logger.js'
 
 // ============================================================================
 // Category Display
 // ============================================================================
-
-const CATEGORY_EMOJI: Record<ActivityCategory, string> = {
-  restaurant: '🍽️',
-  cafe: '☕',
-  bar: '🍺',
-  hike: '🥾',
-  nature: '🌲',
-  beach: '🏖️',
-  trip: '✈️',
-  hotel: '🏨',
-  event: '🎉',
-  concert: '🎵',
-  museum: '🏛️',
-  entertainment: '🎬',
-  adventure: '🎢',
-  family: '👨‍👩‍👧',
-  errand: '📋',
-  appointment: '📅',
-  other: '📍'
-}
 
 export function getCategoryEmoji(category: ActivityCategory): string {
   return CATEGORY_EMOJI[category] || '📍'
