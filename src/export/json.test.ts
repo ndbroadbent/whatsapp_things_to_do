@@ -11,7 +11,6 @@ function createSuggestion(
     messageId: id,
     isActivity: true,
     activity,
-    location: 'Test Location',
     activityScore: 0.8,
     category: category as GeocodedSuggestion['category'],
     confidence: 0.9,
@@ -20,7 +19,16 @@ function createSuggestion(
     timestamp: new Date('2025-01-15T10:30:00Z'),
     latitude: 41.9,
     longitude: 12.5,
-    isMappable: true
+    isGeneric: true,
+    isComplete: true,
+    action: null,
+    actionOriginal: null,
+    object: null,
+    objectOriginal: null,
+    venue: null,
+    city: 'Test Location',
+    state: null,
+    country: null
   }
 }
 
@@ -132,7 +140,16 @@ describe('JSON Export', () => {
         originalMessage: 'Message',
         sender: 'User',
         timestamp: new Date(),
-        isMappable: false
+        isGeneric: true,
+        isComplete: true,
+        action: null,
+        actionOriginal: null,
+        object: null,
+        objectOriginal: null,
+        venue: null,
+        city: null,
+        state: null,
+        country: null
       }
 
       const json = exportToJSON([suggestion])
@@ -154,7 +171,16 @@ describe('JSON Export', () => {
         originalMessage: 'Message',
         sender: 'User',
         timestamp: new Date(),
-        isMappable: false
+        isGeneric: true,
+        isComplete: true,
+        action: null,
+        actionOriginal: null,
+        object: null,
+        objectOriginal: null,
+        venue: null,
+        city: null,
+        state: null,
+        country: null
       }
 
       const json = exportToJSON([withCoords, withoutCoords])

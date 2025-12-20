@@ -4,7 +4,12 @@
  * Generate an interactive HTML map using Leaflet.js.
  */
 
-import { CATEGORY_EMOJI, type GeocodedSuggestion, type MapConfig } from '../types.js'
+import {
+  CATEGORY_EMOJI,
+  formatLocation,
+  type GeocodedSuggestion,
+  type MapConfig
+} from '../types.js'
 
 const DEFAULT_ZOOM = 6
 const MARKER_COLORS = [
@@ -99,7 +104,7 @@ function toMapPoints(
       lng: s.longitude,
       sender: s.sender,
       activity: s.activity.slice(0, 100),
-      location: s.location ?? '',
+      location: formatLocation(s) ?? '',
       date: s.timestamp.toISOString().split('T')[0] ?? '',
       url: extractUrl(s.originalMessage),
       color
@@ -175,7 +180,8 @@ function generateListOnlyHTML(
     .map((s) => {
       const emoji = CATEGORY_EMOJI[s.category] ?? '📍'
       const date = s.timestamp.toISOString().split('T')[0]
-      const location = s.location ? `<span class="location">${escapeJS(s.location)}</span>` : ''
+      const loc = formatLocation(s)
+      const location = loc ? `<span class="location">${escapeJS(loc)}</span>` : ''
       return `
         <div class="item">
           <span class="emoji">${emoji}</span>

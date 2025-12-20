@@ -47,8 +47,8 @@ export const CATEGORY_EMOJI: Record<ActivityCategory, string> = {
 export interface ClassifiedSuggestion {
   readonly messageId: number
   readonly isActivity: boolean
+  /** Human-readable activity title */
   readonly activity: string
-  readonly location?: string | undefined
   readonly activityScore: number
   readonly category: ActivityCategory
   readonly confidence: number
@@ -56,11 +56,50 @@ export interface ClassifiedSuggestion {
   readonly sender: string
   readonly timestamp: Date
   /**
-   * Whether this activity has a specific location that can be geocoded.
-   * - true: Mappable (specific place like "Queenstown", "Coffee Lab", Google Maps URL)
-   * - false: General activity idea without location (like "see a movie", "go kayaking")
+   * Whether this is a generic activity (no specific name, URL, or compound structure).
+   * Generic activities are more likely to cluster with similar ones.
    */
-  readonly isMappable: boolean
+  readonly isGeneric: boolean
+  /**
+   * Whether the JSON data fully captures the activity info (not lossy).
+   * Only complete entries are clustered. Incomplete entries (compound activities,
+   * complex references) stay as singletons.
+   */
+  readonly isComplete: boolean
+  /** Normalized action verb/noun (e.g., "hike" not "tramping") */
+  readonly action: string | null
+  /** Original action word before normalization */
+  readonly actionOriginal: string | null
+  /** Normalized object (e.g., "movie" not "film") */
+  readonly object: string | null
+  /** Original object word before normalization */
+  readonly objectOriginal: string | null
+  /** Venue/place name (e.g., "Coffee Lab", "Kazuya") */
+  readonly venue: string | null
+  /** City name (e.g., "Queenstown", "Auckland") */
+  readonly city: string | null
+  /** State/region name */
+  readonly state: string | null
+  /** Country name */
+  readonly country: string | null
+}
+
+/**
+ * Check if a suggestion has a mappable location.
+ * Derived from venue/city/state/country fields.
+ */
+export function isMappable(s: ClassifiedSuggestion): boolean {
+  return !!(s.venue || s.city || s.state || s.country)
+}
+
+/**
+ * Format location from structured fields for display.
+ * Returns a human-readable string like "Coffee Lab, Auckland, New Zealand"
+ * or null if no location fields are set.
+ */
+export function formatLocation(s: ClassifiedSuggestion): string | null {
+  const parts = [s.venue, s.city, s.state, s.country].filter(Boolean)
+  return parts.length > 0 ? parts.join(', ') : null
 }
 
 /** Provider type for AI classification APIs. */
@@ -112,16 +151,47 @@ export interface ClassifierConfig {
   readonly onCacheCheck?: (info: CacheCheckInfo) => void
 }
 
+/**
+ * Raw JSON response from the LLM classifier.
+ * Uses short keys to minimize token usage.
+ */
 export interface ClassifierResponse {
-  readonly message_id: number
-  readonly is_activity: boolean
-  readonly activity: string | null
-  readonly location: string | null
-  readonly activity_score: number
-  readonly category: string
-  readonly confidence: number
-  /** Whether this activity can be geocoded to a map location. */
-  readonly is_mappable: boolean
+  /** Message ID */
+  readonly msg: number
+  /** Is this an activity? */
+  readonly is_act: boolean
+  /** Human-readable activity title */
+  readonly title: string | null
+  /** Activity score (0.0 = errand, 1.0 = fun) */
+  readonly score: number
+  /** Category (hike, restaurant, trip, etc.) */
+  readonly cat: string
+  /** Confidence score */
+  readonly conf: number
+  /** Is mappable (has specific location)? */
+  readonly map: boolean
+  /** Is generic (no specific name/URL/compound)? */
+  readonly gen: boolean
+  /** Is complete (JSON data fully captures info, not lossy)? */
+  readonly com: boolean
+  /** Normalized action (hike, not tramping/trekking) */
+  readonly act: string | null
+  /** Original action word before normalization */
+  readonly act_orig: string | null
+  /** Normalized object (movie, not film) */
+  readonly obj: string | null
+  /** Original object word before normalization */
+  readonly obj_orig: string | null
+  /** Venue/place name (Coffee Lab, Kazuya) */
+  readonly loc: string | null
+  /** City name */
+  readonly city: string | null
+  /** State/region name */
+  readonly state: string | null
+  /** Country name */
+  readonly country: string | null
+  /** Original location string before parsing */
+  readonly loc_orig: string | null
 }
 
 /** A single message that mentioned an activity/location. */

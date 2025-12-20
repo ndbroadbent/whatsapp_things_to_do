@@ -10,7 +10,7 @@ import {
 function createSuggestion(
   id: number,
   activity: string,
-  location?: string,
+  city?: string,
   timestamp?: Date,
   sender = 'User'
 ): ClassifiedSuggestion {
@@ -18,27 +18,35 @@ function createSuggestion(
     messageId: id,
     isActivity: true,
     activity,
-    location,
     activityScore: 0.8,
     category: 'restaurant',
     confidence: 0.9,
     originalMessage: `Let's do ${activity}`,
     sender,
     timestamp: timestamp ?? new Date('2025-01-15T10:00:00Z'),
-    isMappable: location !== undefined
+    isGeneric: true,
+    isComplete: true,
+    action: null,
+    actionOriginal: null,
+    object: null,
+    objectOriginal: null,
+    venue: null,
+    city: city ?? null,
+    state: null,
+    country: null
   }
 }
 
 function createGeocodedSuggestion(
   id: number,
   activity: string,
-  location?: string,
+  city?: string,
   lat?: number,
   lng?: number,
   timestamp?: Date
 ): GeocodedSuggestion {
   return {
-    ...createSuggestion(id, activity, location, timestamp),
+    ...createSuggestion(id, activity, city, timestamp),
     latitude: lat,
     longitude: lng
   }
@@ -153,8 +161,8 @@ describe('Aggregation Module', () => {
 
     it('uses most recent mention as base suggestion', () => {
       const suggestions = [
-        createSuggestion(1, 'pottery class', 'Old Location', new Date('2022-01-01')),
-        createSuggestion(2, 'Pottery Class', 'New Location', new Date('2024-01-01'))
+        createSuggestion(1, 'pottery class', 'Old City', new Date('2022-01-01')),
+        createSuggestion(2, 'Pottery Class', 'New City', new Date('2024-01-01'))
       ]
 
       const result = aggregateSuggestions(suggestions)
@@ -162,7 +170,7 @@ describe('Aggregation Module', () => {
       expect(result).toHaveLength(1)
       // Should use the newer suggestion's details (most recent has best info)
       expect(result[0]?.activity).toBe('Pottery Class')
-      expect(result[0]?.location).toBe('New Location')
+      expect(result[0]?.city).toBe('New City')
     })
   })
 

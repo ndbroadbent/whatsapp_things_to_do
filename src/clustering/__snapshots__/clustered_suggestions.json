@@ -450,6 +450,31 @@
     },
     {
       "representative": {
+        "activity": "Weekend trip to Rotorua",
+        "category": "trip",
+        "location": "Rotorua, New Zealand"
+      },
+      "instanceCount": 2,
+      "instances": [
+        {
+          "activity": "Go to that place in Rotorua again (sauna)",
+          "category": "other",
+          "location": "Rotorua"
+        },
+        {
+          "activity": "Weekend trip to Rotorua",
+          "category": "trip",
+          "location": "Rotorua, New Zealand"
+        }
+      ],
+      "allSenders": [
+        "Nathan Broadbent"
+      ],
+      "firstMentioned": "2025-10-11T00:39:26.000Z",
+      "lastMentioned": "2025-10-11T00:40:32.000Z"
+    },
+    {
+      "representative": {
         "activity": "Celebrate by going to a Chinese buffet",
         "category": "restaurant",
         "location": "Chinese buffet"
@@ -473,6 +498,31 @@
       ],
       "firstMentioned": "2025-11-07T03:39:35.000Z",
       "lastMentioned": "2025-11-07T03:40:00.000Z"
+    },
+    {
+      "representative": {
+        "activity": "Stay in Takapuna (Airbnb)",
+        "category": "hotel",
+        "location": "Takapuna, Auckland"
+      },
+      "instanceCount": 2,
+      "instances": [
+        {
+          "activity": "Stay at an Airbnb",
+          "category": "hotel",
+          "location": "Takapuna"
+        },
+        {
+          "activity": "Stay in Takapuna (Airbnb)",
+          "category": "hotel",
+          "location": "Takapuna, Auckland"
+        }
+      ],
+      "allSenders": [
+        "Nathan Broadbent"
+      ],
+      "firstMentioned": "2025-11-14T11:13:42.000Z",
+      "lastMentioned": "2025-11-14T11:13:43.000Z"
     },
     {
       "representative": {
@@ -1278,46 +1328,6 @@
     },
     {
       "representative": {
-        "activity": "Weekend trip to Rotorua",
-        "category": "trip",
-        "location": "Rotorua, New Zealand"
-      },
-      "instanceCount": 1,
-      "instances": [
-        {
-          "activity": "Weekend trip to Rotorua",
-          "category": "trip",
-          "location": "Rotorua, New Zealand"
-        }
-      ],
-      "allSenders": [
-        "Nathan Broadbent"
-      ],
-      "firstMentioned": "2025-10-11T00:39:26.000Z",
-      "lastMentioned": "2025-10-11T00:39:26.000Z"
-    },
-    {
-      "representative": {
-        "activity": "Go to that place in Rotorua again (sauna)",
-        "category": "other",
-        "location": "Rotorua"
-      },
-      "instanceCount": 1,
-      "instances": [
-        {
-          "activity": "Go to that place in Rotorua again (sauna)",
-          "category": "other",
-          "location": "Rotorua"
-        }
-      ],
-      "allSenders": [
-        "Nathan Broadbent"
-      ],
-      "firstMentioned": "2025-10-11T00:40:32.000Z",
-      "lastMentioned": "2025-10-11T00:40:32.000Z"
-    },
-    {
-      "representative": {
         "activity": "Do some yoga",
         "category": "other"
       },
@@ -1391,46 +1401,6 @@
       ],
       "firstMentioned": "2025-11-12T01:28:36.000Z",
       "lastMentioned": "2025-11-12T01:28:36.000Z"
-    },
-    {
-      "representative": {
-        "activity": "Stay in Takapuna (Airbnb)",
-        "category": "hotel",
-        "location": "Takapuna, Auckland"
-      },
-      "instanceCount": 1,
-      "instances": [
-        {
-          "activity": "Stay in Takapuna (Airbnb)",
-          "category": "hotel",
-          "location": "Takapuna, Auckland"
-        }
-      ],
-      "allSenders": [
-        "Nathan Broadbent"
-      ],
-      "firstMentioned": "2025-11-14T11:13:42.000Z",
-      "lastMentioned": "2025-11-14T11:13:42.000Z"
-    },
-    {
-      "representative": {
-        "activity": "Stay at an Airbnb",
-        "category": "hotel",
-        "location": "Takapuna"
-      },
-      "instanceCount": 1,
-      "instances": [
-        {
-          "activity": "Stay at an Airbnb",
-          "category": "hotel",
-          "location": "Takapuna"
-        }
-      ],
-      "allSenders": [
-        "Nathan Broadbent"
-      ],
-      "firstMentioned": "2025-11-14T11:13:43.000Z",
-      "lastMentioned": "2025-11-14T11:13:43.000Z"
     },
     {
       "representative": {

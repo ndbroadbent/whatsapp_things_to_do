@@ -4,7 +4,7 @@
  * Export suggestions to CSV format.
  */
 
-import type { GeocodedSuggestion } from '../types.js'
+import { formatLocation, type GeocodedSuggestion } from '../types.js'
 import { formatDate, formatTime, googleMapsLink } from './utils.js'
 
 const CSV_COLUMNS = [
@@ -67,7 +67,7 @@ export function exportToCSV(suggestions: readonly GeocodedSuggestion[]): string 
       s.sender,
       s.originalMessage.replace(/\n/g, ' ').slice(0, 500),
       s.activity,
-      s.location ?? '',
+      formatLocation(s) ?? '',
       s.latitude ?? '',
       s.longitude ?? '',
       s.confidence.toFixed(2),

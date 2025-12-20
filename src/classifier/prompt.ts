@@ -47,67 +47,88 @@ ${context}
     })
     .join('\n')
 
-  return `You are analyzing chat messages between people. Your task is to identify messages that suggest "things to do" - activities, places to visit, events to attend, trips to take, etc.
+  return `You are analyzing chat messages to identify "things to do" - activities, places to visit, events, trips, etc.
 
-URLs in the chat may be followed by [URL_META: {...}] lines containing scraped metadata (title, description, platform). Use this metadata to better understand what the link is about - it tells you the actual content (e.g., a restaurant name, hotel listing, event details) rather than just seeing a raw URL.
+URLs may have [URL_META: {...}] with scraped metadata. Use this to understand what the link is about.
 
-For each message marked with >>>, determine:
-1. Is this a suggestion for something to do together? (yes/no)
-2. If yes, what is the activity/thing to do?
-3. If yes, what location is mentioned (if any)?
-4. Activity score: 0.0 (errand like vet/mechanic) to 1.0 (fun activity)
-5. Category: restaurant, cafe, bar, hike, nature, beach, trip, hotel, event, concert, museum, entertainment, adventure, family, errand, appointment, other
-6. Is mappable: Can this be pinned on a map? (yes if specific location like "Queenstown", "Coffee Lab", Google Maps URL; no if general idea like "see a movie", "go kayaking" without a specific venue)
+For each message marked with >>>, extract structured data for clustering and display.
 
-Focus on:
+NORMALIZATION RULES:
+- Normalize action to common informal American English: tramping→hike, trekking→hike, cycling→bike, film→movie
+- Strip light verbs (go, do, take, try, check out, let's) - extract the real action
+- Do NOT over-normalize distinct concepts: cafe≠restaurant, diner≠restaurant, bar≠restaurant
+- Preserve original casing in all fields
+
+CATEGORIES: restaurant, cafe, bar, hike, nature, beach, trip, hotel, event, concert, museum, entertainment, adventure, family, errand, appointment, other
+
+FOCUS ON:
 - Suggestions to visit places (restaurants, beaches, parks, cities)
 - Activities to try (hiking, kayaking, concerts, shows)
 - Travel plans (trips, hotels, Airbnb)
 - Events to attend (festivals, markets, movies)
 - Experiences to have ("we should try...", "let's go to...")
 
-Ignore:
+IGNORE:
 - Mundane tasks (groceries, cleaning, work)
-- Past events (things they already did)
+- Past events (things already done)
 - Vague statements without actionable suggestions
 - Just sharing links without suggesting to go/do something
-- Romantic/intimate invitations (coming over, staying the night, "netflix and chill")
-- Adult or suggestive content (explicit messages, flirting, intimate conversations)
-- Private relationship moments - these should NEVER appear in results
-- Generic routine activities without a specific venue ("go to a coffee shop", "get dinner somewhere") - these happen daily and aren't special. But DO include unique experiences even without a specific location ("go kayaking", "try skydiving", "see a show")
+- Romantic/intimate invitations, adult content, private relationship moments
+- Generic routine activities without venue ("go to a coffee shop") - but DO include unique experiences ("go kayaking")
 
 ${messagesText}
 
-Respond in this exact JSON format (array of objects, one per message analyzed):
+Respond with JSON array (short keys to save tokens):
 \`\`\`json
 [
   {
-    "message_id": <id>,
-    "is_activity": true/false,
-    "activity": "<what to do - null if not a suggestion>",
-    "location": "<place/location mentioned - null if none or not a suggestion>",
-    "activity_score": <0.0-1.0>,
-    "category": "<category>",
-    "confidence": <0.0-1.0 how confident you are>,
-    "is_mappable": true/false
+    "msg": <message_id>,
+    "is_act": true/false,
+    "title": "<human-readable activity description, under 100 chars>",
+    "score": <0.0=errand to 1.0=fun>,
+    "cat": "<category>",
+    "conf": <0.0-1.0 confidence>,
+    "gen": <true if generic activity, no specific name/URL/compound>,
+    "com": <true if JSON fully captures info, false if lossy (compound activities, complex refs)>,
+    "act": "<normalized action: hike, eat, watch, etc.>",
+    "act_orig": "<original action word before normalization>",
+    "obj": "<normalized object: movie, restaurant, etc.>",
+    "obj_orig": "<original object word>",
+    "venue": "<venue/place name: Coffee Lab, Kazuya, etc.>",
+    "city": "<city name (Queenstown, Auckland, etc.)>",
+    "state": "<state/region>",
+    "country": "<country>"
   }
 ]
 \`\`\`
 
-Include ALL messages in your response (both activities and non-activities).
-Be concise with activity descriptions (under 100 chars).
-For location, extract specific place names if mentioned.`
+EXAMPLES:
+- "Go tramping in Queenstown" → act:"hike", act_orig:"tramping", city:"Queenstown", country:"New Zealand", gen:false, com:true
+- "Watch a movie" → act:"watch", obj:"movie", gen:true, com:true
+- "Go to Coffee Lab" → act:"visit", loc:"Coffee Lab", gen:false, com:true
+- "Go to Iceland and see the aurora" → act:"travel", obj:"aurora", country:"Iceland", gen:false, com:false (compound, lossy)
+- "Buy a watch or scotch" → act:"buy", obj:"gift", gen:false, com:false (compound, lossy)
+
+Include ALL messages in response.`
 }
 
 export interface ParsedClassification {
-  message_id: number
-  is_activity: boolean
-  activity: string | null
-  location: string | null
-  activity_score: number
-  category: string
-  confidence: number
-  is_mappable: boolean
+  msg: number
+  is_act: boolean
+  title: string | null
+  score: number
+  cat: string
+  conf: number
+  gen: boolean
+  com: boolean
+  act: string | null
+  act_orig: string | null
+  obj: string | null
+  obj_orig: string | null
+  venue: string | null
+  city: string | null
+  state: string | null
+  country: string | null
 }
 
 function extractJsonFromResponse(response: string): string {
@@ -124,20 +145,36 @@ function extractJsonFromResponse(response: string): string {
   return arrayMatch[0]
 }
 
-function parseItem(obj: Record<string, unknown>): ParsedClassification {
-  const location = typeof obj.location === 'string' ? obj.location : null
-  const defaultMappable = location !== null && location.trim().length > 0
+function parseString(val: unknown): string | null {
+  return typeof val === 'string' && val.trim() ? val : null
+}
 
+function parseNumber(val: unknown, fallback: number): number {
+  return typeof val === 'number' ? Math.max(0, Math.min(1, val)) : fallback
+}
+
+function parseBoolean(val: unknown, fallback: boolean): boolean {
+  return typeof val === 'boolean' ? val : fallback
+}
+
+function parseItem(obj: Record<string, unknown>): ParsedClassification {
   return {
-    message_id: typeof obj.message_id === 'number' ? obj.message_id : 0,
-    is_activity: obj.is_activity === true,
-    activity: typeof obj.activity === 'string' ? obj.activity : null,
-    location,
-    activity_score:
-      typeof obj.activity_score === 'number' ? Math.max(0, Math.min(1, obj.activity_score)) : 0.5,
-    category: typeof obj.category === 'string' ? obj.category : 'other',
-    confidence: typeof obj.confidence === 'number' ? Math.max(0, Math.min(1, obj.confidence)) : 0.5,
-    is_mappable: typeof obj.is_mappable === 'boolean' ? obj.is_mappable : defaultMappable
+    msg: typeof obj.msg === 'number' ? obj.msg : 0,
+    is_act: parseBoolean(obj.is_act, false),
+    title: parseString(obj.title),
+    score: parseNumber(obj.score, 0.5),
+    cat: typeof obj.cat === 'string' ? obj.cat : 'other',
+    conf: parseNumber(obj.conf, 0.5),
+    gen: parseBoolean(obj.gen, true),
+    com: parseBoolean(obj.com, true),
+    act: parseString(obj.act),
+    act_orig: parseString(obj.act_orig),
+    obj: parseString(obj.obj),
+    obj_orig: parseString(obj.obj_orig),
+    venue: parseString(obj.venue),
+    city: parseString(obj.city),
+    state: parseString(obj.state),
+    country: parseString(obj.country)
   }
 }
 
@@ -168,13 +205,13 @@ export function parseClassificationResponse(
     return parseItem(item as Record<string, unknown>)
   })
 
-  // Validate at least one message_id matches expected
+  // Validate at least one msg matches expected
   if (expectedIds && expectedIds.length > 0) {
     const expectedSet = new Set(expectedIds)
-    const hasMatch = results.some((r) => expectedSet.has(r.message_id))
+    const hasMatch = results.some((r) => expectedSet.has(r.msg))
     if (!hasMatch) {
       throw new Error(
-        `AI response contains no matching message IDs. Expected: [${expectedIds.join(', ')}], got: [${results.map((r) => r.message_id).join(', ')}]`
+        `AI response contains no matching message IDs. Expected: [${expectedIds.join(', ')}], got: [${results.map((r) => r.msg).join(', ')}]`
       )
     }
   }

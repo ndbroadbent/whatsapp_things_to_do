@@ -60,10 +60,31 @@ function createMockClassifierResponse(
     activity_score: number
     category: string
     confidence: number
-    location?: string
+    city?: string
+    country?: string
   }>
 ): string {
-  return JSON.stringify(items)
+  // Convert to new schema format
+  return JSON.stringify(
+    items.map((item) => ({
+      msg: item.message_id,
+      is_act: item.is_activity,
+      title: item.activity,
+      score: item.activity_score,
+      cat: item.category,
+      conf: item.confidence,
+      gen: true,
+      com: true,
+      act: null,
+      act_orig: null,
+      obj: null,
+      obj_orig: null,
+      venue: null,
+      city: item.city ?? null,
+      state: null,
+      country: item.country ?? null
+    }))
+  )
 }
 
 describe('Classifier Module', () => {
@@ -207,7 +228,8 @@ describe('Classifier Module', () => {
                   activity_score: 0.9,
                   category: 'restaurant',
                   confidence: 0.95,
-                  location: 'Rome, Italy'
+                  city: 'Rome',
+                  country: 'Italy'
                 }
               ])
             }
@@ -227,7 +249,6 @@ describe('Classifier Module', () => {
         expect(result.value).toHaveLength(1)
         expect(result.value[0]?.activity).toBe('Italian Restaurant')
         expect(result.value[0]?.category).toBe('restaurant')
-        expect(result.value[0]?.location).toBe('Rome, Italy')
       }
     })
 
@@ -574,7 +595,16 @@ describe('Classifier Module', () => {
         originalMessage: 'Test',
         sender: 'User',
         timestamp: new Date(),
-        isMappable: true
+        isGeneric: true,
+        isComplete: true,
+        action: null,
+        actionOriginal: null,
+        object: null,
+        objectOriginal: null,
+        venue: null,
+        city: null,
+        state: null,
+        country: null
       }
     }
 
@@ -626,7 +656,16 @@ describe('Classifier Module', () => {
         originalMessage: 'Test',
         sender: 'User',
         timestamp: new Date(),
-        isMappable: true
+        isGeneric: true,
+        isComplete: true,
+        action: null,
+        actionOriginal: null,
+        object: null,
+        objectOriginal: null,
+        venue: null,
+        city: null,
+        state: null,
+        country: null
       }
     }
 

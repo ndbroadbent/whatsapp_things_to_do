@@ -5,7 +5,7 @@
  * This is an optional feature - if exceljs is not available, it throws a clear error.
  */
 
-import type { GeocodedSuggestion } from '../types.js'
+import { formatLocation, type GeocodedSuggestion } from '../types.js'
 import { formatDate, googleMapsLink } from './utils.js'
 
 // Try to import exceljs dynamically since it's a peer dependency
@@ -79,7 +79,7 @@ export async function exportToExcel(
       date: formatDate(s.timestamp),
       sender: s.sender,
       activity: s.activity,
-      location: s.location ?? '',
+      location: formatLocation(s) ?? '',
       message: s.originalMessage.replace(/\n/g, ' ').slice(0, 300),
       latitude: s.latitude ?? '',
       longitude: s.longitude ?? '',

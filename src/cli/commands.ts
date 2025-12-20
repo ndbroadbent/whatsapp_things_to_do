@@ -11,7 +11,7 @@ import { FilesystemCache } from '../cache/filesystem.js'
 import { buildClassificationPrompt } from '../classifier/prompt.js'
 import { classifyMessages, VERSION } from '../index.js'
 import { scrapeAndEnrichCandidates } from '../scraper/enrich.js'
-import type { ClassifierConfig } from '../types.js'
+import { type ClassifierConfig, formatLocation } from '../types.js'
 import type { CLIArgs } from './args.js'
 import { ensureDir } from './io.js'
 import type { Logger } from './logger.js'
@@ -143,8 +143,9 @@ export async function cmdPreview(args: CLIArgs, logger: Logger): Promise<void> {
 
     logger.log(`${i + 1}. ${emoji}  "${activity}"`)
     logger.log(`   → ${category} • ${s.sender} • ${formatDate(s.timestamp)}`)
-    if (s.location) {
-      logger.log(`   📍 ${s.location}`)
+    const location = formatLocation(s)
+    if (location) {
+      logger.log(`   📍 ${location}`)
     }
     logger.log('')
   }

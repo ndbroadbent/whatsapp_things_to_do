@@ -1,25 +1,24 @@
 /**
  * Semantic Clustering Module
  *
- * Groups near-identical activity suggestions into single entries with multiple instances.
- * Runs AFTER AI classification, using the rich structured output.
+ * Groups identical activity suggestions into single entries with multiple instances.
  *
- * Three goals:
- * 1. Clustering - Group "Go hiking" + "Let's hike" + "Do a hike" → 1 entry
- * 2. Filtering - Remove noise, empty entries, non-activities
- * 3. Error Correction - Fix AI classification mistakes via semantic similarity
+ * Two clustering strategies:
+ * 1. Complete entries (isComplete=true): Match on normalized fields (action, object, venue, city, country)
+ * 2. Complex entries (isComplete=false): Match on exact activity title string
+ *
+ * Complete = structured fields fully capture the activity (e.g., "hike in Queenstown")
+ * Complex = compound/lossy, title is the full representation (e.g., "Go to Iceland and see the aurora")
  *
  * @example
  * ```typescript
- * const result = await clusterSuggestions(classifiedSuggestions)
+ * const result = clusterSuggestions(classifiedSuggestions)
  * console.log(result.clusters)  // Grouped activities
  * console.log(result.filtered)  // Removed as noise
  * ```
  */
 
 import type { ClassifiedSuggestion } from '../types/classifier.js'
-import { extractTuple, isEmptyTuple, type SemanticTuple } from './extract-tuple.js'
-import { tuplesMatch } from './match-tuples.js'
 
 /**
  * A single cluster of semantically equivalent activities.
@@ -37,8 +36,8 @@ export interface SuggestionCluster {
   readonly lastMentioned: Date
   /** All unique senders who mentioned this activity. */
   readonly allSenders: readonly string[]
-  /** The semantic tuple for this cluster. */
-  readonly tuple: SemanticTuple
+  /** The clustering key for this cluster. */
+  readonly clusterKey: string
 }
 
 /**
@@ -47,7 +46,7 @@ export interface SuggestionCluster {
 export interface ClusterResult {
   /** Clusters of related activities (sorted by instance count, descending). */
   readonly clusters: readonly SuggestionCluster[]
-  /** Suggestions filtered out as noise (empty tuples, no semantic content). */
+  /** Suggestions filtered out as noise (low activity score, etc). */
   readonly filtered: readonly ClassifiedSuggestion[]
 }
 
@@ -63,11 +62,17 @@ export interface ClusterConfig {
 }
 
 /**
- * Internal structure for tracking suggestions with their tuples.
+ * Generate a clustering key from normalized fields.
+ * Case-insensitive comparison.
  */
-interface SuggestionWithTuple {
-  readonly suggestion: ClassifiedSuggestion
-  readonly tuple: SemanticTuple
+function getClusterKey(s: ClassifiedSuggestion): string {
+  return [
+    s.action?.toLowerCase() ?? '',
+    s.object?.toLowerCase() ?? '',
+    s.venue?.toLowerCase() ?? '',
+    s.city?.toLowerCase() ?? '',
+    s.country?.toLowerCase() ?? ''
+  ].join('|')
 }
 
 /**
@@ -91,7 +96,32 @@ function selectRepresentative(suggestions: readonly ClassifiedSuggestion[]): Cla
 }
 
 /**
- * Cluster semantically similar suggestions together.
+ * Build a cluster from a group of suggestions.
+ */
+function buildCluster(
+  suggestions: readonly ClassifiedSuggestion[],
+  clusterKey: string
+): SuggestionCluster {
+  const representative = selectRepresentative(suggestions)
+  const timestamps = suggestions.map((s) => s.timestamp)
+  const senders = [...new Set(suggestions.map((s) => s.sender))]
+
+  return {
+    representative,
+    instances: suggestions,
+    instanceCount: suggestions.length,
+    firstMentioned: new Date(Math.min(...timestamps.map((t) => t.getTime()))),
+    lastMentioned: new Date(Math.max(...timestamps.map((t) => t.getTime()))),
+    allSenders: senders,
+    clusterKey
+  }
+}
+
+/**
+ * Cluster suggestions by matching fields.
+ *
+ * - Complete entries: cluster by normalized fields (action, object, venue, city, country)
+ * - Complex entries: cluster by exact activity title
  *
  * @param suggestions - Classified suggestions from AI
  * @param config - Optional clustering configuration
@@ -99,7 +129,7 @@ function selectRepresentative(suggestions: readonly ClassifiedSuggestion[]): Cla
  *
  * @example
  * ```typescript
- * const result = await clusterSuggestions(suggestions)
+ * const result = clusterSuggestions(suggestions)
  *
  * // Show clusters with multiple mentions
  * for (const cluster of result.clusters) {
@@ -109,79 +139,57 @@ function selectRepresentative(suggestions: readonly ClassifiedSuggestion[]): Cla
  * }
  * ```
  */
-export async function clusterSuggestions(
+export function clusterSuggestions(
   suggestions: readonly ClassifiedSuggestion[],
   config: ClusterConfig = {}
-): Promise<ClusterResult> {
+): ClusterResult {
   const { minActivityScore = 0 } = config
-
-  // Extract tuples for all suggestions
-  const items: SuggestionWithTuple[] = await Promise.all(
-    suggestions.map(async (suggestion) => ({
-      suggestion,
-      tuple: await extractTuple(suggestion.activity, suggestion.location)
-    }))
-  )
 
   // Separate into valid and filtered
   const filtered: ClassifiedSuggestion[] = []
-  const valid: SuggestionWithTuple[] = []
+  const valid: ClassifiedSuggestion[] = []
 
-  for (const item of items) {
-    // Filter empty tuples (no semantic content)
-    if (isEmptyTuple(item.tuple)) {
-      filtered.push(item.suggestion)
-      continue
-    }
-
+  for (const suggestion of suggestions) {
     // Filter by activity score
-    if (item.suggestion.activityScore < minActivityScore) {
-      filtered.push(item.suggestion)
+    if (suggestion.activityScore < minActivityScore) {
+      filtered.push(suggestion)
       continue
     }
 
-    valid.push(item)
+    valid.push(suggestion)
   }
 
-  // Build clusters using pairwise matching
+  // Separate complete and complex entries
+  const complete = valid.filter((s) => s.isComplete)
+  const complex = valid.filter((s) => !s.isComplete)
+
+  // Group complete entries by normalized fields (case-insensitive)
+  const completeGroups = new Map<string, ClassifiedSuggestion[]>()
+  for (const s of complete) {
+    const key = getClusterKey(s)
+    const group = completeGroups.get(key) ?? []
+    group.push(s)
+    completeGroups.set(key, group)
+  }
+
+  // Group complex entries by exact title (case-insensitive)
+  const complexGroups = new Map<string, ClassifiedSuggestion[]>()
+  for (const s of complex) {
+    const key = s.activity.toLowerCase()
+    const group = complexGroups.get(key) ?? []
+    group.push(s)
+    complexGroups.set(key, group)
+  }
+
+  // Build clusters from both groups
   const clusters: SuggestionCluster[] = []
-  const clustered = new Set<number>()
 
-  for (let i = 0; i < valid.length; i++) {
-    if (clustered.has(i)) continue
+  for (const [key, group] of completeGroups) {
+    clusters.push(buildCluster(group, key))
+  }
 
-    const baseItem = valid[i]
-    if (!baseItem) continue
-
-    const clusterItems: SuggestionWithTuple[] = [baseItem]
-    clustered.add(i)
-
-    // Find all matching items
-    for (let j = i + 1; j < valid.length; j++) {
-      if (clustered.has(j)) continue
-
-      const candidateItem = valid[j]
-      if (candidateItem && tuplesMatch(baseItem.tuple, candidateItem.tuple)) {
-        clusterItems.push(candidateItem)
-        clustered.add(j)
-      }
-    }
-
-    // Build the cluster
-    const instances = clusterItems.map((item) => item.suggestion)
-    const representative = selectRepresentative(instances)
-    const timestamps = instances.map((s) => s.timestamp)
-    const senders = [...new Set(instances.map((s) => s.sender))]
-
-    clusters.push({
-      representative,
-      instances,
-      instanceCount: instances.length,
-      firstMentioned: new Date(Math.min(...timestamps.map((t) => t.getTime()))),
-      lastMentioned: new Date(Math.max(...timestamps.map((t) => t.getTime()))),
-      allSenders: senders,
-      tuple: baseItem.tuple
-    })
+  for (const [key, group] of complexGroups) {
+    clusters.push(buildCluster(group, key))
   }
 
   // Sort clusters by instance count (descending), then by first mentioned (ascending)
@@ -192,7 +200,3 @@ export async function clusterSuggestions(
 
   return { clusters, filtered }
 }
-
-// Re-export useful types and functions
-export { extractTuple, formatTuple, isEmptyTuple, type SemanticTuple } from './extract-tuple.js'
-export { arraysIntersect, tupleSimilarity, tuplesMatch } from './match-tuples.js'

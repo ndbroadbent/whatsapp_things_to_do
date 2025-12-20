@@ -14,12 +14,15 @@ import type {
   ClassifiedSuggestion,
   ClassifierConfig,
   ClassifierProvider,
-  ClassifierResponse,
   ProviderConfig,
   ResponseCache,
   Result
 } from '../types.js'
-import { buildClassificationPrompt, parseClassificationResponse } from './prompt.js'
+import {
+  buildClassificationPrompt,
+  type ParsedClassification,
+  parseClassificationResponse
+} from './prompt.js'
 import { countTokens, MAX_BATCH_TOKENS } from './tokenizer.js'
 
 export {
@@ -220,24 +223,32 @@ async function callProviderWithFallbacks(
 }
 
 /**
- * Convert a classifier response to a classified suggestion.
+ * Convert a parsed classification to a classified suggestion.
  */
 function toClassifiedSuggestion(
-  response: ClassifierResponse,
+  response: ParsedClassification,
   candidate: CandidateMessage
 ): ClassifiedSuggestion {
   return {
     messageId: candidate.messageId,
-    isActivity: response.is_activity,
-    activity: response.activity ?? candidate.content.slice(0, 100),
-    location: response.location ?? undefined,
-    activityScore: response.activity_score,
-    category: normalizeCategory(response.category),
-    confidence: response.confidence,
+    isActivity: response.is_act,
+    activity: response.title ?? candidate.content.slice(0, 100),
+    activityScore: response.score,
+    category: normalizeCategory(response.cat),
+    confidence: response.conf,
     originalMessage: candidate.content,
     sender: candidate.sender,
     timestamp: candidate.timestamp,
-    isMappable: response.is_mappable
+    isGeneric: response.gen,
+    isComplete: response.com,
+    action: response.act,
+    actionOriginal: response.act_orig,
+    object: response.obj,
+    objectOriginal: response.obj_orig,
+    venue: response.venue,
+    city: response.city,
+    state: response.state,
+    country: response.country
   }
 }
 
@@ -303,7 +314,7 @@ async function classifyBatch(
     const suggestions: ClassifiedSuggestion[] = []
 
     for (const response of parsed) {
-      const candidate = candidates.find((c) => c.messageId === response.message_id)
+      const candidate = candidates.find((c) => c.messageId === response.msg)
       if (candidate) {
         suggestions.push(toClassifiedSuggestion(response, candidate))
       }

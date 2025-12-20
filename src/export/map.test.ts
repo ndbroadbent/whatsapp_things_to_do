@@ -12,7 +12,6 @@ function createSuggestion(
     messageId: id,
     isActivity: true,
     activity,
-    location: lat ? 'Test Location' : undefined,
     activityScore: 0.8,
     category: 'restaurant',
     confidence: 0.9,
@@ -21,7 +20,16 @@ function createSuggestion(
     timestamp: new Date('2025-01-15T10:30:00'),
     latitude: lat,
     longitude: lng,
-    isMappable: lat !== undefined
+    isGeneric: true,
+    isComplete: true,
+    action: null,
+    actionOriginal: null,
+    object: null,
+    objectOriginal: null,
+    venue: null,
+    city: lat ? 'Test Location' : null,
+    state: null,
+    country: null
   }
 }
 
@@ -107,12 +115,14 @@ describe('Map HTML Export', () => {
     it('includes location in popup', () => {
       const suggestion: GeocodedSuggestion = {
         ...createSuggestion(1, 'Restaurant', 41.9, 12.5),
-        location: 'Rome, Italy'
+        city: 'Rome',
+        country: 'Italy'
       }
 
       const html = exportToMapHTML([suggestion])
 
-      expect(html).toContain('Rome, Italy')
+      expect(html).toContain('Rome')
+      expect(html).toContain('Italy')
     })
 
     it('uses OpenStreetMap tiles', () => {

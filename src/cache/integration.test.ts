@@ -47,20 +47,28 @@ function createCandidate(id: number, content: string): CandidateMessage {
 function createClassifiedSuggestion(
   id: number,
   activity: string,
-  location: string
+  city: string
 ): ClassifiedSuggestion {
   return {
     messageId: id,
     isActivity: true,
     activity,
-    location,
     activityScore: 0.9,
     category: 'restaurant',
     confidence: 0.9,
-    originalMessage: `Lets go to ${location}`,
+    originalMessage: `Lets go to ${city}`,
     sender: 'Test User',
     timestamp: new Date('2025-01-15T10:30:00Z'),
-    isMappable: true
+    isGeneric: true,
+    isComplete: true,
+    action: null,
+    actionOriginal: null,
+    object: null,
+    objectOriginal: null,
+    venue: null,
+    city,
+    state: null,
+    country: null
   }
 }
 
@@ -97,14 +105,22 @@ describe('Cache Integration', () => {
               type: 'text',
               text: JSON.stringify([
                 {
-                  message_id: 1,
-                  is_activity: true,
-                  activity: 'Try the new Italian restaurant',
-                  location: 'downtown',
-                  category: 'restaurant',
-                  activity_score: 0.9,
-                  confidence: 0.9,
-                  is_mappable: true
+                  msg: 1,
+                  is_act: true,
+                  title: 'Try the new Italian restaurant',
+                  score: 0.9,
+                  cat: 'restaurant',
+                  conf: 0.9,
+                  gen: true,
+                  com: true,
+                  act: null,
+                  act_orig: null,
+                  obj: null,
+                  obj_orig: null,
+                  venue: null,
+                  city: 'downtown',
+                  state: null,
+                  country: null
                 }
               ])
             }
@@ -137,14 +153,22 @@ describe('Cache Integration', () => {
               type: 'text',
               text: JSON.stringify([
                 {
-                  message_id: 1,
-                  is_activity: true,
-                  activity: 'Try the new Italian restaurant',
-                  location: 'downtown',
-                  category: 'restaurant',
-                  activity_score: 0.9,
-                  confidence: 0.9,
-                  is_mappable: true
+                  msg: 1,
+                  is_act: true,
+                  title: 'Try the new Italian restaurant',
+                  score: 0.9,
+                  cat: 'restaurant',
+                  conf: 0.9,
+                  gen: true,
+                  com: true,
+                  act: null,
+                  act_orig: null,
+                  obj: null,
+                  obj_orig: null,
+                  venue: null,
+                  city: 'downtown',
+                  state: null,
+                  country: null
                 }
               ])
             }
@@ -178,7 +202,7 @@ describe('Cache Integration', () => {
       if (result1.ok && result2.ok) {
         expect(result2.value).toHaveLength(result1.value.length)
         expect(result2.value[0]?.activity).toBe(result1.value[0]?.activity)
-        expect(result2.value[0]?.location).toBe(result1.value[0]?.location)
+        expect(result2.value[0]?.city).toBe(result1.value[0]?.city)
       }
     })
 
@@ -194,14 +218,22 @@ describe('Cache Integration', () => {
               type: 'text',
               text: JSON.stringify([
                 {
-                  message_id: id,
-                  is_activity: true,
-                  activity: `Activity ${id}`,
-                  location: 'somewhere',
-                  category: 'restaurant',
-                  activity_score: 0.9,
-                  confidence: 0.9,
-                  is_mappable: true
+                  msg: id,
+                  is_act: true,
+                  title: `Activity ${id}`,
+                  score: 0.9,
+                  cat: 'restaurant',
+                  conf: 0.9,
+                  gen: true,
+                  com: true,
+                  act: null,
+                  act_orig: null,
+                  obj: null,
+                  obj_orig: null,
+                  venue: null,
+                  city: 'somewhere',
+                  state: null,
+                  country: null
                 }
               ])
             }

@@ -43,7 +43,6 @@ function createSuggestion(
     messageId: id,
     isActivity: true,
     activity,
-    location: lat ? 'Test Location' : undefined,
     activityScore: 0.8,
     category: 'restaurant',
     confidence: 0.9,
@@ -52,7 +51,16 @@ function createSuggestion(
     timestamp: new Date('2025-01-15T10:30:00Z'),
     latitude: lat,
     longitude: lng,
-    isMappable: lat !== undefined
+    isGeneric: true,
+    isComplete: true,
+    action: null,
+    actionOriginal: null,
+    object: null,
+    objectOriginal: null,
+    venue: null,
+    city: lat ? 'Test Location' : null,
+    state: null,
+    country: null
   }
 }
 

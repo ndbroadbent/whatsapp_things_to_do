@@ -5,7 +5,12 @@
  * This is an optional feature - if pdfkit is not available, it throws a clear error.
  */
 
-import type { ActivityCategory, GeocodedSuggestion, PDFConfig } from '../types.js'
+import {
+  type ActivityCategory,
+  formatLocation,
+  type GeocodedSuggestion,
+  type PDFConfig
+} from '../types.js'
 
 // PDFKit uses CommonJS exports, so we need to handle it carefully
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
@@ -201,8 +206,9 @@ export async function exportToPDF(
       doc.fontSize(10).font('Helvetica-Bold').text(item.activity.slice(0, 80))
 
       const details: string[] = []
-      if (item.location) {
-        details.push(`Location: ${item.location}`)
+      const location = formatLocation(item)
+      if (location) {
+        details.push(`Location: ${location}`)
       }
       details.push(`From: ${item.sender.split(' ')[0]} on ${formatDate(item.timestamp)}`)
 

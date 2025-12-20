@@ -8,13 +8,14 @@ import { generateGeocodeCacheKey } from '../cache/key.js'
 import { DEFAULT_CACHE_TTL_SECONDS } from '../cache/types.js'
 import { extractGoogleMapsCoords } from '../extractor/url-classifier.js'
 import { httpFetch } from '../http.js'
-import type {
-  ClassifiedSuggestion,
-  GeocodedSuggestion,
-  GeocodeResult,
-  GeocoderConfig,
-  ResponseCache,
-  Result
+import {
+  type ClassifiedSuggestion,
+  formatLocation,
+  type GeocodedSuggestion,
+  type GeocodeResult,
+  type GeocoderConfig,
+  type ResponseCache,
+  type Result
 } from '../types.js'
 
 interface GoogleGeocodingResponse {
@@ -171,7 +172,7 @@ function tryExtractFromUrl(suggestion: ClassifiedSuggestion): GeocodeResult | nu
         return {
           latitude: coords.lat,
           longitude: coords.lng,
-          formattedAddress: suggestion.location ?? ''
+          formattedAddress: formatLocation(suggestion) ?? ''
         }
       }
     }
@@ -188,6 +189,8 @@ async function geocodeSuggestion(
   config: GeocoderConfig,
   cache?: ResponseCache
 ): Promise<GeocodedSuggestion> {
+  const location = formatLocation(suggestion)
+
   // First, try to extract coords from Google Maps URL
   const urlCoords = tryExtractFromUrl(suggestion)
   if (urlCoords) {
@@ -195,18 +198,18 @@ async function geocodeSuggestion(
       ...suggestion,
       latitude: urlCoords.latitude,
       longitude: urlCoords.longitude,
-      formattedAddress: urlCoords.formattedAddress || suggestion.location,
+      formattedAddress: urlCoords.formattedAddress || location || undefined,
       geocodeSource: 'google_maps_url'
     }
   }
 
   // If no location text, return as-is
-  if (!suggestion.location) {
+  if (!location) {
     return suggestion
   }
 
   // Try geocoding the location text
-  const result = await geocodeText(suggestion.location, config, cache)
+  const result = await geocodeText(location, config, cache)
 
   if (result.ok) {
     return {

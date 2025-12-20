@@ -72,21 +72,29 @@ function createGeocodingResponse(
 function createSuggestion(
   id: number,
   activity: string,
-  location?: string,
+  city?: string,
   originalMessage?: string
 ): ClassifiedSuggestion {
   return {
     messageId: id,
     isActivity: true,
     activity,
-    location,
     activityScore: 0.8,
     category: 'restaurant',
     confidence: 0.9,
     originalMessage: originalMessage ?? activity,
     sender: 'Test User',
     timestamp: new Date('2025-01-15T10:30:00Z'),
-    isMappable: location !== undefined
+    isGeneric: true,
+    isComplete: true,
+    action: null,
+    actionOriginal: null,
+    object: null,
+    objectOriginal: null,
+    venue: null,
+    city: city ?? null,
+    state: null,
+    country: null
   }
 }
 

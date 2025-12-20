@@ -5,7 +5,7 @@ import { exportToCSV } from './csv.js'
 function createSuggestion(
   id: number,
   activity: string,
-  location?: string,
+  city?: string,
   lat?: number,
   lng?: number
 ): GeocodedSuggestion {
@@ -13,7 +13,6 @@ function createSuggestion(
     messageId: id,
     isActivity: true,
     activity,
-    location,
     activityScore: 0.8,
     category: 'restaurant',
     confidence: 0.9,
@@ -22,7 +21,16 @@ function createSuggestion(
     timestamp: new Date('2025-01-15T10:30:00Z'),
     latitude: lat,
     longitude: lng,
-    isMappable: location !== undefined
+    isGeneric: true,
+    isComplete: true,
+    action: null,
+    actionOriginal: null,
+    object: null,
+    objectOriginal: null,
+    venue: null,
+    city: city ?? null,
+    state: null,
+    country: null
   }
 }
 

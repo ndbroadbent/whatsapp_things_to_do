@@ -7,11 +7,12 @@
  * This is an orchestrator concern (CLI), not core library.
  */
 
-import type {
-  AggregatedSuggestion,
-  ClassifiedSuggestion,
-  GeocodedSuggestion,
-  SourceMessage
+import {
+  type AggregatedSuggestion,
+  type ClassifiedSuggestion,
+  formatLocation,
+  type GeocodedSuggestion,
+  type SourceMessage
 } from '../types.js'
 
 /**
@@ -74,8 +75,10 @@ function similarity(a: string, b: string): number {
  */
 function shouldGroup(a: ClassifiedSuggestion, b: ClassifiedSuggestion): boolean {
   // Exact location match (if both have locations)
-  if (a.location && b.location) {
-    if (normalizeString(a.location) === normalizeString(b.location)) {
+  const locA = formatLocation(a)
+  const locB = formatLocation(b)
+  if (locA && locB) {
+    if (normalizeString(locA) === normalizeString(locB)) {
       return true
     }
   }

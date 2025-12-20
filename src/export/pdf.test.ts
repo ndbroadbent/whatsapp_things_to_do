@@ -13,7 +13,6 @@ function createSuggestion(
     messageId: id,
     isActivity: true,
     activity,
-    location: lat ? 'Test Location' : undefined,
     activityScore: 0.8,
     category: category as GeocodedSuggestion['category'],
     confidence: 0.9,
@@ -22,7 +21,16 @@ function createSuggestion(
     timestamp: new Date('2025-01-15T10:30:00Z'),
     latitude: lat,
     longitude: lng,
-    isMappable: lat !== undefined
+    isGeneric: true,
+    isComplete: true,
+    action: null,
+    actionOriginal: null,
+    object: null,
+    objectOriginal: null,
+    venue: null,
+    city: lat ? 'Test Location' : null,
+    state: null,
+    country: null
   }
 }
 
@@ -114,7 +122,8 @@ describe('PDF Export', () => {
     it('handles suggestions with location', async () => {
       const suggestion: GeocodedSuggestion = {
         ...createSuggestion(1, 'Restaurant', 'restaurant', 41.9, 12.5),
-        location: 'Rome, Italy'
+        city: 'Rome',
+        country: 'Italy'
       }
 
       const result = await exportToPDF([suggestion])

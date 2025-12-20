@@ -1,17 +1,21 @@
 /**
  * Tests for semantic clustering
+ *
+ * The new clustering approach relies on LLM normalization at classification time.
+ * The LLM normalizes synonyms (tramping→hike, cycling→bike, film→movie) and extracts
+ * structured fields (action, object, venue, city, country).
+ *
+ * Clustering is now simple exact-match on normalized fields.
+ * Only complete entries (isComplete=true) are clustered; incomplete entries stay as singletons.
  */
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
-import { gunzipSync } from 'node:zlib'
 import { describe, expect, it } from 'vitest'
 import type { ActivityCategory, ClassifiedSuggestion } from '../types/classifier.js'
-import type { ClusterResult } from './index.js'
 import { clusterSuggestions } from './index.js'
 
 /**
  * Helper to create a ClassifiedSuggestion for testing.
+ * Uses the new normalized fields (action, object, venue, city, country).
  */
 function createSuggestion(
   activity: string,
@@ -27,111 +31,162 @@ function createSuggestion(
     originalMessage: `We should ${activity.toLowerCase()}`,
     sender: 'Test User',
     timestamp: new Date(),
-    isMappable: false,
+    isGeneric: true,
+    isComplete: true,
+    action: null,
+    actionOriginal: null,
+    object: null,
+    objectOriginal: null,
+    venue: null,
+    city: null,
+    state: null,
+    country: null,
     ...overrides
   }
 }
 
 describe('clusterSuggestions', () => {
-  describe('basic clustering', () => {
-    it('should cluster semantically identical activities', async () => {
+  describe('basic clustering by normalized fields', () => {
+    it('should cluster suggestions with identical normalized fields', () => {
       const suggestions = [
-        createSuggestion('Go for a bike ride'),
-        createSuggestion('Ride a bike'),
-        createSuggestion('Go biking')
+        createSuggestion('Go hiking', { action: 'hike', actionOriginal: 'hiking' }),
+        createSuggestion('Go tramping', { action: 'hike', actionOriginal: 'tramping' }),
+        createSuggestion('Do a hike', { action: 'hike', actionOriginal: 'hike' })
       ]
 
-      const result = await clusterSuggestions(suggestions)
+      const result = clusterSuggestions(suggestions)
 
-      // Should have 1 cluster with 3 instances
       expect(result.clusters.length).toBe(1)
-      const cluster = result.clusters[0]
-      expect(cluster).toBeDefined()
-      expect(cluster?.instanceCount).toBe(3)
+      expect(result.clusters[0]?.instanceCount).toBe(3)
       expect(result.filtered.length).toBe(0)
     })
 
-    it('should keep different activities in separate clusters', async () => {
+    it('should keep different activities in separate clusters', () => {
       const suggestions = [
-        createSuggestion('Go for a bike ride'),
-        createSuggestion('Go swimming'),
-        createSuggestion('Visit a restaurant')
+        createSuggestion('Go biking', { action: 'bike' }),
+        createSuggestion('Go swimming', { action: 'swim' }),
+        createSuggestion('Visit a restaurant', { action: 'eat', object: 'restaurant' })
       ]
 
-      const result = await clusterSuggestions(suggestions)
+      const result = clusterSuggestions(suggestions)
 
       expect(result.clusters.length).toBe(3)
       expect(result.clusters.every((c) => c.instanceCount === 1)).toBe(true)
     })
 
-    it('should NOT cluster "Ride a bike" with "Fix a bike"', async () => {
-      const suggestions = [createSuggestion('Ride a bike'), createSuggestion('Fix a bike')]
+    it('should NOT cluster same action with different objects', () => {
+      const suggestions = [
+        createSuggestion('Watch a movie', { action: 'watch', object: 'movie' }),
+        createSuggestion('Watch a show', { action: 'watch', object: 'show' })
+      ]
 
-      const result = await clusterSuggestions(suggestions)
+      const result = clusterSuggestions(suggestions)
 
-      // Should have 2 separate clusters
       expect(result.clusters.length).toBe(2)
     })
   })
 
   describe('location handling', () => {
-    it('should NOT cluster same activity with different locations', async () => {
+    it('should NOT cluster same activity with different cities', () => {
       const suggestions = [
-        createSuggestion('Go kayaking', { location: undefined }),
-        createSuggestion('Go kayaking in Mexico', { location: 'Mexico' })
+        createSuggestion('Go kayaking', { action: 'kayak' }),
+        createSuggestion('Go kayaking in Mexico', { action: 'kayak', country: 'Mexico' })
       ]
 
-      const result = await clusterSuggestions(suggestions)
+      const result = clusterSuggestions(suggestions)
 
       expect(result.clusters.length).toBe(2)
     })
 
-    it('should cluster same activity with same location', async () => {
+    it('should cluster same activity with same city', () => {
       const suggestions = [
-        createSuggestion('Hike in Queenstown', { location: 'Queenstown' }),
-        createSuggestion('Go hiking in Queenstown', { location: 'Queenstown' })
+        createSuggestion('Hike in Queenstown', { action: 'hike', city: 'Queenstown' }),
+        createSuggestion('Go hiking in Queenstown', { action: 'hike', city: 'Queenstown' })
       ]
 
-      const result = await clusterSuggestions(suggestions)
+      const result = clusterSuggestions(suggestions)
 
       expect(result.clusters.length).toBe(1)
       expect(result.clusters[0]?.instanceCount).toBe(2)
     })
 
-    it('should NOT cluster different locations for same activity', async () => {
+    it('should NOT cluster different cities for same activity', () => {
       const suggestions = [
-        createSuggestion('Hike', { location: 'Queenstown' }),
-        createSuggestion('Hike', { location: 'Auckland' }),
-        createSuggestion('Hike', { location: 'Wellington' })
+        createSuggestion('Hike', { action: 'hike', city: 'Queenstown' }),
+        createSuggestion('Hike', { action: 'hike', city: 'Auckland' }),
+        createSuggestion('Hike', { action: 'hike', city: 'Wellington' })
       ]
 
-      const result = await clusterSuggestions(suggestions)
+      const result = clusterSuggestions(suggestions)
 
       expect(result.clusters.length).toBe(3)
+    })
+
+    it('should cluster by venue when present', () => {
+      const suggestions = [
+        createSuggestion('Dinner at Coffee Lab', { action: 'eat', venue: 'Coffee Lab' }),
+        createSuggestion('Try Coffee Lab', { action: 'eat', venue: 'Coffee Lab' })
+      ]
+
+      const result = clusterSuggestions(suggestions)
+
+      expect(result.clusters.length).toBe(1)
+      expect(result.clusters[0]?.instanceCount).toBe(2)
+    })
+  })
+
+  describe('complete vs complex handling', () => {
+    it('should cluster complete entries by normalized fields', () => {
+      const suggestions = [
+        createSuggestion('Go hiking', { action: 'hike', isComplete: true }),
+        createSuggestion('Go tramping', { action: 'hike', isComplete: true }),
+        createSuggestion('Go hiking and kayaking', { action: 'hike', isComplete: false })
+      ]
+
+      const result = clusterSuggestions(suggestions)
+
+      // 2 complete entries cluster by action, 1 complex is separate (different title)
+      expect(result.clusters.length).toBe(2)
+      const clusterCounts = result.clusters.map((c) => c.instanceCount).sort((a, b) => b - a)
+      expect(clusterCounts).toEqual([2, 1])
+    })
+
+    it('should cluster complex entries by exact title', () => {
+      const suggestions = [
+        createSuggestion('Trip to Iceland and see aurora', { action: 'travel', isComplete: false }),
+        createSuggestion('Trip to Iceland and see aurora', { action: 'travel', isComplete: false }),
+        createSuggestion('Different Iceland trip', { action: 'travel', isComplete: false })
+      ]
+
+      const result = clusterSuggestions(suggestions)
+
+      // 2 with same title cluster, 1 different title is separate
+      expect(result.clusters.length).toBe(2)
+      const clusterCounts = result.clusters.map((c) => c.instanceCount).sort((a, b) => b - a)
+      expect(clusterCounts).toEqual([2, 1])
+    })
+
+    it('should not mix complete and complex entries even with same action', () => {
+      const suggestions = [
+        createSuggestion('Go hiking', { action: 'hike', isComplete: true }),
+        createSuggestion('Go hiking', { action: 'hike', isComplete: false })
+      ]
+
+      const result = clusterSuggestions(suggestions)
+
+      // Same title but different completeness = separate clusters
+      expect(result.clusters.length).toBe(2)
     })
   })
 
   describe('filtering', () => {
-    it('should filter empty tuples', async () => {
+    it('should filter by minActivityScore', () => {
       const suggestions = [
-        createSuggestion('Go for a bike ride'),
-        createSuggestion('Go to the'), // Empty after stop word removal
-        createSuggestion('Do something')
+        createSuggestion('Go biking', { action: 'bike', activityScore: 0.9 }),
+        createSuggestion('Take out trash', { action: 'dispose', activityScore: 0.2 })
       ]
 
-      const result = await clusterSuggestions(suggestions)
-
-      // "Go to the" should be filtered (empty tuple)
-      expect(result.filtered.length).toBeGreaterThanOrEqual(1)
-    })
-
-    it('should filter by minActivityScore', async () => {
-      const suggestions = [
-        createSuggestion('Go biking', { activityScore: 0.9 }),
-        createSuggestion('Take out trash', { activityScore: 0.2 })
-      ]
-
-      const result = await clusterSuggestions(suggestions, { minActivityScore: 0.5 })
+      const result = clusterSuggestions(suggestions, { minActivityScore: 0.5 })
 
       expect(result.clusters.length).toBe(1)
       expect(result.filtered.length).toBe(1)
@@ -140,181 +195,171 @@ describe('clusterSuggestions', () => {
   })
 
   describe('representative selection', () => {
-    it('should select highest confidence as representative', async () => {
+    it('should select highest confidence as representative', () => {
       const suggestions = [
-        createSuggestion('Go biking', { confidence: 0.7 }),
-        createSuggestion('Ride a bike', { confidence: 0.95 }),
-        createSuggestion('Go for a bike ride', { confidence: 0.8 })
+        createSuggestion('Go biking', { action: 'bike', confidence: 0.7 }),
+        createSuggestion('Ride a bike', { action: 'bike', confidence: 0.95 }),
+        createSuggestion('Go for a bike ride', { action: 'bike', confidence: 0.8 })
       ]
 
-      const result = await clusterSuggestions(suggestions)
+      const result = clusterSuggestions(suggestions)
+
+      expect(result.clusters[0]?.representative.activity).toBe('Ride a bike')
+    })
+
+    it('should fall back to activityScore when confidence is equal', () => {
+      const suggestions = [
+        createSuggestion('Go biking', { action: 'bike', confidence: 0.9, activityScore: 0.7 }),
+        createSuggestion('Ride a bike', { action: 'bike', confidence: 0.9, activityScore: 0.95 })
+      ]
+
+      const result = clusterSuggestions(suggestions)
 
       expect(result.clusters[0]?.representative.activity).toBe('Ride a bike')
     })
   })
 
   describe('cluster metadata', () => {
-    it('should calculate correct date range', async () => {
-      const earlyDate = new Date('2024-01-01')
-      const lateDate = new Date('2024-12-31')
+    it('should calculate correct date range', () => {
+      const earlyDate = new Date('2025-01-01')
+      const lateDate = new Date('2025-12-31')
 
       const suggestions = [
-        createSuggestion('Go biking', { timestamp: new Date('2024-06-15') }),
-        createSuggestion('Ride a bike', { timestamp: earlyDate }),
-        createSuggestion('Go for a bike ride', { timestamp: lateDate })
+        createSuggestion('Go biking', { action: 'bike', timestamp: new Date('2025-06-15') }),
+        createSuggestion('Ride a bike', { action: 'bike', timestamp: earlyDate }),
+        createSuggestion('Go for a bike ride', { action: 'bike', timestamp: lateDate })
       ]
 
-      const result = await clusterSuggestions(suggestions)
+      const result = clusterSuggestions(suggestions)
 
       expect(result.clusters[0]?.firstMentioned.getTime()).toBe(earlyDate.getTime())
       expect(result.clusters[0]?.lastMentioned.getTime()).toBe(lateDate.getTime())
     })
 
-    it('should collect all unique senders', async () => {
+    it('should collect all unique senders', () => {
       const suggestions = [
-        createSuggestion('Go biking', { sender: 'Alice' }),
-        createSuggestion('Ride a bike', { sender: 'Bob' }),
-        createSuggestion('Go for a bike ride', { sender: 'Alice' })
+        createSuggestion('Go biking', { action: 'bike', sender: 'Alice' }),
+        createSuggestion('Ride a bike', { action: 'bike', sender: 'Bob' }),
+        createSuggestion('Go for a bike ride', { action: 'bike', sender: 'Alice' })
       ]
 
-      const result = await clusterSuggestions(suggestions)
+      const result = clusterSuggestions(suggestions)
 
       const cluster = result.clusters[0]
       expect(cluster?.allSenders).toHaveLength(2)
       expect(cluster?.allSenders).toContain('Alice')
       expect(cluster?.allSenders).toContain('Bob')
     })
+
+    it('should include cluster key', () => {
+      const suggestions = [
+        createSuggestion('Hike in Queenstown', {
+          action: 'hike',
+          city: 'Queenstown',
+          country: 'New Zealand'
+        })
+      ]
+
+      const result = clusterSuggestions(suggestions)
+
+      expect(result.clusters[0]?.clusterKey).toBe('hike|||queenstown|new zealand')
+    })
   })
 
   describe('sorting', () => {
-    it('should sort clusters by instance count descending', async () => {
+    it('should sort clusters by instance count descending', () => {
       const suggestions = [
-        createSuggestion('Go swimming'),
-        createSuggestion('Go biking'),
-        createSuggestion('Ride a bike'),
-        createSuggestion('Go for a bike ride')
+        createSuggestion('Go swimming', { action: 'swim' }),
+        createSuggestion('Go biking', { action: 'bike' }),
+        createSuggestion('Ride a bike', { action: 'bike' }),
+        createSuggestion('Go for a bike ride', { action: 'bike' })
       ]
 
-      const result = await clusterSuggestions(suggestions)
+      const result = clusterSuggestions(suggestions)
 
-      // Bike cluster (3) should come before swim cluster (1)
       expect(result.clusters[0]?.instanceCount).toBe(3)
       expect(result.clusters[1]?.instanceCount).toBe(1)
     })
-  })
 
-  describe('hike examples from experiments', () => {
-    it('should cluster all hike variants together', async () => {
+    it('should sort by first mentioned when instance counts are equal', () => {
       const suggestions = [
-        createSuggestion('Go hiking'),
-        createSuggestion('Go for a hike'),
-        createSuggestion('Do a hike'),
-        createSuggestion('Take a hike')
+        createSuggestion('Go swimming', { action: 'swim', timestamp: new Date('2025-06-01') }),
+        createSuggestion('Go biking', { action: 'bike', timestamp: new Date('2025-01-01') })
       ]
 
-      const result = await clusterSuggestions(suggestions)
+      const result = clusterSuggestions(suggestions)
 
-      expect(result.clusters.length).toBe(1)
-      expect(result.clusters[0]?.instanceCount).toBe(4)
+      // Earlier date comes first when counts are equal
+      expect(result.clusters[0]?.representative.activity).toBe('Go biking')
+      expect(result.clusters[1]?.representative.activity).toBe('Go swimming')
     })
   })
 
-  describe('restaurant examples', () => {
-    it('should cluster restaurant mentions', async () => {
+  describe('case insensitivity', () => {
+    it('should cluster regardless of case in normalized fields', () => {
       const suggestions = [
-        createSuggestion('Try that new restaurant'),
-        createSuggestion('Check out that restaurant'),
-        createSuggestion('Go to that restaurant')
+        createSuggestion('Go hiking', { action: 'hike', city: 'Queenstown' }),
+        createSuggestion('Go tramping', { action: 'Hike', city: 'QUEENSTOWN' }),
+        createSuggestion('Do a hike', { action: 'HIKE', city: 'queenstown' })
       ]
 
-      const result = await clusterSuggestions(suggestions)
+      const result = clusterSuggestions(suggestions)
 
       expect(result.clusters.length).toBe(1)
       expect(result.clusters[0]?.instanceCount).toBe(3)
     })
   })
-})
 
-/**
- * Serialize clustering result for snapshot comparison.
- * Converts Dates to ISO strings for JSON serialization.
- */
-function serializeForSnapshot(result: ClusterResult): unknown {
-  return {
-    clusters: result.clusters.map((c) => ({
-      representative: {
-        activity: c.representative.activity,
-        category: c.representative.category,
-        location: c.representative.location
-      },
-      instanceCount: c.instanceCount,
-      instances: c.instances.map((i) => ({
-        activity: i.activity,
-        category: i.category,
-        location: i.location
-      })),
-      allSenders: [...c.allSenders].sort(),
-      firstMentioned: c.firstMentioned.toISOString(),
-      lastMentioned: c.lastMentioned.toISOString()
-    })),
-    filtered: result.filtered.map((f) => ({
-      activity: f.activity,
-      category: f.category,
-      location: f.location
-    }))
-  }
-}
+  describe('real-world examples', () => {
+    it('should cluster normalized movie synonyms', () => {
+      // LLM normalizes "film" to "movie" at classification time
+      const suggestions = [
+        createSuggestion('Watch a movie', { action: 'watch', object: 'movie' }),
+        createSuggestion('Watch a film', { action: 'watch', object: 'movie' }) // LLM normalized
+      ]
 
-describe('clusterSuggestions with real fixture', () => {
-  it('should match snapshot', async () => {
-    // Load the fixture
-    const fixturePath = join(
-      __dirname,
-      '../../tests/fixtures/clustering/classified-suggestions.json.gz'
-    )
-    const snapshotPath = join(__dirname, '__snapshots__/clustered_suggestions.json')
+      const result = clusterSuggestions(suggestions)
 
-    const compressed = readFileSync(fixturePath)
-    const json = gunzipSync(new Uint8Array(compressed)).toString('utf-8')
-    const data = JSON.parse(json) as { suggestions: ClassifiedSuggestion[] }
+      expect(result.clusters.length).toBe(1)
+      expect(result.clusters[0]?.instanceCount).toBe(2)
+    })
 
-    // Parse dates (JSON doesn't preserve Date objects)
-    const suggestions = data.suggestions.map((s) => ({
-      ...s,
-      timestamp: new Date(s.timestamp)
-    }))
+    it('should cluster normalized hiking synonyms', () => {
+      // LLM normalizes "tramping" and "trekking" to "hike" at classification time
+      const suggestions = [
+        createSuggestion('Go hiking', { action: 'hike', actionOriginal: 'hiking' }),
+        createSuggestion('Go tramping', { action: 'hike', actionOriginal: 'tramping' }),
+        createSuggestion('Go trekking', { action: 'hike', actionOriginal: 'trekking' })
+      ]
 
-    const result = await clusterSuggestions(suggestions)
+      const result = clusterSuggestions(suggestions)
 
-    // Basic sanity checks
-    expect(result.clusters.length).toBeGreaterThan(0)
-    expect(result.clusters.length).toBeLessThanOrEqual(suggestions.length)
+      expect(result.clusters.length).toBe(1)
+      expect(result.clusters[0]?.instanceCount).toBe(3)
+    })
 
-    // Total instances should equal input (minus filtered)
-    const totalInstances = result.clusters.reduce((sum, c) => sum + c.instanceCount, 0)
-    expect(totalInstances + result.filtered.length).toBe(suggestions.length)
+    it('should cluster restaurant visits by venue', () => {
+      const suggestions = [
+        createSuggestion('Try Kazuya', { action: 'eat', venue: 'Kazuya', city: 'Auckland' }),
+        createSuggestion('Go to Kazuya', { action: 'eat', venue: 'Kazuya', city: 'Auckland' }),
+        createSuggestion('Dinner at Kazuya', { action: 'eat', venue: 'Kazuya', city: 'Auckland' })
+      ]
 
-    // All clusters should have at least 1 instance
-    for (const cluster of result.clusters) {
-      expect(cluster.instanceCount).toBeGreaterThanOrEqual(1)
-      expect(cluster.instances.length).toBe(cluster.instanceCount)
-      expect(cluster.allSenders.length).toBeGreaterThanOrEqual(1)
-    }
+      const result = clusterSuggestions(suggestions)
 
-    // Snapshot comparison
-    const serialized = serializeForSnapshot(result)
+      expect(result.clusters.length).toBe(1)
+      expect(result.clusters[0]?.instanceCount).toBe(3)
+    })
 
-    // If snapshot doesn't exist, create it
-    if (!existsSync(snapshotPath)) {
-      writeFileSync(snapshotPath, JSON.stringify(serialized, null, 2))
-      console.log(`Created snapshot: ${snapshotPath}`)
-      return
-    }
+    it('should NOT cluster different venues', () => {
+      const suggestions = [
+        createSuggestion('Try Kazuya', { action: 'eat', venue: 'Kazuya', city: 'Auckland' }),
+        createSuggestion('Try Depot', { action: 'eat', venue: 'Depot', city: 'Auckland' })
+      ]
 
-    // Compare against existing snapshot
-    const snapshotJson = readFileSync(snapshotPath, 'utf-8')
-    const expected = JSON.parse(snapshotJson)
+      const result = clusterSuggestions(suggestions)
 
-    expect(serialized).toEqual(expected)
+      expect(result.clusters.length).toBe(2)
+    })
   })
 })
