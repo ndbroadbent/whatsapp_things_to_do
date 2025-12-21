@@ -9,7 +9,7 @@
  */
 
 import { HELP_TEXT, parseCliArgs } from './cli/args.js'
-import { cmdAnalyze, cmdParse, cmdPreview, cmdScan } from './cli/commands.js'
+import { cmdAnalyze, cmdCandidates, cmdParse, cmdPreview, cmdScan } from './cli/commands.js'
 import { cmdList } from './cli/list.js'
 import { createLogger } from './cli/logger.js'
 
@@ -29,6 +29,10 @@ async function main(): Promise<void> {
 
       case 'scan':
         await cmdScan(args, logger)
+        break
+
+      case 'candidates':
+        await cmdCandidates(args, logger)
         break
 
       case 'list':

@@ -12,12 +12,17 @@ describe('CLI Args', () => {
       expect(HELP_TEXT).toContain('analyze')
       expect(HELP_TEXT).toContain('preview')
       expect(HELP_TEXT).toContain('scan')
+      expect(HELP_TEXT).toContain('candidates')
       expect(HELP_TEXT).toContain('list')
       expect(HELP_TEXT).toContain('parse')
-      expect(HELP_TEXT).toContain('extract')
       expect(HELP_TEXT).toContain('classify')
       expect(HELP_TEXT).toContain('geocode')
       expect(HELP_TEXT).toContain('export')
+    })
+
+    it('describes candidates command', () => {
+      expect(HELP_TEXT).toContain('candidates')
+      expect(HELP_TEXT).toContain('Debug candidate extraction')
     })
 
     it('describes list command', () => {
@@ -147,6 +152,42 @@ describe('CLI Args', () => {
     it('parses min-confidence option', () => {
       const args = parseArgs(['analyze', 'chat.txt', '--min-confidence', '0.75'], false)
       expect(args.minConfidence).toBe(0.75)
+    })
+
+    it('parses candidates command with input', () => {
+      const args = parseArgs(['candidates', 'chat.txt'], false)
+      expect(args.command).toBe('candidates')
+      expect(args.input).toBe('chat.txt')
+    })
+
+    it('parses --method option with valid values', () => {
+      expect(parseArgs(['candidates', 'chat.txt', '--method', 'heuristics'], false).method).toBe(
+        'heuristics'
+      )
+      expect(parseArgs(['candidates', 'chat.txt', '--method', 'embeddings'], false).method).toBe(
+        'embeddings'
+      )
+      expect(parseArgs(['candidates', 'chat.txt', '--method', 'both'], false).method).toBe('both')
+    })
+
+    it('defaults --method to "both"', () => {
+      const args = parseArgs(['candidates', 'chat.txt'], false)
+      expect(args.method).toBe('both')
+    })
+
+    it('falls back to "both" for invalid --method values', () => {
+      const args = parseArgs(['candidates', 'chat.txt', '--method', 'invalid'], false)
+      expect(args.method).toBe('both')
+    })
+
+    it('parses --json option', () => {
+      const args = parseArgs(['candidates', 'chat.txt', '--json', 'output.json'], false)
+      expect(args.jsonOutput).toBe('output.json')
+    })
+
+    it('defaults --json to undefined', () => {
+      const args = parseArgs(['candidates', 'chat.txt'], false)
+      expect(args.jsonOutput).toBeUndefined()
     })
   })
 })

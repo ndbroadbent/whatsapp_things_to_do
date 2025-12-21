@@ -9,10 +9,17 @@ import { homedir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 import { FilesystemCache } from '../cache/filesystem.js'
 import { buildClassificationPrompt } from '../classifier/prompt.js'
-import { classifyMessages, VERSION } from '../index.js'
+import {
+  classifyMessages,
+  extractCandidates,
+  extractCandidatesByEmbeddings,
+  extractCandidatesByHeuristics,
+  VERSION
+} from '../index.js'
 import { scrapeAndEnrichCandidates } from '../scraper/enrich.js'
+import type { CandidateMessage } from '../types.js'
 import { type ClassifierConfig, formatLocation } from '../types.js'
-import type { CLIArgs } from './args.js'
+import type { CLIArgs, ExtractionMethod } from './args.js'
 import { getRequiredContext } from './env.js'
 import { ensureDir } from './io.js'
 import type { Logger } from './logger.js'
@@ -253,5 +260,158 @@ export async function cmdParse(args: CLIArgs, logger: Logger): Promise<void> {
     const json = JSON.stringify(messages, null, 2)
     await writeFile(args.outputDir, json)
     logger.success(`Saved to ${args.outputDir}`)
+  }
+}
+
+interface CandidatesOutput {
+  method: ExtractionMethod
+  stats: {
+    totalCandidates: number
+    heuristicsMatches?: number
+    regexMatches?: number
+    urlMatches?: number
+    embeddingsMatches?: number
+  }
+  candidates: readonly CandidateMessage[]
+}
+
+function formatCandidatesText(output: CandidatesOutput, logger: Logger): void {
+  const { method, stats, candidates } = output
+
+  logger.log(`\n📊 Extraction Results (method: ${method})`)
+  logger.log(`   Total candidates: ${stats.totalCandidates}`)
+
+  if (stats.heuristicsMatches !== undefined) {
+    logger.log(`   Heuristics: ${stats.heuristicsMatches}`)
+    if (stats.regexMatches !== undefined) {
+      logger.log(`     - Regex patterns: ${stats.regexMatches}`)
+    }
+    if (stats.urlMatches !== undefined) {
+      logger.log(`     - URL-based: ${stats.urlMatches}`)
+    }
+  }
+  if (stats.embeddingsMatches !== undefined) {
+    logger.log(`   Embeddings: ${stats.embeddingsMatches}`)
+  }
+
+  logger.log(`\n📋 Candidates (sorted by confidence):`)
+  logger.log('')
+
+  for (let i = 0; i < candidates.length; i++) {
+    const c = candidates[i]
+    if (!c) continue
+
+    const msg = truncate(c.content, 70)
+    const sourceLabel =
+      c.source.type === 'semantic'
+        ? `semantic (${c.source.similarity.toFixed(2)})`
+        : c.source.type === 'url'
+          ? `url (${c.source.urlType})`
+          : `regex (${c.source.pattern})`
+
+    logger.log(`${i + 1}. "${msg}"`)
+    logger.log(`   ${c.sender} • ${formatDate(c.timestamp)} • ${sourceLabel}`)
+    logger.log(`   confidence: ${c.confidence.toFixed(3)}`)
+    logger.log('')
+  }
+}
+
+export async function cmdCandidates(args: CLIArgs, logger: Logger): Promise<void> {
+  if (!args.input) {
+    throw new Error('No input file specified')
+  }
+
+  logger.log(`\nChatToMap Candidates v${VERSION}`)
+  logger.log(`\n📁 ${basename(args.input)}`)
+
+  const messages = await runParse(args.input, args, logger)
+
+  const cacheDir = join(homedir(), '.cache', 'chat-to-map')
+  const cache = new FilesystemCache(cacheDir)
+
+  let output: CandidatesOutput
+
+  if (args.method === 'heuristics') {
+    logger.log('\n🔍 Extracting candidates (heuristics only)...')
+    const result = extractCandidatesByHeuristics(messages, {
+      minConfidence: args.minConfidence
+    })
+    output = {
+      method: 'heuristics',
+      stats: {
+        totalCandidates: result.totalUnique,
+        heuristicsMatches: result.totalUnique,
+        regexMatches: result.regexMatches,
+        urlMatches: result.urlMatches
+      },
+      candidates: result.candidates
+    }
+  } else if (args.method === 'embeddings') {
+    const apiKey = process.env.OPENAI_API_KEY
+    if (!apiKey) {
+      throw new Error('OPENAI_API_KEY required for embeddings extraction')
+    }
+
+    logger.log('\n🔍 Extracting candidates (embeddings only)...')
+    const result = await extractCandidatesByEmbeddings(messages, { apiKey }, undefined, cache)
+
+    if (!result.ok) {
+      throw new Error(`Embeddings extraction failed: ${result.error.message}`)
+    }
+
+    output = {
+      method: 'embeddings',
+      stats: {
+        totalCandidates: result.value.length,
+        embeddingsMatches: result.value.length
+      },
+      candidates: result.value
+    }
+  } else {
+    const apiKey = process.env.OPENAI_API_KEY
+
+    logger.log('\n🔍 Extracting candidates (heuristics + embeddings)...')
+
+    const result = await extractCandidates(
+      messages,
+      apiKey
+        ? {
+            heuristics: { minConfidence: args.minConfidence },
+            embeddings: { config: { apiKey } },
+            cache
+          }
+        : {
+            heuristics: { minConfidence: args.minConfidence },
+            cache
+          }
+    )
+
+    if (!result.ok) {
+      throw new Error(`Extraction failed: ${result.error.message}`)
+    }
+
+    output = {
+      method: 'both',
+      stats: {
+        totalCandidates: result.value.totalUnique,
+        heuristicsMatches: result.value.regexMatches + result.value.urlMatches,
+        regexMatches: result.value.regexMatches,
+        urlMatches: result.value.urlMatches,
+        embeddingsMatches: result.value.embeddingsMatches
+      },
+      candidates: result.value.candidates
+    }
+
+    if (!apiKey) {
+      logger.log('   (embeddings skipped - OPENAI_API_KEY not set)')
+    }
+  }
+
+  if (args.jsonOutput) {
+    const json = JSON.stringify(output, null, 2)
+    await writeFile(args.jsonOutput, json)
+    logger.success(`\n✓ Saved ${output.stats.totalCandidates} candidates to ${args.jsonOutput}`)
+  } else {
+    formatCandidatesText(output, logger)
   }
 }

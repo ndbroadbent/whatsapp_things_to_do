@@ -7,6 +7,8 @@
 import { VERSION } from '../index.js'
 import type { ActivityCategory } from '../types.js'
 
+export type ExtractionMethod = 'heuristics' | 'embeddings' | 'both'
+
 export interface CLIArgs {
   command: string
   input: string
@@ -23,6 +25,10 @@ export interface CLIArgs {
   debug: boolean
   maxResults: number
   maxMessages: number | undefined
+  /** For candidates command: extraction method */
+  method: ExtractionMethod
+  /** For candidates command: JSON output path */
+  jsonOutput: string | undefined
 }
 
 /**
@@ -49,9 +55,9 @@ USAGE:
   chat-to-map analyze <input> [options]
   chat-to-map preview <input> [options]
   chat-to-map scan <input> [options]
+  chat-to-map candidates <input> [options]
   chat-to-map list [options]
   chat-to-map parse <input> [options]
-  chat-to-map extract <messages.json> [options]
   chat-to-map classify <candidates.json> [options]
   chat-to-map geocode <suggestions.json> [options]
   chat-to-map export <geocoded.json> [options]
@@ -62,9 +68,9 @@ COMMANDS:
   analyze    Run the complete pipeline (parse -> extract -> classify -> geocode -> export)
   preview    AI-powered preview: classify top candidates (requires API key, ~$0.01)
   scan       Heuristic scan: show pattern matches (no API key needed, free)
+  candidates Debug candidate extraction (heuristics, embeddings, or both)
   list       Show previously processed chats
   parse      Parse a chat export file
-  extract    Extract candidates from parsed messages
   classify   Classify candidates using AI
   geocode    Geocode classified suggestions
   export     Generate output files
@@ -79,6 +85,8 @@ OPTIONS:
   --activities-only           Exclude errands (activity_score > 0.5)
   --category <cat>            Filter by category
   --skip-geocoding            Skip geocoding step
+  --method <method>           Extraction method: heuristics, embeddings, both (default: both)
+  --json <file>               Output candidates to JSON file instead of stdout
   -q, --quiet                 Minimal output
   -v, --verbose               Verbose output
   --dry-run                   Skip API calls
@@ -101,6 +109,11 @@ EXAMPLES:
 
   # Full analysis (requires API key, ~$1-2)
   chat-to-map analyze "WhatsApp Chat.zip"
+
+  # Debug candidate extraction
+  chat-to-map candidates "WhatsApp Chat.zip"                    # Both methods
+  chat-to-map candidates "WhatsApp Chat.zip" --method heuristics # Heuristics only
+  chat-to-map candidates "WhatsApp Chat.zip" --json output.json  # Save to file
 
   # List previously processed chats
   chat-to-map list
@@ -181,6 +194,13 @@ function handleSpecialCommands(command: string, flags: Record<string, string | b
   }
 }
 
+function parseMethod(value: unknown): ExtractionMethod {
+  if (value === 'heuristics' || value === 'embeddings' || value === 'both') {
+    return value
+  }
+  return 'both'
+}
+
 function buildCliArgs(flags: Record<string, string | boolean>, positionals: string[]): CLIArgs {
   const command = positionals[0] ?? 'help'
   const input = positionals[1] ?? ''
@@ -210,7 +230,9 @@ function buildCliArgs(flags: Record<string, string | boolean>, positionals: stri
     dryRun: flags['dry-run'] === true,
     debug: flags.debug === true,
     maxResults: Number.parseInt(maxResultsStr, 10),
-    maxMessages: maxMessagesStr ? Number.parseInt(maxMessagesStr, 10) : undefined
+    maxMessages: maxMessagesStr ? Number.parseInt(maxMessagesStr, 10) : undefined,
+    method: parseMethod(flags.method),
+    jsonOutput: typeof flags.json === 'string' ? flags.json : undefined
   }
 }
 
