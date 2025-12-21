@@ -1,11 +1,11 @@
 /**
  * Excel Export
  *
- * Export suggestions to Excel format using exceljs.
+ * Export activities to Excel format using exceljs.
  * This is an optional feature - if exceljs is not available, it throws a clear error.
  */
 
-import { formatLocation, type GeocodedSuggestion } from '../types.js'
+import { formatLocation, type GeocodedActivity } from '../types.js'
 import { formatDate, googleMapsLink } from './utils.js'
 
 // Try to import exceljs dynamically since it's a peer dependency
@@ -25,21 +25,19 @@ async function loadExcelJS(): Promise<typeof import('exceljs')> {
 }
 
 /**
- * Export suggestions to Excel format.
+ * Export activities to Excel format.
  *
- * @param suggestions Geocoded suggestions to export
+ * @param activities Geocoded activities to export
  * @returns Excel file as Uint8Array
  */
-export async function exportToExcel(
-  suggestions: readonly GeocodedSuggestion[]
-): Promise<Uint8Array> {
+export async function exportToExcel(activities: readonly GeocodedActivity[]): Promise<Uint8Array> {
   const exceljs = await loadExcelJS()
 
   const workbook = new exceljs.Workbook()
   workbook.creator = 'ChatToMap'
   workbook.created = new Date()
 
-  const worksheet = workbook.addWorksheet('Suggestions')
+  const worksheet = workbook.addWorksheet('Activities')
 
   // Define columns with headers and widths
   worksheet.columns = [
@@ -68,24 +66,24 @@ export async function exportToExcel(
   }
 
   // Add data rows
-  for (let i = 0; i < suggestions.length; i++) {
-    const s = suggestions[i]
-    if (!s) continue
+  for (let i = 0; i < activities.length; i++) {
+    const a = activities[i]
+    if (!a) continue
 
-    const mapLink = googleMapsLink(s.latitude, s.longitude)
+    const mapLink = googleMapsLink(a.latitude, a.longitude)
 
     const row = worksheet.addRow({
       id: i + 1,
-      date: formatDate(s.timestamp),
-      sender: s.sender,
-      activity: s.activity,
-      location: formatLocation(s) ?? '',
-      message: s.originalMessage.replace(/\n/g, ' ').slice(0, 300),
-      latitude: s.latitude ?? '',
-      longitude: s.longitude ?? '',
-      confidence: s.confidence,
-      activity_score: s.activityScore,
-      category: s.category,
+      date: formatDate(a.timestamp),
+      sender: a.sender,
+      activity: a.activity,
+      location: formatLocation(a) ?? '',
+      message: a.originalMessage.replace(/\n/g, ' ').slice(0, 300),
+      latitude: a.latitude ?? '',
+      longitude: a.longitude ?? '',
+      confidence: a.confidence,
+      activity_score: a.activityScore,
+      category: a.category,
       map_link: mapLink,
       status: 'pending'
     })
@@ -102,7 +100,7 @@ export async function exportToExcel(
 
     // Conditional formatting for confidence
     const confidenceCell = row.getCell('confidence')
-    const confidence = s.confidence
+    const confidence = a.confidence
     if (confidence >= 0.8) {
       confidenceCell.fill = {
         type: 'pattern',

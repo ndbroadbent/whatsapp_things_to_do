@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { GeocodedSuggestion } from '../types.js'
+import type { GeocodedActivity } from '../types.js'
 
 // Mock exceljs before importing
 const mockAddRow = vi.fn().mockReturnValue({
@@ -33,12 +33,12 @@ vi.mock('exceljs', () => ({
   Workbook: vi.fn().mockImplementation(() => mockWorkbook)
 }))
 
-function createSuggestion(
+function createActivity(
   id: number,
   activity: string,
   lat?: number,
   lng?: number
-): GeocodedSuggestion {
+): GeocodedActivity {
   return {
     messageId: id,
     isActivity: true,
@@ -78,26 +78,26 @@ describe('Excel Export', () => {
     })
 
     it('creates a workbook with correct metadata', async () => {
-      const suggestions = [createSuggestion(1, 'Test', 41.9, 12.5)]
+      const activities = [createActivity(1, 'Test', 41.9, 12.5)]
 
-      await exportToExcel(suggestions)
+      await exportToExcel(activities)
 
       expect(mockWorkbook.creator).toBe('ChatToMap')
       expect(mockWorkbook.created).toBeInstanceOf(Date)
     })
 
-    it('creates a worksheet named Suggestions', async () => {
-      const suggestions = [createSuggestion(1, 'Test', 41.9, 12.5)]
+    it('creates a worksheet named Activities', async () => {
+      const activities = [createActivity(1, 'Test', 41.9, 12.5)]
 
-      await exportToExcel(suggestions)
+      await exportToExcel(activities)
 
-      expect(mockWorkbook.addWorksheet).toHaveBeenCalledWith('Suggestions')
+      expect(mockWorkbook.addWorksheet).toHaveBeenCalledWith('Activities')
     })
 
     it('sets up columns with correct headers', async () => {
-      const suggestions = [createSuggestion(1, 'Test', 41.9, 12.5)]
+      const activities = [createActivity(1, 'Test', 41.9, 12.5)]
 
-      await exportToExcel(suggestions)
+      await exportToExcel(activities)
 
       expect(mockWorksheet.columns).toBeDefined()
       expect(mockWorksheet.columns).toContainEqual(expect.objectContaining({ header: 'ID' }))
@@ -108,28 +108,28 @@ describe('Excel Export', () => {
     })
 
     it('styles the header row', async () => {
-      const suggestions = [createSuggestion(1, 'Test', 41.9, 12.5)]
+      const activities = [createActivity(1, 'Test', 41.9, 12.5)]
 
-      await exportToExcel(suggestions)
+      await exportToExcel(activities)
 
       expect(mockWorksheet.getRow).toHaveBeenCalledWith(1)
     })
 
-    it('adds data rows for each suggestion', async () => {
-      const suggestions = [
-        createSuggestion(1, 'Place One', 41.9, 12.5),
-        createSuggestion(2, 'Place Two', 40.7, -74.0)
+    it('adds data rows for each activity', async () => {
+      const activities = [
+        createActivity(1, 'Place One', 41.9, 12.5),
+        createActivity(2, 'Place Two', 40.7, -74.0)
       ]
 
-      await exportToExcel(suggestions)
+      await exportToExcel(activities)
 
       expect(mockAddRow).toHaveBeenCalledTimes(2)
     })
 
     it('includes activity data in rows', async () => {
-      const suggestions = [createSuggestion(1, 'Italian Restaurant', 41.9, 12.5)]
+      const activities = [createActivity(1, 'Italian Restaurant', 41.9, 12.5)]
 
-      await exportToExcel(suggestions)
+      await exportToExcel(activities)
 
       expect(mockAddRow).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -141,17 +141,17 @@ describe('Excel Export', () => {
     })
 
     it('uses 1-indexed IDs', async () => {
-      const suggestions = [createSuggestion(42, 'Test', 41.9, 12.5)]
+      const activities = [createActivity(42, 'Test', 41.9, 12.5)]
 
-      await exportToExcel(suggestions)
+      await exportToExcel(activities)
 
       expect(mockAddRow).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }))
     })
 
     it('handles missing coordinates', async () => {
-      const suggestions = [createSuggestion(1, 'No coords')]
+      const activities = [createActivity(1, 'No coords')]
 
-      await exportToExcel(suggestions)
+      await exportToExcel(activities)
 
       expect(mockAddRow).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -162,9 +162,9 @@ describe('Excel Export', () => {
     })
 
     it('handles missing location', async () => {
-      const suggestions = [createSuggestion(1, 'No location')]
+      const activities = [createActivity(1, 'No location')]
 
-      await exportToExcel(suggestions)
+      await exportToExcel(activities)
 
       expect(mockAddRow).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -174,9 +174,9 @@ describe('Excel Export', () => {
     })
 
     it('includes Google Maps link when coordinates present', async () => {
-      const suggestions = [createSuggestion(1, 'Test', 41.9, 12.5)]
+      const activities = [createActivity(1, 'Test', 41.9, 12.5)]
 
-      await exportToExcel(suggestions)
+      await exportToExcel(activities)
 
       expect(mockAddRow).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -187,24 +187,24 @@ describe('Excel Export', () => {
 
     it('truncates long messages', async () => {
       const longMessage = 'A'.repeat(600)
-      const suggestion: GeocodedSuggestion = {
-        ...createSuggestion(1, 'Test', 41.9, 12.5),
+      const activity: GeocodedActivity = {
+        ...createActivity(1, 'Test', 41.9, 12.5),
         originalMessage: longMessage
       }
 
-      await exportToExcel([suggestion])
+      await exportToExcel([activity])
 
       const call = mockAddRow.mock.calls[0] as [{ message: string }]
       expect(call[0].message.length).toBeLessThanOrEqual(300)
     })
 
     it('replaces newlines in messages', async () => {
-      const suggestion: GeocodedSuggestion = {
-        ...createSuggestion(1, 'Test', 41.9, 12.5),
+      const activity: GeocodedActivity = {
+        ...createActivity(1, 'Test', 41.9, 12.5),
         originalMessage: 'Line 1\nLine 2'
       }
 
-      await exportToExcel([suggestion])
+      await exportToExcel([activity])
 
       expect(mockAddRow).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -214,22 +214,22 @@ describe('Excel Export', () => {
     })
 
     it('freezes the header row', async () => {
-      const suggestions = [createSuggestion(1, 'Test', 41.9, 12.5)]
+      const activities = [createActivity(1, 'Test', 41.9, 12.5)]
 
-      await exportToExcel(suggestions)
+      await exportToExcel(activities)
 
       expect(mockWorksheet.views).toEqual([{ state: 'frozen', ySplit: 1 }])
     })
 
     it('returns Uint8Array buffer', async () => {
-      const suggestions = [createSuggestion(1, 'Test', 41.9, 12.5)]
+      const activities = [createActivity(1, 'Test', 41.9, 12.5)]
 
-      const result = await exportToExcel(suggestions)
+      const result = await exportToExcel(activities)
 
       expect(result).toBeInstanceOf(Uint8Array)
     })
 
-    it('handles empty suggestions array', async () => {
+    it('handles empty activities array', async () => {
       const result = await exportToExcel([])
 
       expect(result).toBeInstanceOf(Uint8Array)
@@ -237,9 +237,9 @@ describe('Excel Export', () => {
     })
 
     it('formats date correctly', async () => {
-      const suggestions = [createSuggestion(1, 'Test', 41.9, 12.5)]
+      const activities = [createActivity(1, 'Test', 41.9, 12.5)]
 
-      await exportToExcel(suggestions)
+      await exportToExcel(activities)
 
       expect(mockAddRow).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -249,9 +249,9 @@ describe('Excel Export', () => {
     })
 
     it('includes confidence and activity score', async () => {
-      const suggestions = [createSuggestion(1, 'Test', 41.9, 12.5)]
+      const activities = [createActivity(1, 'Test', 41.9, 12.5)]
 
-      await exportToExcel(suggestions)
+      await exportToExcel(activities)
 
       expect(mockAddRow).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -262,9 +262,9 @@ describe('Excel Export', () => {
     })
 
     it('includes category', async () => {
-      const suggestions = [createSuggestion(1, 'Test', 41.9, 12.5)]
+      const activities = [createActivity(1, 'Test', 41.9, 12.5)]
 
-      await exportToExcel(suggestions)
+      await exportToExcel(activities)
 
       expect(mockAddRow).toHaveBeenCalledWith(
         expect.objectContaining({

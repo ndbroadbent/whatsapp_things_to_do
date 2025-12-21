@@ -1,20 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import type { GeocodedSuggestion } from '../types.js'
+import type { GeocodedActivity } from '../types.js'
 import { exportToPDF } from './pdf.js'
 
-function createSuggestion(
+function createActivity(
   id: number,
   activity: string,
   category: string = 'restaurant',
   lat?: number,
   lng?: number
-): GeocodedSuggestion {
+): GeocodedActivity {
   return {
     messageId: id,
     isActivity: true,
     activity,
     activityScore: 0.8,
-    category: category as GeocodedSuggestion['category'],
+    category: category as GeocodedActivity['category'],
     confidence: 0.9,
     originalMessage: 'Original message',
     sender: 'Test User',
@@ -37,106 +37,106 @@ function createSuggestion(
 describe('PDF Export', () => {
   describe('exportToPDF', () => {
     it('returns a Uint8Array', async () => {
-      const suggestions = [createSuggestion(1, 'Test', 'restaurant', 41.9, 12.5)]
+      const activities = [createActivity(1, 'Test', 'restaurant', 41.9, 12.5)]
 
-      const result = await exportToPDF(suggestions)
+      const result = await exportToPDF(activities)
 
       expect(result).toBeInstanceOf(Uint8Array)
       expect(result.length).toBeGreaterThan(0)
     })
 
     it('creates PDF with default title', async () => {
-      const suggestions = [createSuggestion(1, 'Test', 'restaurant', 41.9, 12.5)]
+      const activities = [createActivity(1, 'Test', 'restaurant', 41.9, 12.5)]
 
-      const result = await exportToPDF(suggestions)
+      const result = await exportToPDF(activities)
 
       // Just verify it produces output without errors
       expect(result.length).toBeGreaterThan(100)
     })
 
     it('uses custom title when provided', async () => {
-      const suggestions = [createSuggestion(1, 'Test', 'restaurant', 41.9, 12.5)]
+      const activities = [createActivity(1, 'Test', 'restaurant', 41.9, 12.5)]
 
-      const result = await exportToPDF(suggestions, { title: 'My Custom Title' })
+      const result = await exportToPDF(activities, { title: 'My Custom Title' })
 
       expect(result.length).toBeGreaterThan(100)
     })
 
     it('includes subtitle when provided', async () => {
-      const suggestions = [createSuggestion(1, 'Test', 'restaurant', 41.9, 12.5)]
+      const activities = [createActivity(1, 'Test', 'restaurant', 41.9, 12.5)]
 
-      const result = await exportToPDF(suggestions, { subtitle: 'My Subtitle' })
+      const result = await exportToPDF(activities, { subtitle: 'My Subtitle' })
 
       expect(result.length).toBeGreaterThan(100)
     })
 
-    it('handles multiple suggestions', async () => {
-      const suggestions = [
-        createSuggestion(1, 'Test 1', 'restaurant', 41.9, 12.5),
-        createSuggestion(2, 'Test 2', 'hike', 40.7, -74.0)
+    it('handles multiple activities', async () => {
+      const activities = [
+        createActivity(1, 'Test 1', 'restaurant', 41.9, 12.5),
+        createActivity(2, 'Test 2', 'hike', 40.7, -74.0)
       ]
 
-      const result = await exportToPDF(suggestions)
+      const result = await exportToPDF(activities)
 
       expect(result.length).toBeGreaterThan(100)
     })
 
     it('handles multiple categories', async () => {
-      const suggestions = [
-        createSuggestion(1, 'Restaurant 1', 'restaurant', 41.9, 12.5),
-        createSuggestion(2, 'Restaurant 2', 'restaurant', 40.7, -74.0),
-        createSuggestion(3, 'Hike 1', 'hike', 41.0, 12.0)
+      const activities = [
+        createActivity(1, 'Restaurant 1', 'restaurant', 41.9, 12.5),
+        createActivity(2, 'Restaurant 2', 'restaurant', 40.7, -74.0),
+        createActivity(3, 'Hike 1', 'hike', 41.0, 12.0)
       ]
 
-      const result = await exportToPDF(suggestions)
+      const result = await exportToPDF(activities)
 
       expect(result.length).toBeGreaterThan(100)
     })
 
     it('filters by category when specified', async () => {
-      const suggestions = [
-        createSuggestion(1, 'Restaurant 1', 'restaurant', 41.9, 12.5),
-        createSuggestion(2, 'Hike 1', 'hike', 40.7, -74.0)
+      const activities = [
+        createActivity(1, 'Restaurant 1', 'restaurant', 41.9, 12.5),
+        createActivity(2, 'Hike 1', 'hike', 40.7, -74.0)
       ]
 
-      const result = await exportToPDF(suggestions, { filterByCategory: ['restaurant'] })
+      const result = await exportToPDF(activities, { filterByCategory: ['restaurant'] })
 
       expect(result.length).toBeGreaterThan(100)
     })
 
-    it('handles empty suggestions array', async () => {
+    it('handles empty activities array', async () => {
       const result = await exportToPDF([])
 
       expect(result).toBeInstanceOf(Uint8Array)
       expect(result.length).toBeGreaterThan(100)
     })
 
-    it('handles suggestions without coordinates', async () => {
-      const suggestions = [createSuggestion(1, 'Without coords', 'hike')]
+    it('handles activities without coordinates', async () => {
+      const activities = [createActivity(1, 'Without coords', 'hike')]
 
-      const result = await exportToPDF(suggestions)
+      const result = await exportToPDF(activities)
 
       expect(result.length).toBeGreaterThan(100)
     })
 
-    it('handles suggestions with location', async () => {
-      const suggestion: GeocodedSuggestion = {
-        ...createSuggestion(1, 'Restaurant', 'restaurant', 41.9, 12.5),
+    it('handles activities with location', async () => {
+      const activity: GeocodedActivity = {
+        ...createActivity(1, 'Restaurant', 'restaurant', 41.9, 12.5),
         city: 'Rome',
         country: 'Italy'
       }
 
-      const result = await exportToPDF([suggestion])
+      const result = await exportToPDF([activity])
 
       expect(result.length).toBeGreaterThan(100)
     })
 
-    it('handles many suggestions', async () => {
-      const suggestions = Array.from({ length: 50 }, (_, i) =>
-        createSuggestion(i + 1, `Activity ${i + 1}`, 'restaurant', 41.9 + i * 0.01, 12.5)
+    it('handles many activities', async () => {
+      const activities = Array.from({ length: 50 }, (_, i) =>
+        createActivity(i + 1, `Activity ${i + 1}`, 'restaurant', 41.9 + i * 0.01, 12.5)
       )
 
-      const result = await exportToPDF(suggestions)
+      const result = await exportToPDF(activities)
 
       expect(result.length).toBeGreaterThan(100)
     })
@@ -161,31 +161,31 @@ describe('PDF Export', () => {
         'appointment',
         'other'
       ]
-      const suggestions = categories.map((cat, i) =>
-        createSuggestion(i + 1, `${cat} Activity`, cat, 41.9, 12.5)
+      const activities = categories.map((cat, i) =>
+        createActivity(i + 1, `${cat} Activity`, cat, 41.9, 12.5)
       )
 
-      const result = await exportToPDF(suggestions)
+      const result = await exportToPDF(activities)
 
       expect(result.length).toBeGreaterThan(100)
     })
 
     it('handles multiple senders', async () => {
-      const suggestions = [
-        { ...createSuggestion(1, 'Test 1', 'restaurant'), sender: 'User A' },
-        { ...createSuggestion(2, 'Test 2', 'hike'), sender: 'User B' },
-        { ...createSuggestion(3, 'Test 3', 'cafe'), sender: 'User A' }
+      const activities = [
+        { ...createActivity(1, 'Test 1', 'restaurant'), sender: 'User A' },
+        { ...createActivity(2, 'Test 2', 'hike'), sender: 'User B' },
+        { ...createActivity(3, 'Test 3', 'cafe'), sender: 'User A' }
       ]
 
-      const result = await exportToPDF(suggestions)
+      const result = await exportToPDF(activities)
 
       expect(result.length).toBeGreaterThan(100)
     })
 
     it('produces valid PDF header', async () => {
-      const suggestions = [createSuggestion(1, 'Test', 'restaurant', 41.9, 12.5)]
+      const activities = [createActivity(1, 'Test', 'restaurant', 41.9, 12.5)]
 
-      const result = await exportToPDF(suggestions)
+      const result = await exportToPDF(activities)
 
       // Check PDF magic bytes
       const header = new TextDecoder().decode(result.slice(0, 5))

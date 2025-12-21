@@ -9,9 +9,9 @@ import { DEFAULT_CACHE_TTL_SECONDS } from '../cache/types.js'
 import { extractGoogleMapsCoords } from '../extractor/url-classifier.js'
 import { httpFetch } from '../http.js'
 import {
-  type ClassifiedSuggestion,
+  type ClassifiedActivity,
   formatLocation,
-  type GeocodedSuggestion,
+  type GeocodedActivity,
   type GeocodeResult,
   type GeocoderConfig,
   type ResponseCache,
@@ -155,9 +155,9 @@ async function geocodeText(
 /**
  * Try to extract coordinates from a Google Maps URL.
  */
-function tryExtractFromUrl(suggestion: ClassifiedSuggestion): GeocodeResult | null {
+function tryExtractFromUrl(activity: ClassifiedActivity): GeocodeResult | null {
   // Check if the original message contains a Google Maps URL
-  const urls = suggestion.originalMessage.match(/https?:\/\/[^\s]+/gi)
+  const urls = activity.originalMessage.match(/https?:\/\/[^\s]+/gi)
   if (!urls) return null
 
   for (const url of urls) {
@@ -172,7 +172,7 @@ function tryExtractFromUrl(suggestion: ClassifiedSuggestion): GeocodeResult | nu
         return {
           latitude: coords.lat,
           longitude: coords.lng,
-          formattedAddress: formatLocation(suggestion) ?? ''
+          formattedAddress: formatLocation(activity) ?? ''
         }
       }
     }
@@ -182,20 +182,20 @@ function tryExtractFromUrl(suggestion: ClassifiedSuggestion): GeocodeResult | nu
 }
 
 /**
- * Geocode a single suggestion.
+ * Geocode a single activity.
  */
-async function geocodeSuggestion(
-  suggestion: ClassifiedSuggestion,
+async function geocodeActivity(
+  activity: ClassifiedActivity,
   config: GeocoderConfig,
   cache?: ResponseCache
-): Promise<GeocodedSuggestion> {
-  const location = formatLocation(suggestion)
+): Promise<GeocodedActivity> {
+  const location = formatLocation(activity)
 
   // First, try to extract coords from Google Maps URL
-  const urlCoords = tryExtractFromUrl(suggestion)
+  const urlCoords = tryExtractFromUrl(activity)
   if (urlCoords) {
     return {
-      ...suggestion,
+      ...activity,
       latitude: urlCoords.latitude,
       longitude: urlCoords.longitude,
       formattedAddress: urlCoords.formattedAddress || location || undefined,
@@ -205,7 +205,7 @@ async function geocodeSuggestion(
 
   // If no location text, return as-is
   if (!location) {
-    return suggestion
+    return activity
   }
 
   // Try geocoding the location text
@@ -213,7 +213,7 @@ async function geocodeSuggestion(
 
   if (result.ok) {
     return {
-      ...suggestion,
+      ...activity,
       latitude: result.value.latitude,
       longitude: result.value.longitude,
       formattedAddress: result.value.formattedAddress,
@@ -223,11 +223,11 @@ async function geocodeSuggestion(
   }
 
   // If location geocoding fails, try the activity text
-  const activityResult = await geocodeText(suggestion.activity, config, cache)
+  const activityResult = await geocodeText(activity.activity, config, cache)
 
   if (activityResult.ok) {
     return {
-      ...suggestion,
+      ...activity,
       latitude: activityResult.value.latitude,
       longitude: activityResult.value.longitude,
       formattedAddress: activityResult.value.formattedAddress,
@@ -237,26 +237,26 @@ async function geocodeSuggestion(
   }
 
   // Could not geocode - return without coordinates
-  return suggestion
+  return activity
 }
 
 /**
- * Geocode all suggestions that have location information.
+ * Geocode all activities that have location information.
  *
- * @param suggestions Classified suggestions to geocode
+ * @param activities Classified activities to geocode
  * @param config Geocoder configuration
  * @param cache Optional response cache to prevent duplicate API calls
- * @returns Geocoded suggestions (some may not have coordinates if geocoding failed)
+ * @returns Geocoded activities (some may not have coordinates if geocoding failed)
  */
-export async function geocodeSuggestions(
-  suggestions: readonly ClassifiedSuggestion[],
+export async function geocodeActivities(
+  activities: readonly ClassifiedActivity[],
   config: GeocoderConfig,
   cache?: ResponseCache
-): Promise<GeocodedSuggestion[]> {
-  const results: GeocodedSuggestion[] = []
+): Promise<GeocodedActivity[]> {
+  const results: GeocodedActivity[] = []
 
-  for (const suggestion of suggestions) {
-    const geocoded = await geocodeSuggestion(suggestion, config, cache)
+  for (const activity of activities) {
+    const geocoded = await geocodeActivity(activity, config, cache)
     results.push(geocoded)
   }
 
@@ -278,29 +278,29 @@ export async function geocodeLocation(
 }
 
 /**
- * Count geocoded suggestions.
+ * Count geocoded activities.
  */
-export function countGeocoded(suggestions: readonly GeocodedSuggestion[]): number {
-  return suggestions.filter((s) => s.latitude !== undefined && s.longitude !== undefined).length
+export function countGeocoded(activities: readonly GeocodedActivity[]): number {
+  return activities.filter((a) => a.latitude !== undefined && a.longitude !== undefined).length
 }
 
 /**
- * Filter to only geocoded suggestions (those with coordinates).
+ * Filter to only geocoded activities (those with coordinates).
  */
-export function filterGeocoded(suggestions: readonly GeocodedSuggestion[]): GeocodedSuggestion[] {
-  return suggestions.filter(
-    (s): s is GeocodedSuggestion & { latitude: number; longitude: number } =>
-      s.latitude !== undefined && s.longitude !== undefined
+export function filterGeocoded(activities: readonly GeocodedActivity[]): GeocodedActivity[] {
+  return activities.filter(
+    (a): a is GeocodedActivity & { latitude: number; longitude: number } =>
+      a.latitude !== undefined && a.longitude !== undefined
   )
 }
 
 /**
- * Calculate the center point of geocoded suggestions.
+ * Calculate the center point of geocoded activities.
  */
 export function calculateCenter(
-  suggestions: readonly GeocodedSuggestion[]
+  activities: readonly GeocodedActivity[]
 ): { lat: number; lng: number } | null {
-  const geocoded = filterGeocoded(suggestions)
+  const geocoded = filterGeocoded(activities)
 
   if (geocoded.length === 0) {
     return null

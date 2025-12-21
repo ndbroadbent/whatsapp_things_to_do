@@ -11,7 +11,7 @@ import { emptyResponseError, handleHttpError, handleNetworkError, httpFetch } fr
 import type {
   ActivityCategory,
   CandidateMessage,
-  ClassifiedSuggestion,
+  ClassifiedActivity,
   ClassifierConfig,
   ClassifierProvider,
   ProviderConfig,
@@ -225,10 +225,10 @@ async function callProviderWithFallbacks(
 /**
  * Convert a parsed classification to a classified suggestion.
  */
-function toClassifiedSuggestion(
+function toClassifiedActivity(
   response: ParsedClassification,
   candidate: CandidateMessage
-): ClassifiedSuggestion {
+): ClassifiedActivity {
   return {
     messageId: candidate.messageId,
     isActivity: response.is_act,
@@ -253,7 +253,7 @@ function toClassifiedSuggestion(
 }
 
 interface ClassifyBatchResult {
-  result: Result<ClassifiedSuggestion[]>
+  result: Result<ClassifiedActivity[]>
   cacheHit: boolean
   cacheKey: string
 }
@@ -277,7 +277,7 @@ async function classifyBatch(
 
   // Check cache first
   if (cache) {
-    const cached = await cache.get<ClassifiedSuggestion[]>(cacheKey)
+    const cached = await cache.get<ClassifiedActivity[]>(cacheKey)
     if (cached) {
       return { result: { ok: true, value: cached.data }, cacheHit: true, cacheKey }
     }
@@ -311,12 +311,12 @@ async function classifyBatch(
     const parsed = parseClassificationResponse(responseResult.value, expectedIds)
 
     // Map responses to candidates
-    const suggestions: ClassifiedSuggestion[] = []
+    const suggestions: ClassifiedActivity[] = []
 
     for (const response of parsed) {
       const candidate = candidates.find((c) => c.messageId === response.msg)
       if (candidate) {
-        suggestions.push(toClassifiedSuggestion(response, candidate))
+        suggestions.push(toClassifiedActivity(response, candidate))
       }
     }
 
@@ -358,10 +358,10 @@ export async function classifyMessages(
   candidates: readonly CandidateMessage[],
   config: ClassifierConfig,
   cache?: ResponseCache
-): Promise<Result<ClassifiedSuggestion[]>> {
+): Promise<Result<ClassifiedActivity[]>> {
   const batchSize = config.batchSize ?? DEFAULT_BATCH_SIZE
   const model = config.model ?? DEFAULT_MODELS[config.provider]
-  const results: ClassifiedSuggestion[] = []
+  const results: ClassifiedActivity[] = []
 
   // Simple batching - take candidates in order
   const batches: CandidateMessage[][] = []
@@ -416,9 +416,9 @@ export async function classifyMessages(
  * @returns Only activity suggestions (not errands)
  */
 export function filterActivities(
-  suggestions: readonly ClassifiedSuggestion[],
+  suggestions: readonly ClassifiedActivity[],
   minActivityScore = 0.5
-): ClassifiedSuggestion[] {
+): ClassifiedActivity[] {
   return suggestions.filter((s) => s.isActivity && s.activityScore >= minActivityScore)
 }
 
@@ -426,9 +426,9 @@ export function filterActivities(
  * Group suggestions by category.
  */
 export function groupByCategory(
-  suggestions: readonly ClassifiedSuggestion[]
-): Map<ActivityCategory, ClassifiedSuggestion[]> {
-  const groups = new Map<ActivityCategory, ClassifiedSuggestion[]>()
+  suggestions: readonly ClassifiedActivity[]
+): Map<ActivityCategory, ClassifiedActivity[]> {
+  const groups = new Map<ActivityCategory, ClassifiedActivity[]>()
 
   for (const suggestion of suggestions) {
     const existing = groups.get(suggestion.category) ?? []

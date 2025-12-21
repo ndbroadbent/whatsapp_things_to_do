@@ -1,17 +1,17 @@
 /**
- * Suggestion Aggregation
+ * Activity Aggregation
  *
- * Groups similar suggestions and tracks mention counts.
+ * Groups similar activities and tracks mention counts.
  * Activities mentioned multiple times are MORE valuable, not duplicates.
  *
  * This is an orchestrator concern (CLI), not core library.
  */
 
 import {
-  type AggregatedSuggestion,
-  type ClassifiedSuggestion,
+  type AggregatedActivity,
+  type ClassifiedActivity,
   formatLocation,
-  type GeocodedSuggestion,
+  type GeocodedActivity,
   type SourceMessage
 } from '../types.js'
 
@@ -67,13 +67,13 @@ function similarity(a: string, b: string): number {
 }
 
 /**
- * Check if two suggestions should be grouped together.
+ * Check if two activities should be grouped together.
  *
  * Matching criteria (in priority order):
  * 1. Exact location match (case-insensitive) - e.g., "Queenstown" appears twice
  * 2. High activity name similarity (>= 0.8) - e.g., "pottery class" vs "pottery classes"
  */
-function shouldGroup(a: ClassifiedSuggestion, b: ClassifiedSuggestion): boolean {
+function shouldGroup(a: ClassifiedActivity, b: ClassifiedActivity): boolean {
   // Exact location match (if both have locations)
   const locA = formatLocation(a)
   const locB = formatLocation(b)
@@ -92,48 +92,48 @@ function shouldGroup(a: ClassifiedSuggestion, b: ClassifiedSuggestion): boolean 
 }
 
 /**
- * Create a SourceMessage from a suggestion.
+ * Create a SourceMessage from an activity.
  */
-function toSourceMessage(suggestion: ClassifiedSuggestion): SourceMessage {
+function toSourceMessage(activity: ClassifiedActivity): SourceMessage {
   return {
-    messageId: suggestion.messageId,
-    content: suggestion.originalMessage,
-    sender: suggestion.sender,
-    timestamp: suggestion.timestamp
+    messageId: activity.messageId,
+    content: activity.originalMessage,
+    sender: activity.sender,
+    timestamp: activity.timestamp
   }
 }
 
 /**
- * Aggregate similar suggestions into groups with mention counts.
+ * Aggregate similar activities into groups with mention counts.
  *
- * @param suggestions Individual classified suggestions
- * @returns Aggregated suggestions with mention counts and source messages
+ * @param activities Individual classified activities
+ * @returns Aggregated activities with mention counts and source messages
  */
-export function aggregateSuggestions<T extends ClassifiedSuggestion>(
-  suggestions: readonly T[]
-): AggregatedSuggestion[] {
-  if (suggestions.length === 0) return []
+export function aggregateActivities<T extends ClassifiedActivity>(
+  activities: readonly T[]
+): AggregatedActivity[] {
+  if (activities.length === 0) return []
 
-  // Track which suggestions have been grouped
+  // Track which activities have been grouped
   const grouped = new Set<number>()
-  const result: AggregatedSuggestion[] = []
+  const result: AggregatedActivity[] = []
 
-  for (let i = 0; i < suggestions.length; i++) {
-    const suggestion = suggestions[i]
-    if (!suggestion) continue
+  for (let i = 0; i < activities.length; i++) {
+    const activity = activities[i]
+    if (!activity) continue
 
     // Skip if already grouped
     if (grouped.has(i)) continue
 
-    // Find all matching suggestions
-    const matches: T[] = [suggestion]
+    // Find all matching activities
+    const matches: T[] = [activity]
     const matchIndices: number[] = [i]
 
-    for (let j = i + 1; j < suggestions.length; j++) {
+    for (let j = i + 1; j < activities.length; j++) {
       if (grouped.has(j)) continue
 
-      const other = suggestions[j]
-      if (other && shouldGroup(suggestion, other)) {
+      const other = activities[j]
+      if (other && shouldGroup(activity, other)) {
         matches.push(other)
         matchIndices.push(j)
       }
@@ -151,9 +151,9 @@ export function aggregateSuggestions<T extends ClassifiedSuggestion>(
     const lastMention = sortedMatches[sortedMatches.length - 1]
     if (!firstMention || !lastMention) continue
 
-    // Create aggregated suggestion using the most recent mention as base
+    // Create aggregated activity using the most recent mention as base
     // (most recent likely has most relevant details)
-    const aggregated: AggregatedSuggestion = {
+    const aggregated: AggregatedActivity = {
       ...lastMention,
       mentionCount: matches.length,
       firstMentionedAt: firstMention.timestamp,
@@ -169,15 +169,15 @@ export function aggregateSuggestions<T extends ClassifiedSuggestion>(
 }
 
 /**
- * Aggregate geocoded suggestions.
+ * Aggregate geocoded activities.
  * Convenience wrapper that preserves geocoding information.
  */
-export function aggregateGeocodedSuggestions(
-  suggestions: readonly GeocodedSuggestion[]
-): (AggregatedSuggestion & Partial<GeocodedSuggestion>)[] {
-  return aggregateSuggestions(suggestions).map((agg) => {
-    // Find the original geocoded suggestion to get coordinates
-    const original = suggestions.find((s) => s.messageId === agg.messageId)
+export function aggregateGeocodedActivities(
+  activities: readonly GeocodedActivity[]
+): (AggregatedActivity & Partial<GeocodedActivity>)[] {
+  return aggregateActivities(activities).map((agg) => {
+    // Find the original geocoded activity to get coordinates
+    const original = activities.find((a) => a.messageId === agg.messageId)
     if (original && original.latitude !== undefined) {
       return {
         ...agg,
@@ -193,21 +193,21 @@ export function aggregateGeocodedSuggestions(
 }
 
 /**
- * Filter aggregated suggestions by minimum mention count.
+ * Filter aggregated activities by minimum mention count.
  */
 export function filterByMentionCount(
-  suggestions: readonly AggregatedSuggestion[],
+  activities: readonly AggregatedActivity[],
   minCount: number
-): AggregatedSuggestion[] {
-  return suggestions.filter((s) => s.mentionCount >= minCount)
+): AggregatedActivity[] {
+  return activities.filter((a) => a.mentionCount >= minCount)
 }
 
 /**
- * Get "most wanted" suggestions - those mentioned multiple times.
+ * Get "most wanted" activities - those mentioned multiple times.
  */
 export function getMostWanted(
-  suggestions: readonly AggregatedSuggestion[],
+  activities: readonly AggregatedActivity[],
   limit = 10
-): AggregatedSuggestion[] {
-  return suggestions.filter((s) => s.mentionCount > 1).slice(0, limit)
+): AggregatedActivity[] {
+  return activities.filter((a) => a.mentionCount > 1).slice(0, limit)
 }

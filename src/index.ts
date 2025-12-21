@@ -1,7 +1,7 @@
 /**
  * ChatToMap Core Library
  *
- * Transform chat exports into geocoded activity suggestions.
+ * Transform chat exports into geocoded activities.
  *
  * Design principle: Pure functions only. No IO, no progress reporting, no orchestration.
  * The library is stateless and side-effect-free (except for API calls to external services).
@@ -59,22 +59,22 @@ export {
 // Extractor module
 export {
   ACTIVITY_KEYWORDS,
+  ACTIVITY_PATTERNS,
   type ActivityLinkOptions,
   classifyUrl,
   EXCLUSION_PATTERNS,
   extractActivityLinks,
   extractCandidates,
   extractGoogleMapsCoords,
-  isActivityUrl,
-  SUGGESTION_PATTERNS
+  isActivityUrl
 } from './extractor/index.js'
 // Geocoder module
 export {
   calculateCenter,
   countGeocoded,
   filterGeocoded,
-  geocodeLocation,
-  geocodeSuggestions
+  geocodeActivities,
+  geocodeLocation
 } from './geocoder/index.js'
 // Parser module
 export {
@@ -116,7 +116,7 @@ export type {
   ActivityLinkResult,
   ActivityLinkType,
   // Aggregation types
-  AggregatedSuggestion,
+  AggregatedActivity,
   ApiError,
   // Result types
   ApiErrorType,
@@ -127,7 +127,7 @@ export type {
   ChatSource,
   // CLI types
   CLIOptions,
-  ClassifiedSuggestion,
+  ClassifiedActivity,
   ClassifierConfig,
   ClassifierProvider,
   ClassifierResponse,
@@ -137,7 +137,7 @@ export type {
   ExportMetadata,
   ExtractorOptions,
   ExtractorResult,
-  GeocodedSuggestion,
+  GeocodedActivity,
   GeocodeResult,
   GeocoderConfig,
   // Geocoder types

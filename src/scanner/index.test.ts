@@ -18,7 +18,7 @@ describe('quickScan', () => {
       expect(result.source).toBe('whatsapp')
     })
 
-    it('should find candidates from suggestion phrases', () => {
+    it('should find candidates from activity phrases', () => {
       const result = quickScan(sampleChat)
 
       // Should find "we should check out", "let's go", "let's do both"
@@ -90,7 +90,7 @@ describe('quickScan', () => {
       expect(result.senderCount).toBe(0)
     })
 
-    it('should handle content with no suggestions', () => {
+    it('should handle content with no activities', () => {
       const plainChat = `[12/15/24, 10:30:42 AM] Alice: Hello
 [12/15/24, 10:31:15 AM] Bob: Hi there
 [12/15/24, 10:32:00 AM] Alice: How are you?

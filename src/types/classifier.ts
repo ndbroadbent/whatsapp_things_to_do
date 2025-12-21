@@ -44,7 +44,7 @@ export const CATEGORY_EMOJI: Record<ActivityCategory, string> = {
   other: '📍'
 }
 
-export interface ClassifiedSuggestion {
+export interface ClassifiedActivity {
   readonly messageId: number
   readonly isActivity: boolean
   /** Human-readable activity title */
@@ -85,11 +85,11 @@ export interface ClassifiedSuggestion {
 }
 
 /**
- * Check if a suggestion has a mappable location.
+ * Check if an activity has a mappable location.
  * Derived from venue/city/state/country fields.
  */
-export function isMappable(s: ClassifiedSuggestion): boolean {
-  return !!(s.venue || s.city || s.state || s.country)
+export function isMappable(a: ClassifiedActivity): boolean {
+  return !!(a.venue || a.city || a.state || a.country)
 }
 
 /**
@@ -97,8 +97,8 @@ export function isMappable(s: ClassifiedSuggestion): boolean {
  * Returns a human-readable string like "Coffee Lab, Auckland, New Zealand"
  * or null if no location fields are set.
  */
-export function formatLocation(s: ClassifiedSuggestion): string | null {
-  const parts = [s.venue, s.city, s.state, s.country].filter(Boolean)
+export function formatLocation(a: ClassifiedActivity): string | null {
+  const parts = [a.venue, a.city, a.state, a.country].filter(Boolean)
   return parts.length > 0 ? parts.join(', ') : null
 }
 
@@ -203,8 +203,8 @@ export interface SourceMessage {
   readonly context?: string | undefined
 }
 
-/** An aggregated suggestion combining multiple mentions of the same activity/location. */
-export interface AggregatedSuggestion extends ClassifiedSuggestion {
+/** An aggregated activity combining multiple mentions of the same activity/location. */
+export interface AggregatedActivity extends ClassifiedActivity {
   readonly mentionCount: number
   readonly firstMentionedAt: Date
   readonly lastMentionedAt: Date

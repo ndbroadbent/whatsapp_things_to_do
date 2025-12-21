@@ -4,11 +4,11 @@
  * Types for geocoding and location data.
  */
 
-import type { ClassifiedSuggestion } from './classifier.js'
+import type { ClassifiedActivity } from './classifier.js'
 
 export type GeocodeSource = 'google_maps_url' | 'google_geocoding' | 'place_search'
 
-export interface GeocodedSuggestion extends ClassifiedSuggestion {
+export interface GeocodedActivity extends ClassifiedActivity {
   readonly latitude?: number | undefined
   readonly longitude?: number | undefined
   readonly formattedAddress?: string | undefined

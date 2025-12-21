@@ -1,7 +1,7 @@
 /**
  * Semantic Clustering Module
  *
- * Groups identical activity suggestions into single entries with multiple instances.
+ * Groups identical activities into single entries with multiple instances.
  *
  * Two clustering strategies:
  * 1. Complete entries (isComplete=true): Match on normalized fields (action, object, venue, city, country)
@@ -12,22 +12,22 @@
  *
  * @example
  * ```typescript
- * const result = clusterSuggestions(classifiedSuggestions)
+ * const result = clusterActivities(classifiedActivities)
  * console.log(result.clusters)  // Grouped activities
  * console.log(result.filtered)  // Removed as noise
  * ```
  */
 
-import type { ClassifiedSuggestion } from '../types/classifier.js'
+import type { ClassifiedActivity } from '../types/classifier.js'
 
 /**
  * A single cluster of semantically equivalent activities.
  */
-export interface SuggestionCluster {
+export interface ActivityCluster {
   /** The best representative for this cluster (highest confidence). */
-  readonly representative: ClassifiedSuggestion
-  /** All suggestions in this cluster, including the representative. */
-  readonly instances: readonly ClassifiedSuggestion[]
+  readonly representative: ClassifiedActivity
+  /** All activities in this cluster, including the representative. */
+  readonly instances: readonly ClassifiedActivity[]
   /** Number of instances in this cluster. */
   readonly instanceCount: number
   /** Earliest mention timestamp. */
@@ -41,13 +41,13 @@ export interface SuggestionCluster {
 }
 
 /**
- * Result of clustering suggestions.
+ * Result of clustering activities.
  */
 export interface ClusterResult {
   /** Clusters of related activities (sorted by instance count, descending). */
-  readonly clusters: readonly SuggestionCluster[]
-  /** Suggestions filtered out as noise (low activity score, etc). */
-  readonly filtered: readonly ClassifiedSuggestion[]
+  readonly clusters: readonly ActivityCluster[]
+  /** Activities filtered out as noise (low activity score, etc). */
+  readonly filtered: readonly ClassifiedActivity[]
 }
 
 /**
@@ -56,7 +56,7 @@ export interface ClusterResult {
 export interface ClusterConfig {
   /**
    * Minimum activity score to include (default: 0).
-   * Suggestions below this threshold are filtered.
+   * Activities below this threshold are filtered.
    */
   readonly minActivityScore?: number
 }
@@ -65,23 +65,23 @@ export interface ClusterConfig {
  * Generate a clustering key from normalized fields.
  * Case-insensitive comparison.
  */
-function getClusterKey(s: ClassifiedSuggestion): string {
+function getClusterKey(a: ClassifiedActivity): string {
   return [
-    s.action?.toLowerCase() ?? '',
-    s.object?.toLowerCase() ?? '',
-    s.venue?.toLowerCase() ?? '',
-    s.city?.toLowerCase() ?? '',
-    s.country?.toLowerCase() ?? ''
+    a.action?.toLowerCase() ?? '',
+    a.object?.toLowerCase() ?? '',
+    a.venue?.toLowerCase() ?? '',
+    a.city?.toLowerCase() ?? '',
+    a.country?.toLowerCase() ?? ''
   ].join('|')
 }
 
 /**
- * Select the best representative from a list of suggestions.
+ * Select the best representative from a list of activities.
  * Prefers higher confidence, then higher activity score.
- * @throws Error if suggestions array is empty
+ * @throws Error if activities array is empty
  */
-function selectRepresentative(suggestions: readonly ClassifiedSuggestion[]): ClassifiedSuggestion {
-  const sorted = [...suggestions].sort((a, b) => {
+function selectRepresentative(activities: readonly ClassifiedActivity[]): ClassifiedActivity {
+  const sorted = [...activities].sort((a, b) => {
     // Higher confidence first
     if (b.confidence !== a.confidence) return b.confidence - a.confidence
     // Then higher activity score
@@ -96,20 +96,20 @@ function selectRepresentative(suggestions: readonly ClassifiedSuggestion[]): Cla
 }
 
 /**
- * Build a cluster from a group of suggestions.
+ * Build a cluster from a group of activities.
  */
 function buildCluster(
-  suggestions: readonly ClassifiedSuggestion[],
+  activities: readonly ClassifiedActivity[],
   clusterKey: string
-): SuggestionCluster {
-  const representative = selectRepresentative(suggestions)
-  const timestamps = suggestions.map((s) => s.timestamp)
-  const senders = [...new Set(suggestions.map((s) => s.sender))]
+): ActivityCluster {
+  const representative = selectRepresentative(activities)
+  const timestamps = activities.map((a) => a.timestamp)
+  const senders = [...new Set(activities.map((a) => a.sender))]
 
   return {
     representative,
-    instances: suggestions,
-    instanceCount: suggestions.length,
+    instances: activities,
+    instanceCount: activities.length,
     firstMentioned: new Date(Math.min(...timestamps.map((t) => t.getTime()))),
     lastMentioned: new Date(Math.max(...timestamps.map((t) => t.getTime()))),
     allSenders: senders,
@@ -118,18 +118,18 @@ function buildCluster(
 }
 
 /**
- * Cluster suggestions by matching fields.
+ * Cluster activities by matching fields.
  *
  * - Complete entries: cluster by normalized fields (action, object, venue, city, country)
  * - Complex entries: cluster by exact activity title
  *
- * @param suggestions - Classified suggestions from AI
+ * @param activities - Classified activities from AI
  * @param config - Optional clustering configuration
  * @returns Clustered result with clusters and filtered items
  *
  * @example
  * ```typescript
- * const result = clusterSuggestions(suggestions)
+ * const result = clusterActivities(activities)
  *
  * // Show clusters with multiple mentions
  * for (const cluster of result.clusters) {
@@ -139,50 +139,50 @@ function buildCluster(
  * }
  * ```
  */
-export function clusterSuggestions(
-  suggestions: readonly ClassifiedSuggestion[],
+export function clusterActivities(
+  activities: readonly ClassifiedActivity[],
   config: ClusterConfig = {}
 ): ClusterResult {
   const { minActivityScore = 0 } = config
 
   // Separate into valid and filtered
-  const filtered: ClassifiedSuggestion[] = []
-  const valid: ClassifiedSuggestion[] = []
+  const filtered: ClassifiedActivity[] = []
+  const valid: ClassifiedActivity[] = []
 
-  for (const suggestion of suggestions) {
+  for (const activity of activities) {
     // Filter by activity score
-    if (suggestion.activityScore < minActivityScore) {
-      filtered.push(suggestion)
+    if (activity.activityScore < minActivityScore) {
+      filtered.push(activity)
       continue
     }
 
-    valid.push(suggestion)
+    valid.push(activity)
   }
 
   // Separate complete and complex entries
-  const complete = valid.filter((s) => s.isComplete)
-  const complex = valid.filter((s) => !s.isComplete)
+  const complete = valid.filter((a) => a.isComplete)
+  const complex = valid.filter((a) => !a.isComplete)
 
   // Group complete entries by normalized fields (case-insensitive)
-  const completeGroups = new Map<string, ClassifiedSuggestion[]>()
-  for (const s of complete) {
-    const key = getClusterKey(s)
+  const completeGroups = new Map<string, ClassifiedActivity[]>()
+  for (const a of complete) {
+    const key = getClusterKey(a)
     const group = completeGroups.get(key) ?? []
-    group.push(s)
+    group.push(a)
     completeGroups.set(key, group)
   }
 
   // Group complex entries by exact title (case-insensitive)
-  const complexGroups = new Map<string, ClassifiedSuggestion[]>()
-  for (const s of complex) {
-    const key = s.activity.toLowerCase()
+  const complexGroups = new Map<string, ClassifiedActivity[]>()
+  for (const a of complex) {
+    const key = a.activity.toLowerCase()
     const group = complexGroups.get(key) ?? []
-    group.push(s)
+    group.push(a)
     complexGroups.set(key, group)
   }
 
   // Build clusters from both groups
-  const clusters: SuggestionCluster[] = []
+  const clusters: ActivityCluster[] = []
 
   for (const [key, group] of completeGroups) {
     clusters.push(buildCluster(group, key))

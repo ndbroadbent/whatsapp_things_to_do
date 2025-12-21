@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { ClassifiedSuggestion, GeocodedSuggestion } from '../types.js'
+import type { ClassifiedActivity, GeocodedActivity } from '../types.js'
 
 // Mock httpFetch before importing - explicitly re-export other functions
 const mockFetch = vi.fn()
@@ -69,12 +69,12 @@ function createGeocodingResponse(
   }
 }
 
-function createSuggestion(
+function createActivity(
   id: number,
   activity: string,
   city?: string,
   originalMessage?: string
-): ClassifiedSuggestion {
+): ClassifiedActivity {
   return {
     messageId: id,
     isActivity: true,
@@ -247,18 +247,18 @@ describe('Geocoder Module', () => {
     })
   })
 
-  describe('geocodeSuggestions', async () => {
-    const { geocodeSuggestions } = await import('./index.js')
+  describe('geocodeActivities', async () => {
+    const { geocodeActivities } = await import('./index.js')
 
-    it('geocodes suggestions with location', async () => {
+    it('geocodes activities with location', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => createGeocodingResponse(41.9, 12.5, 'Rome, Italy')
       })
 
-      const suggestions = [createSuggestion(1, 'Italian Restaurant', 'Rome')]
+      const activities = [createActivity(1, 'Italian Restaurant', 'Rome')]
 
-      const results = await geocodeSuggestions(suggestions, { apiKey: 'test-key' })
+      const results = await geocodeActivities(activities, { apiKey: 'test-key' })
 
       expect(results).toHaveLength(1)
       expect(results[0]?.latitude).toBeCloseTo(41.9, 2)
@@ -266,14 +266,14 @@ describe('Geocoder Module', () => {
     })
 
     it('extracts coordinates from Google Maps URL', async () => {
-      const suggestion = createSuggestion(
+      const activity = createActivity(
         1,
         'Great Restaurant',
         undefined,
         'Check this out! https://maps.google.com/maps?q=41.9028,12.4964'
       )
 
-      const results = await geocodeSuggestions([suggestion], { apiKey: 'test-key' })
+      const results = await geocodeActivities([activity], { apiKey: 'test-key' })
 
       expect(results[0]?.latitude).toBeCloseTo(41.9028, 2)
       expect(results[0]?.longitude).toBeCloseTo(12.4964, 2)
@@ -283,14 +283,9 @@ describe('Geocoder Module', () => {
     })
 
     it('handles goo.gl/maps URLs', async () => {
-      const suggestion = createSuggestion(
-        1,
-        'Place',
-        undefined,
-        'https://goo.gl/maps/xyz?q=40.7,-74.0'
-      )
+      const activity = createActivity(1, 'Place', undefined, 'https://goo.gl/maps/xyz?q=40.7,-74.0')
 
-      const results = await geocodeSuggestions([suggestion], { apiKey: 'test-key' })
+      const results = await geocodeActivities([activity], { apiKey: 'test-key' })
 
       // Should attempt to extract from URL pattern
       expect(results).toHaveLength(1)
@@ -307,52 +302,52 @@ describe('Geocoder Module', () => {
           json: async () => createGeocodingResponse(48.8, 2.3, 'Paris, France')
         })
 
-      const suggestion = createSuggestion(1, 'Eiffel Tower Paris', 'Some Unknown Place')
+      const activity = createActivity(1, 'Eiffel Tower Paris', 'Some Unknown Place')
 
-      const results = await geocodeSuggestions([suggestion], { apiKey: 'test-key' })
+      const results = await geocodeActivities([activity], { apiKey: 'test-key' })
 
       expect(results[0]?.latitude).toBeCloseTo(48.8, 1)
       expect(results[0]?.geocodeSource).toBe('place_search')
     })
 
-    it('returns suggestion without coordinates when all geocoding fails', async () => {
+    it('returns activity without coordinates when all geocoding fails', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => createGeocodingResponse(0, 0, '', 'ZERO_RESULTS')
       })
 
-      const suggestion = createSuggestion(1, 'Unknown', 'Unknown Location')
+      const activity = createActivity(1, 'Unknown', 'Unknown Location')
 
-      const results = await geocodeSuggestions([suggestion], { apiKey: 'test-key' })
+      const results = await geocodeActivities([activity], { apiKey: 'test-key' })
 
       expect(results).toHaveLength(1)
       expect(results[0]?.latitude).toBeUndefined()
       expect(results[0]?.longitude).toBeUndefined()
     })
 
-    it('handles suggestions without location', async () => {
-      const suggestion = createSuggestion(1, 'Some activity')
+    it('handles activities without location', async () => {
+      const activity = createActivity(1, 'Some activity')
 
-      const results = await geocodeSuggestions([suggestion], { apiKey: 'test-key' })
+      const results = await geocodeActivities([activity], { apiKey: 'test-key' })
 
       expect(results).toHaveLength(1)
       expect(results[0]?.latitude).toBeUndefined()
       expect(mockFetch).not.toHaveBeenCalled()
     })
 
-    it('processes multiple suggestions', async () => {
+    it('processes multiple activities', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => createGeocodingResponse(41.9, 12.5)
       })
 
-      const suggestions = [
-        createSuggestion(1, 'Place One', 'Rome'),
-        createSuggestion(2, 'Place Two', 'Paris'),
-        createSuggestion(3, 'Place Three', 'London')
+      const activities = [
+        createActivity(1, 'Place One', 'Rome'),
+        createActivity(2, 'Place Two', 'Paris'),
+        createActivity(3, 'Place Three', 'London')
       ]
 
-      const results = await geocodeSuggestions(suggestions, { apiKey: 'test-key' })
+      const results = await geocodeActivities(activities, { apiKey: 'test-key' })
 
       expect(results).toHaveLength(3)
       expect(mockFetch).toHaveBeenCalledTimes(3)
@@ -362,14 +357,14 @@ describe('Geocoder Module', () => {
   describe('countGeocoded', async () => {
     const { countGeocoded } = await import('./index.js')
 
-    it('counts suggestions with coordinates', () => {
-      const suggestions: GeocodedSuggestion[] = [
-        { ...createSuggestion(1, 'With coords'), latitude: 41.9, longitude: 12.5 },
-        { ...createSuggestion(2, 'Without coords') },
-        { ...createSuggestion(3, 'With coords'), latitude: 48.8, longitude: 2.3 }
+    it('counts activities with coordinates', () => {
+      const activities: GeocodedActivity[] = [
+        { ...createActivity(1, 'With coords'), latitude: 41.9, longitude: 12.5 },
+        { ...createActivity(2, 'Without coords') },
+        { ...createActivity(3, 'With coords'), latitude: 48.8, longitude: 2.3 }
       ]
 
-      const count = countGeocoded(suggestions)
+      const count = countGeocoded(activities)
 
       expect(count).toBe(2)
     })
@@ -382,14 +377,14 @@ describe('Geocoder Module', () => {
   describe('filterGeocoded', async () => {
     const { filterGeocoded } = await import('./index.js')
 
-    it('filters to only geocoded suggestions', () => {
-      const suggestions: GeocodedSuggestion[] = [
-        { ...createSuggestion(1, 'With coords'), latitude: 41.9, longitude: 12.5 },
-        { ...createSuggestion(2, 'Without coords') },
-        { ...createSuggestion(3, 'With coords'), latitude: 48.8, longitude: 2.3 }
+    it('filters to only geocoded activities', () => {
+      const activities: GeocodedActivity[] = [
+        { ...createActivity(1, 'With coords'), latitude: 41.9, longitude: 12.5 },
+        { ...createActivity(2, 'Without coords') },
+        { ...createActivity(3, 'With coords'), latitude: 48.8, longitude: 2.3 }
       ]
 
-      const filtered = filterGeocoded(suggestions)
+      const filtered = filterGeocoded(activities)
 
       expect(filtered).toHaveLength(2)
       expect(filtered.every((s) => s.latitude !== undefined && s.longitude !== undefined)).toBe(
@@ -401,13 +396,13 @@ describe('Geocoder Module', () => {
   describe('calculateCenter', async () => {
     const { calculateCenter } = await import('./index.js')
 
-    it('calculates center point of geocoded suggestions', () => {
-      const suggestions: GeocodedSuggestion[] = [
-        { ...createSuggestion(1, 'A'), latitude: 40, longitude: 10 },
-        { ...createSuggestion(2, 'B'), latitude: 42, longitude: 12 }
+    it('calculates center point of geocoded activities', () => {
+      const activities: GeocodedActivity[] = [
+        { ...createActivity(1, 'A'), latitude: 40, longitude: 10 },
+        { ...createActivity(2, 'B'), latitude: 42, longitude: 12 }
       ]
 
-      const center = calculateCenter(suggestions)
+      const center = calculateCenter(activities)
 
       expect(center).not.toBeNull()
       expect(center?.lat).toBeCloseTo(41, 0)
@@ -418,21 +413,21 @@ describe('Geocoder Module', () => {
       expect(calculateCenter([])).toBeNull()
     })
 
-    it('returns null when no suggestions are geocoded', () => {
-      const suggestions: GeocodedSuggestion[] = [
-        { ...createSuggestion(1, 'A') },
-        { ...createSuggestion(2, 'B') }
+    it('returns null when no activities are geocoded', () => {
+      const activities: GeocodedActivity[] = [
+        { ...createActivity(1, 'A') },
+        { ...createActivity(2, 'B') }
       ]
 
-      expect(calculateCenter(suggestions)).toBeNull()
+      expect(calculateCenter(activities)).toBeNull()
     })
 
-    it('handles single geocoded suggestion', () => {
-      const suggestions: GeocodedSuggestion[] = [
-        { ...createSuggestion(1, 'A'), latitude: 41.9, longitude: 12.5 }
+    it('handles single geocoded activity', () => {
+      const activities: GeocodedActivity[] = [
+        { ...createActivity(1, 'A'), latitude: 41.9, longitude: 12.5 }
       ]
 
-      const center = calculateCenter(suggestions)
+      const center = calculateCenter(activities)
 
       expect(center?.lat).toBeCloseTo(41.9, 2)
       expect(center?.lng).toBeCloseTo(12.5, 2)

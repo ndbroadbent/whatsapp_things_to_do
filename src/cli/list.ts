@@ -14,7 +14,7 @@ import type { Logger } from './logger.js'
 interface ProcessedChat {
   readonly name: string
   readonly processedAt: Date
-  readonly suggestionCount: number
+  readonly activityCount: number
   readonly geocodedCount: number
   readonly path: string
 }
@@ -24,18 +24,18 @@ interface ProcessedChat {
  */
 async function readChatMetadata(dirPath: string): Promise<ProcessedChat | null> {
   try {
-    const jsonPath = join(dirPath, 'suggestions.json')
+    const jsonPath = join(dirPath, 'activities.json')
     const content = await readFile(jsonPath, 'utf-8')
     const data = JSON.parse(content) as {
-      metadata?: { generatedAt?: string; suggestionCount?: number; geocodedCount?: number }
-      suggestions?: unknown[]
+      metadata?: { generatedAt?: string; activityCount?: number; geocodedCount?: number }
+      activities?: unknown[]
     }
 
     const stats = await stat(jsonPath)
     const name = dirPath.split('/').pop() ?? 'unknown'
 
-    // Get suggestion count from metadata or array length
-    const suggestionCount = data.metadata?.suggestionCount ?? data.suggestions?.length ?? 0
+    // Get activity count from metadata or array length
+    const activityCount = data.metadata?.activityCount ?? data.activities?.length ?? 0
     const geocodedCount = data.metadata?.geocodedCount ?? 0
 
     // Get processed date from metadata or file mtime
@@ -49,7 +49,7 @@ async function readChatMetadata(dirPath: string): Promise<ProcessedChat | null> 
     return {
       name,
       processedAt,
-      suggestionCount,
+      activityCount,
       geocodedCount,
       path: dirPath
     }
@@ -100,7 +100,7 @@ export async function listProcessedChats(
         const metadata = await readChatMetadata(dirPath)
         if (metadata) {
           chats.push(metadata)
-          logger.verbose(`Found chat: ${metadata.name} (${metadata.suggestionCount} suggestions)`)
+          logger.verbose(`Found chat: ${metadata.name} (${metadata.activityCount} activities)`)
         }
       }
     }
@@ -129,14 +129,14 @@ export function displayProcessedChats(chats: readonly ProcessedChat[], logger: L
   // Column widths
   const nameWidth = 30
   const dateWidth = 20
-  const suggestionsWidth = 12
+  const activitiesWidth = 12
   const geocodedWidth = 10
 
   // Header
   const header = [
     padEnd('Name', nameWidth),
     padEnd('Processed', dateWidth),
-    padEnd('Suggestions', suggestionsWidth),
+    padEnd('Activities', activitiesWidth),
     padEnd('Geocoded', geocodedWidth)
   ].join(' ')
 
@@ -151,7 +151,7 @@ export function displayProcessedChats(chats: readonly ProcessedChat[], logger: L
     const row = [
       padEnd(chat.name, nameWidth),
       padEnd(formatDate(chat.processedAt), dateWidth),
-      padEnd(chat.suggestionCount.toString(), suggestionsWidth),
+      padEnd(chat.activityCount.toString(), activitiesWidth),
       padEnd(chat.geocodedCount.toString(), geocodedWidth)
     ].join(' ')
     logger.log(row)

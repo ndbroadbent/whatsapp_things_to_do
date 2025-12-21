@@ -9,7 +9,7 @@ import { existsSync, mkdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { CandidateMessage, ClassifiedSuggestion, GeocoderConfig } from '../types.js'
+import type { CandidateMessage, ClassifiedActivity, GeocoderConfig } from '../types.js'
 import { FilesystemCache } from './filesystem'
 
 // Mock the http module to track API calls
@@ -44,11 +44,7 @@ function createCandidate(id: number, content: string): CandidateMessage {
   }
 }
 
-function createClassifiedSuggestion(
-  id: number,
-  activity: string,
-  city: string
-): ClassifiedSuggestion {
+function createClassifiedActivity(id: number, activity: string, city: string): ClassifiedActivity {
   return {
     messageId: id,
     isActivity: true,
@@ -307,16 +303,16 @@ describe('Cache Integration', () => {
     })
   })
 
-  describe('geocodeSuggestions cache integration', () => {
+  describe('geocodeActivities cache integration', () => {
     const config: GeocoderConfig = {
       apiKey: 'test-key',
       regionBias: 'NZ'
     }
 
     it('calls API on cache miss', async () => {
-      const { geocodeSuggestions } = await import('../geocoder/index.js')
+      const { geocodeActivities } = await import('../geocoder/index.js')
 
-      const suggestions = [createClassifiedSuggestion(1, 'Try the cafe', 'Cuba Street, Wellington')]
+      const suggestions = [createClassifiedActivity(1, 'Try the cafe', 'Cuba Street, Wellington')]
 
       // Mock successful API response
       mockFetch.mockResolvedValueOnce({
@@ -332,16 +328,16 @@ describe('Cache Integration', () => {
         })
       })
 
-      const result = await geocodeSuggestions(suggestions, config, cache)
+      const result = await geocodeActivities(suggestions, config, cache)
 
       expect(result).toHaveLength(1)
       expect(mockFetch).toHaveBeenCalledTimes(1)
     })
 
     it('skips API call on cache hit', async () => {
-      const { geocodeSuggestions } = await import('../geocoder/index.js')
+      const { geocodeActivities } = await import('../geocoder/index.js')
 
-      const suggestions = [createClassifiedSuggestion(1, 'Try the cafe', 'Cuba Street, Wellington')]
+      const suggestions = [createClassifiedActivity(1, 'Try the cafe', 'Cuba Street, Wellington')]
 
       // Mock successful API response
       mockFetch.mockResolvedValueOnce({
@@ -358,16 +354,16 @@ describe('Cache Integration', () => {
       })
 
       // First call - should hit API
-      await geocodeSuggestions(suggestions, config, cache)
+      await geocodeActivities(suggestions, config, cache)
       expect(mockFetch).toHaveBeenCalledTimes(1)
 
       // Second call - should use cache
-      await geocodeSuggestions(suggestions, config, cache)
+      await geocodeActivities(suggestions, config, cache)
       expect(mockFetch).toHaveBeenCalledTimes(1)
     })
 
     it('makes new API call for different locations', async () => {
-      const { geocodeSuggestions } = await import('../geocoder/index.js')
+      const { geocodeActivities } = await import('../geocoder/index.js')
 
       // Mock successful API responses
       mockFetch.mockResolvedValueOnce({
@@ -397,15 +393,15 @@ describe('Cache Integration', () => {
       })
 
       // First call
-      await geocodeSuggestions(
-        [createClassifiedSuggestion(1, 'Try the cafe', 'Cuba Street, Wellington')],
+      await geocodeActivities(
+        [createClassifiedActivity(1, 'Try the cafe', 'Cuba Street, Wellington')],
         config,
         cache
       )
 
       // Second call with different location
-      await geocodeSuggestions(
-        [createClassifiedSuggestion(2, 'Visit Queenstown', 'Queenstown, New Zealand')],
+      await geocodeActivities(
+        [createClassifiedActivity(2, 'Visit Queenstown', 'Queenstown, New Zealand')],
         config,
         cache
       )

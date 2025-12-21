@@ -4,12 +4,7 @@
  * Generate an interactive HTML map using Leaflet.js.
  */
 
-import {
-  CATEGORY_EMOJI,
-  formatLocation,
-  type GeocodedSuggestion,
-  type MapConfig
-} from '../types.js'
+import { CATEGORY_EMOJI, formatLocation, type GeocodedActivity, type MapConfig } from '../types.js'
 
 const DEFAULT_ZOOM = 6
 const MARKER_COLORS = [
@@ -75,7 +70,7 @@ function extractUrl(message: string): string | null {
  * Convert suggestions to map points with sender colors.
  */
 function toMapPoints(
-  suggestions: readonly GeocodedSuggestion[],
+  suggestions: readonly GeocodedActivity[],
   config: MapConfig
 ): { points: MapPoint[]; senderColors: Map<string, string> } {
   // Get unique senders and assign colors
@@ -170,10 +165,7 @@ function generateLegendHTML(senderColors: Map<string, string>): string {
  * Generate a list-only HTML page when no geocoded points are available.
  * Shows all activities in a nice list format with category emojis.
  */
-function generateListOnlyHTML(
-  suggestions: readonly GeocodedSuggestion[],
-  config: MapConfig
-): string {
+function generateListOnlyHTML(suggestions: readonly GeocodedActivity[], config: MapConfig): string {
   const title = config.title ?? 'Things To Do'
 
   const listItems = suggestions
@@ -256,7 +248,7 @@ function generateListOnlyHTML(
  * @returns HTML string containing self-contained map
  */
 export function exportToMapHTML(
-  suggestions: readonly GeocodedSuggestion[],
+  suggestions: readonly GeocodedActivity[],
   config: MapConfig = {}
 ): string {
   const { points, senderColors } = toMapPoints(suggestions, config)

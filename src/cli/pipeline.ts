@@ -17,15 +17,15 @@ import {
   exportToPDF,
   extractCandidates,
   filterActivities,
-  geocodeSuggestions,
+  geocodeActivities,
   parseChatWithStats,
   VERSION
 } from '../index.js'
 import type {
   CandidateMessage,
-  ClassifiedSuggestion,
+  ClassifiedActivity,
   ClassifierConfig,
-  GeocodedSuggestion,
+  GeocodedActivity,
   GeocoderConfig,
   ParsedMessage
 } from '../types.js'
@@ -82,7 +82,7 @@ export async function runClassify(
   candidates: readonly CandidateMessage[],
   args: CLIArgs,
   logger: Logger
-): Promise<ClassifiedSuggestion[]> {
+): Promise<ClassifiedActivity[]> {
   const apiKey = process.env.ANTHROPIC_API_KEY ?? process.env.OPENAI_API_KEY
 
   if (!apiKey) {
@@ -144,10 +144,10 @@ export async function runClassify(
 }
 
 export async function runGeocode(
-  suggestions: readonly ClassifiedSuggestion[],
+  suggestions: readonly ClassifiedActivity[],
   args: CLIArgs,
   logger: Logger
-): Promise<GeocodedSuggestion[]> {
+): Promise<GeocodedActivity[]> {
   if (args.skipGeocoding) {
     logger.log('\n📍 Skipping geocoding (--skip-geocoding)')
     return suggestions.map((s) => ({ ...s }))
@@ -168,7 +168,7 @@ export async function runGeocode(
     defaultCountry: args.region === 'NZ' ? 'New Zealand' : undefined
   }
 
-  const results = await geocodeSuggestions(suggestions, config)
+  const results = await geocodeActivities(suggestions, config)
 
   const geocoded = results.filter((s) => s.latitude !== undefined)
   logger.success(`Successfully geocoded: ${geocoded.length}/${suggestions.length}`)
@@ -178,7 +178,7 @@ export async function runGeocode(
 
 async function exportFormat(
   format: string,
-  suggestions: readonly GeocodedSuggestion[],
+  suggestions: readonly GeocodedActivity[],
   args: CLIArgs,
   logger: Logger,
   inputFile: string
@@ -235,7 +235,7 @@ async function exportFormat(
 }
 
 export async function runExport(
-  suggestions: readonly GeocodedSuggestion[],
+  suggestions: readonly GeocodedActivity[],
   args: CLIArgs,
   logger: Logger,
   inputFile: string

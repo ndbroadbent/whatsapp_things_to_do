@@ -28,6 +28,6 @@ export interface ExportMetadata {
   readonly generatedAt: Date
   readonly inputFile?: string | undefined
   readonly messageCount: number
-  readonly suggestionCount: number
+  readonly activityCount: number
   readonly geocodedCount: number
 }

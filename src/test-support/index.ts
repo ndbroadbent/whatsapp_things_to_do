@@ -4,21 +4,21 @@
  * Utilities for testing that require special handling of external dependencies.
  */
 
-import type { GeocodedSuggestion } from '../types/geocoder.js'
-import type { ActivityCategory, ClassifiedSuggestion } from '../types.js'
+import type { GeocodedActivity } from '../types/geocoder.js'
+import type { ActivityCategory, ClassifiedActivity } from '../types.js'
 
 export { FixtureCache } from './fixture-cache.js'
 
 /**
- * Create a ClassifiedSuggestion with default values for testing.
+ * Create a ClassifiedActivity with default values for testing.
  * Only requires the fields that vary between tests.
  */
-export function createSuggestion(
-  overrides: Partial<ClassifiedSuggestion> & {
+export function createActivity(
+  overrides: Partial<ClassifiedActivity> & {
     messageId: number
     activity: string
   }
-): ClassifiedSuggestion {
+): ClassifiedActivity {
   return {
     isActivity: true,
     activityScore: 0.8,
@@ -42,16 +42,16 @@ export function createSuggestion(
 }
 
 /**
- * Create a GeocodedSuggestion with default values for testing.
+ * Create a GeocodedActivity with default values for testing.
  */
-export function createGeocodedSuggestion(
-  overrides: Partial<GeocodedSuggestion> & {
+export function createGeocodedActivity(
+  overrides: Partial<GeocodedActivity> & {
     messageId: number
     activity: string
   }
-): GeocodedSuggestion {
+): GeocodedActivity {
   return {
-    ...createSuggestion(overrides),
+    ...createActivity(overrides),
     latitude: undefined,
     longitude: undefined,
     ...overrides

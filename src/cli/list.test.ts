@@ -57,7 +57,7 @@ describe('listProcessedChats', () => {
     expect(chats).toHaveLength(0)
   })
 
-  it('finds processed chats with valid suggestions.json', async () => {
+  it('finds processed chats with valid activities.json', async () => {
     const logger = createMockLogger()
     const chatDir = join(testDir, 'my-chat')
     await mkdir(chatDir, { recursive: true })
@@ -65,49 +65,46 @@ describe('listProcessedChats', () => {
     const metadata = {
       metadata: {
         generatedAt: '2024-03-15T10:00:00Z',
-        suggestionCount: 42,
+        activityCount: 42,
         geocodedCount: 30
       },
       suggestions: []
     }
-    await writeFile(join(chatDir, 'suggestions.json'), JSON.stringify(metadata))
+    await writeFile(join(chatDir, 'activities.json'), JSON.stringify(metadata))
 
     const chats = await listProcessedChats(testDir, logger)
 
     expect(chats).toHaveLength(1)
     expect(chats[0]?.name).toBe('my-chat')
-    expect(chats[0]?.suggestionCount).toBe(42)
+    expect(chats[0]?.activityCount).toBe(42)
     expect(chats[0]?.geocodedCount).toBe(30)
   })
 
-  it('falls back to suggestions array length when no metadata', async () => {
+  it('falls back to activities array length when no metadata', async () => {
     const logger = createMockLogger()
     const chatDir = join(testDir, 'my-chat')
     await mkdir(chatDir, { recursive: true })
 
     const data = {
-      suggestions: [{ id: 1 }, { id: 2 }, { id: 3 }]
+      activities: [{ id: 1 }, { id: 2 }, { id: 3 }]
     }
-    await writeFile(join(chatDir, 'suggestions.json'), JSON.stringify(data))
+    await writeFile(join(chatDir, 'activities.json'), JSON.stringify(data))
 
     const chats = await listProcessedChats(testDir, logger)
 
     expect(chats).toHaveLength(1)
-    expect(chats[0]?.suggestionCount).toBe(3)
+    expect(chats[0]?.activityCount).toBe(3)
   })
 
-  it('ignores directories without valid suggestions.json', async () => {
+  it('ignores directories without valid activities.json', async () => {
     const logger = createMockLogger()
 
-    // Create a directory with valid suggestions.json
+    // Create a directory with valid activities.json
     const validDir = join(testDir, 'valid-chat')
     await mkdir(validDir, { recursive: true })
-    await writeFile(
-      join(validDir, 'suggestions.json'),
-      JSON.stringify({ suggestions: [{ id: 1 }] })
-    )
+    await writeFile(join(validDir, 'activities.json'), JSON.stringify({ suggestions: [{ id: 1 }] }))
 
-    // Create a directory without suggestions.json
+    // Create a directory without activities.json
     const invalidDir = join(testDir, 'invalid-chat')
     await mkdir(invalidDir, { recursive: true })
 
@@ -124,7 +121,7 @@ describe('listProcessedChats', () => {
     const olderDir = join(testDir, 'older-chat')
     await mkdir(olderDir, { recursive: true })
     await writeFile(
-      join(olderDir, 'suggestions.json'),
+      join(olderDir, 'activities.json'),
       JSON.stringify({
         metadata: { generatedAt: '2024-01-01T00:00:00Z' },
         suggestions: []
@@ -135,7 +132,7 @@ describe('listProcessedChats', () => {
     const newerDir = join(testDir, 'newer-chat')
     await mkdir(newerDir, { recursive: true })
     await writeFile(
-      join(newerDir, 'suggestions.json'),
+      join(newerDir, 'activities.json'),
       JSON.stringify({
         metadata: { generatedAt: '2024-06-01T00:00:00Z' },
         suggestions: []
@@ -165,7 +162,7 @@ describe('displayProcessedChats', () => {
       {
         name: 'test-chat',
         processedAt: new Date('2024-03-15T10:00:00Z'),
-        suggestionCount: 42,
+        activityCount: 42,
         geocodedCount: 30,
         path: './test/test-chat'
       }
@@ -187,14 +184,14 @@ describe('displayProcessedChats', () => {
       {
         name: 'chat-1',
         processedAt: new Date(),
-        suggestionCount: 10,
+        activityCount: 10,
         geocodedCount: 5,
         path: './test/chat-1'
       },
       {
         name: 'chat-2',
         processedAt: new Date(),
-        suggestionCount: 20,
+        activityCount: 20,
         geocodedCount: 15,
         path: './test/chat-2'
       }

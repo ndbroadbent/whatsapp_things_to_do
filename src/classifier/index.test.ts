@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { CandidateMessage, ClassifiedSuggestion } from '../types.js'
+import type { CandidateMessage, ClassifiedActivity } from '../types.js'
 
 // Mock httpFetch before importing - explicitly re-export other functions
 const mockFetch = vi.fn()
@@ -584,7 +584,7 @@ describe('Classifier Module', () => {
   describe('filterActivities', async () => {
     const { filterActivities } = await import('./index.js')
 
-    function createSuggestion(isActivity: boolean, activityScore: number): ClassifiedSuggestion {
+    function createActivity(isActivity: boolean, activityScore: number): ClassifiedActivity {
       return {
         messageId: 1,
         isActivity,
@@ -609,7 +609,7 @@ describe('Classifier Module', () => {
     }
 
     it('filters out non-activities', () => {
-      const suggestions = [createSuggestion(true, 0.8), createSuggestion(false, 0.8)]
+      const suggestions = [createActivity(true, 0.8), createActivity(false, 0.8)]
 
       const filtered = filterActivities(suggestions)
 
@@ -619,9 +619,9 @@ describe('Classifier Module', () => {
 
     it('filters by minimum activity score', () => {
       const suggestions = [
-        createSuggestion(true, 0.3),
-        createSuggestion(true, 0.6),
-        createSuggestion(true, 0.9)
+        createActivity(true, 0.3),
+        createActivity(true, 0.6),
+        createActivity(true, 0.9)
       ]
 
       const filtered = filterActivities(suggestions, 0.5)
@@ -631,9 +631,9 @@ describe('Classifier Module', () => {
 
     it('uses default minimum score of 0.5', () => {
       const suggestions = [
-        createSuggestion(true, 0.4),
-        createSuggestion(true, 0.5),
-        createSuggestion(true, 0.6)
+        createActivity(true, 0.4),
+        createActivity(true, 0.5),
+        createActivity(true, 0.6)
       ]
 
       const filtered = filterActivities(suggestions)
@@ -645,13 +645,13 @@ describe('Classifier Module', () => {
   describe('groupByCategory', async () => {
     const { groupByCategory } = await import('./index.js')
 
-    function createSuggestion(category: string): ClassifiedSuggestion {
+    function createActivity(category: string): ClassifiedActivity {
       return {
         messageId: 1,
         isActivity: true,
         activity: 'Test',
         activityScore: 0.8,
-        category: category as ClassifiedSuggestion['category'],
+        category: category as ClassifiedActivity['category'],
         confidence: 0.9,
         originalMessage: 'Test',
         sender: 'User',
@@ -671,10 +671,10 @@ describe('Classifier Module', () => {
 
     it('groups suggestions by category', () => {
       const suggestions = [
-        createSuggestion('restaurant'),
-        createSuggestion('hike'),
-        createSuggestion('restaurant'),
-        createSuggestion('cafe')
+        createActivity('restaurant'),
+        createActivity('hike'),
+        createActivity('restaurant'),
+        createActivity('cafe')
       ]
 
       const groups = groupByCategory(suggestions)

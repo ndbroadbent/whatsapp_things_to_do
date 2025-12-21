@@ -1,11 +1,11 @@
 /**
  * Extraction Patterns
  *
- * Regex patterns for identifying suggestion candidates.
+ * Regex patterns for identifying activity candidates.
  * Based on patterns proven to work in the Python prototype.
  */
 
-export interface SuggestionPattern {
+export interface ActivityPattern {
   readonly name: string
   readonly pattern: RegExp
   readonly confidence: number
@@ -13,9 +13,9 @@ export interface SuggestionPattern {
 }
 
 /**
- * High-confidence patterns (0.85-0.95) - strong suggestion indicators
+ * High-confidence patterns (0.85-0.95) - strong activity indicators
  */
-const HIGH_CONFIDENCE_PATTERNS: readonly SuggestionPattern[] = [
+const HIGH_CONFIDENCE_PATTERNS: readonly ActivityPattern[] = [
   {
     name: 'bucket_list',
     pattern: /\bbucket ?list\b/i,
@@ -55,9 +55,9 @@ const HIGH_CONFIDENCE_PATTERNS: readonly SuggestionPattern[] = [
 ]
 
 /**
- * Medium-confidence patterns (0.65-0.80) - moderate suggestion indicators
+ * Medium-confidence patterns (0.65-0.80) - moderate activity indicators
  */
-const MEDIUM_CONFIDENCE_PATTERNS: readonly SuggestionPattern[] = [
+const MEDIUM_CONFIDENCE_PATTERNS: readonly ActivityPattern[] = [
   {
     name: 'should_we',
     pattern: /\bshould we\b(?!\s+(?:not|stop))/i,
@@ -109,9 +109,9 @@ const MEDIUM_CONFIDENCE_PATTERNS: readonly SuggestionPattern[] = [
 ]
 
 /**
- * Lower-confidence patterns (0.50-0.65) - weaker suggestion indicators
+ * Lower-confidence patterns (0.50-0.65) - weaker activity indicators
  */
-const LOWER_CONFIDENCE_PATTERNS: readonly SuggestionPattern[] = [
+const LOWER_CONFIDENCE_PATTERNS: readonly ActivityPattern[] = [
   {
     name: 'i_want_to',
     pattern: /\bi want to\b(?!\s+(?:die|cry|leave|sleep|quit|go home))/i,
@@ -139,16 +139,16 @@ const LOWER_CONFIDENCE_PATTERNS: readonly SuggestionPattern[] = [
 ]
 
 /**
- * All suggestion patterns combined, ordered by confidence (highest first)
+ * All activity patterns combined, ordered by confidence (highest first)
  */
-export const SUGGESTION_PATTERNS: readonly SuggestionPattern[] = [
+export const ACTIVITY_PATTERNS: readonly ActivityPattern[] = [
   ...HIGH_CONFIDENCE_PATTERNS,
   ...MEDIUM_CONFIDENCE_PATTERNS,
   ...LOWER_CONFIDENCE_PATTERNS
 ]
 
 /**
- * Activity/place keywords that boost confidence when combined with suggestions
+ * Activity/place keywords that boost confidence when combined with activity patterns
  */
 export const ACTIVITY_KEYWORDS: readonly RegExp[] = [
   // Food & drink
@@ -172,7 +172,7 @@ export const ACTIVITY_KEYWORDS: readonly RegExp[] = [
 ]
 
 /**
- * Exclusion patterns - things that look like suggestions but aren't activities
+ * Exclusion patterns - things that look like activities but aren't fun activities
  */
 export const EXCLUSION_PATTERNS: readonly RegExp[] = [
   // Work & business

@@ -1,29 +1,29 @@
 /**
  * JSON Export
  *
- * Export suggestions to JSON format with metadata.
+ * Export activities to JSON format with metadata.
  */
 
-import type { ExportMetadata, GeocodedSuggestion } from '../types.js'
+import type { ExportMetadata, GeocodedActivity } from '../types.js'
 
 interface JsonExport {
   metadata: ExportMetadata
-  suggestions: GeocodedSuggestion[]
+  activities: GeocodedActivity[]
 }
 
 /**
- * Export suggestions to JSON format.
+ * Export activities to JSON format.
  *
- * @param suggestions Geocoded suggestions to export
+ * @param activities Geocoded activities to export
  * @param metadata Export metadata
  * @returns JSON string
  */
 export function exportToJSON(
-  suggestions: readonly GeocodedSuggestion[],
+  activities: readonly GeocodedActivity[],
   metadata: Partial<ExportMetadata> = {}
 ): string {
-  const geocodedCount = suggestions.filter(
-    (s) => s.latitude !== undefined && s.longitude !== undefined
+  const geocodedCount = activities.filter(
+    (a) => a.latitude !== undefined && a.longitude !== undefined
   ).length
 
   const exportData: JsonExport = {
@@ -32,26 +32,26 @@ export function exportToJSON(
       generatedAt: metadata.generatedAt ?? new Date(),
       inputFile: metadata.inputFile,
       messageCount: metadata.messageCount ?? 0,
-      suggestionCount: suggestions.length,
+      activityCount: activities.length,
       geocodedCount
     },
-    suggestions: [...suggestions]
+    activities: [...activities]
   }
 
   return JSON.stringify(exportData, null, 2)
 }
 
 /**
- * Parse JSON export back to suggestions.
+ * Parse JSON export back to activities.
  */
 export function parseJSON(json: string): JsonExport {
   const data = JSON.parse(json) as JsonExport
 
   // Convert date strings back to Date objects
-  for (const suggestion of data.suggestions) {
-    if (typeof suggestion.timestamp === 'string') {
+  for (const activity of data.activities) {
+    if (typeof activity.timestamp === 'string') {
       // Use Object.assign to work around readonly
-      Object.assign(suggestion, { timestamp: new Date(suggestion.timestamp) })
+      Object.assign(activity, { timestamp: new Date(activity.timestamp) })
     }
   }
 

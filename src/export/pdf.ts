@@ -1,14 +1,14 @@
 /**
  * PDF Export
  *
- * Export suggestions to PDF format using pdfkit.
+ * Export activities to PDF format using pdfkit.
  * This is an optional feature - if pdfkit is not available, it throws a clear error.
  */
 
 import {
   type ActivityCategory,
   formatLocation,
-  type GeocodedSuggestion,
+  type GeocodedActivity,
   type PDFConfig
 } from '../types.js'
 
@@ -34,17 +34,17 @@ function formatDate(date: Date): string {
 }
 
 /**
- * Group suggestions by category for organized display.
+ * Group activities by category for organized display.
  */
 function groupByCategory(
-  suggestions: readonly GeocodedSuggestion[]
-): Map<ActivityCategory, GeocodedSuggestion[]> {
-  const groups = new Map<ActivityCategory, GeocodedSuggestion[]>()
+  activities: readonly GeocodedActivity[]
+): Map<ActivityCategory, GeocodedActivity[]> {
+  const groups = new Map<ActivityCategory, GeocodedActivity[]>()
 
-  for (const s of suggestions) {
-    const existing = groups.get(s.category) ?? []
-    existing.push(s)
-    groups.set(s.category, existing)
+  for (const a of activities) {
+    const existing = groups.get(a.category) ?? []
+    existing.push(a)
+    groups.set(a.category, existing)
   }
 
   return groups
@@ -74,43 +74,43 @@ const CATEGORY_NAMES: Record<ActivityCategory, string> = {
 }
 
 /**
- * Export suggestions to PDF format.
+ * Export activities to PDF format.
  *
- * @param suggestions Geocoded suggestions to export
+ * @param activities Geocoded activities to export
  * @param config PDF configuration options
  * @returns PDF file as Uint8Array
  */
 export async function exportToPDF(
-  suggestions: readonly GeocodedSuggestion[],
+  activities: readonly GeocodedActivity[],
   config: PDFConfig = {}
 ): Promise<Uint8Array> {
   const PDF = await loadPDFKit()
 
   // Filter by category if specified
-  let filtered = suggestions
+  let filtered = activities
   if (config.filterByCategory && config.filterByCategory.length > 0) {
     const allowedCategories = new Set(config.filterByCategory)
-    filtered = suggestions.filter((s) => allowedCategories.has(s.category))
+    filtered = activities.filter((a) => allowedCategories.has(a.category))
   }
 
   // Group by category
   const grouped = groupByCategory(filtered)
 
   // Count statistics
-  const totalSuggestions = filtered.length
+  const totalActivities = filtered.length
   const geocodedCount = filtered.filter(
-    (s) => s.latitude !== undefined && s.longitude !== undefined
+    (a) => a.latitude !== undefined && a.longitude !== undefined
   ).length
-  const uniqueSenders = new Set(filtered.map((s) => s.sender)).size
+  const uniqueSenders = new Set(filtered.map((a) => a.sender)).size
 
   // Create PDF document
   const doc = new PDF({
     size: 'A4',
     margin: 50,
     info: {
-      Title: config.title ?? 'ChatToMap Suggestions',
+      Title: config.title ?? 'ChatToMap Activities',
       Author: 'ChatToMap',
-      Subject: 'Activity suggestions from chat messages'
+      Subject: 'Activities from chat messages'
     }
   })
 
@@ -155,7 +155,7 @@ export async function exportToPDF(
   doc
     .fontSize(10)
     .font('Helvetica')
-    .text(`Total suggestions: ${totalSuggestions}`)
+    .text(`Total activities: ${totalActivities}`)
     .text(`With map locations: ${geocodedCount}`)
     .text(`Contributors: ${uniqueSenders}`)
     .text(`Generated: ${new Date().toLocaleDateString()}`)

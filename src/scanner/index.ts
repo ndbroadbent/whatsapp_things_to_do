@@ -51,10 +51,10 @@ export interface QuickScanOptions {
 }
 
 /**
- * Quick scan a chat export to find candidate suggestions using heuristics only.
+ * Quick scan a chat export to find candidate activities using heuristics only.
  *
  * This function requires NO API keys and makes NO API calls.
- * It uses regex patterns and URL detection to find likely "things to do" suggestions.
+ * It uses regex patterns and URL detection to find likely "things to do" activities.
  *
  * @param content Raw chat content (WhatsApp or iMessage export text)
  * @param options Scan options
@@ -64,7 +64,7 @@ export interface QuickScanOptions {
  * ```typescript
  * // Scan a WhatsApp export
  * const result = quickScan(chatText)
- * console.log(`Found ${result.candidates.length} potential suggestions`)
+ * console.log(`Found ${result.candidates.length} potential activities`)
  *
  * // Scan with options
  * const result = quickScan(chatText, {

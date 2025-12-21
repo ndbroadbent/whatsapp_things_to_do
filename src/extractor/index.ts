@@ -1,7 +1,7 @@
 /**
  * Candidate Extractor Module
  *
- * Find messages likely to contain "things to do" suggestions using cheap heuristics.
+ * Find messages likely to contain "things to do" activities using cheap heuristics.
  * No AI cost - pure regex and URL pattern matching.
  */
 
@@ -14,14 +14,14 @@ import type {
 } from '../types.js'
 import {
   ACTIVITY_KEYWORDS,
+  ACTIVITY_PATTERNS,
   EXCLUSION_PATTERNS,
-  SUGGESTION_PATTERNS,
   URL_CONFIDENCE_MAP
 } from './patterns.js'
 import { classifyUrl, isActivityUrl, isSocialUrl } from './url-classifier.js'
 
 export { type ActivityLinkOptions, extractActivityLinks } from './activity-links.js'
-export { ACTIVITY_KEYWORDS, EXCLUSION_PATTERNS, SUGGESTION_PATTERNS } from './patterns.js'
+export { ACTIVITY_KEYWORDS, ACTIVITY_PATTERNS, EXCLUSION_PATTERNS } from './patterns.js'
 export {
   classifyUrl,
   extractGoogleMapsCoords,
@@ -56,9 +56,9 @@ function shouldExclude(content: string, additionalExclusions?: readonly RegExp[]
 }
 
 /**
- * Check if content contains suggestion-like phrases (for URL boost).
+ * Check if content contains activity-like phrases (for URL boost).
  */
-function hasSuggestionPhrase(content: string): boolean {
+function hasActivityPhrase(content: string): boolean {
   const phrases = [
     "let's go",
     'we should',
@@ -197,7 +197,7 @@ function checkBuiltInPatterns(
   context: string,
   minConfidence: number
 ): RegexMatch | null {
-  for (const pattern of SUGGESTION_PATTERNS) {
+  for (const pattern of ACTIVITY_PATTERNS) {
     if (pattern.pattern.test(msg.content)) {
       const confidence = applyActivityBoost(pattern.confidence, msg.content)
       if (confidence >= minConfidence) {
@@ -228,7 +228,7 @@ function checkAdditionalPatterns(
 }
 
 /**
- * Find suggestions using regex patterns.
+ * Find activities using regex patterns.
  */
 function findRegexMatches(
   messages: readonly ParsedMessage[],
@@ -296,13 +296,13 @@ function findBestUrl(urls: readonly string[]): BestUrl {
 function shouldIncludeUrl(firstUrl: string, content: string): boolean {
   // Skip social media URLs - they could be anything (memes, random videos)
   if (isSocialUrl(firstUrl)) return false
-  // Include activity URLs or messages with suggestion phrases
-  return isActivityUrl(firstUrl) || hasSuggestionPhrase(content)
+  // Include activity URLs or messages with activity phrases
+  return isActivityUrl(firstUrl) || hasActivityPhrase(content)
 }
 
 function applyUrlBoosts(confidence: number, content: string): number {
   let result = confidence
-  if (hasSuggestionPhrase(content)) {
+  if (hasActivityPhrase(content)) {
     result = Math.min(1.0, result + URL_SUGGESTION_BOOST)
   }
   if (hasActivityKeyword(content)) {
@@ -312,7 +312,7 @@ function applyUrlBoosts(confidence: number, content: string): number {
 }
 
 /**
- * Find suggestions based on activity-related URLs.
+ * Find activities based on activity-related URLs.
  */
 function findUrlMatches(
   messages: readonly ParsedMessage[],
@@ -392,7 +392,7 @@ function upsertCandidate(
  * Extract candidate messages from parsed messages.
  *
  * Uses regex patterns and URL detection to find messages likely to contain
- * "things to do" suggestions. This is a cheap heuristic pass before expensive
+ * "things to do" activities. This is a cheap heuristic pass before expensive
  * AI classification.
  */
 export function extractCandidates(

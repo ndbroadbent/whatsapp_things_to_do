@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import type { GeocodedSuggestion } from '../types.js'
+import type { GeocodedActivity } from '../types.js'
 import { exportToCSV } from './csv.js'
 
-function createSuggestion(
+function createActivity(
   id: number,
   activity: string,
   city?: string,
   lat?: number,
   lng?: number
-): GeocodedSuggestion {
+): GeocodedActivity {
   return {
     messageId: id,
     isActivity: true,
@@ -37,9 +37,9 @@ function createSuggestion(
 describe('CSV Export', () => {
   describe('exportToCSV', () => {
     it('includes header row', () => {
-      const suggestions = [createSuggestion(1, 'Dinner')]
+      const activities = [createActivity(1, 'Dinner')]
 
-      const csv = exportToCSV(suggestions)
+      const csv = exportToCSV(activities)
       const lines = csv.split('\n')
 
       expect(lines[0]).toContain('id')
@@ -52,10 +52,10 @@ describe('CSV Export', () => {
       expect(lines[0]).toContain('category')
     })
 
-    it('exports single suggestion', () => {
-      const suggestions = [createSuggestion(1, 'Dinner at Italian Place', 'Rome', 41.9, 12.5)]
+    it('exports single activity', () => {
+      const activities = [createActivity(1, 'Dinner at Italian Place', 'Rome', 41.9, 12.5)]
 
-      const csv = exportToCSV(suggestions)
+      const csv = exportToCSV(activities)
       const lines = csv.split('\n')
 
       expect(lines).toHaveLength(2) // header + 1 data row
@@ -65,23 +65,23 @@ describe('CSV Export', () => {
       expect(lines[1]).toContain('12.5')
     })
 
-    it('exports multiple suggestions', () => {
-      const suggestions = [
-        createSuggestion(1, 'Dinner'),
-        createSuggestion(2, 'Hiking'),
-        createSuggestion(3, 'Beach day')
+    it('exports multiple activities', () => {
+      const activities = [
+        createActivity(1, 'Dinner'),
+        createActivity(2, 'Hiking'),
+        createActivity(3, 'Beach day')
       ]
 
-      const csv = exportToCSV(suggestions)
+      const csv = exportToCSV(activities)
       const lines = csv.split('\n')
 
       expect(lines).toHaveLength(4) // header + 3 data rows
     })
 
     it('uses 1-indexed IDs in output', () => {
-      const suggestions = [createSuggestion(42, 'Test')]
+      const activities = [createActivity(42, 'Test')]
 
-      const csv = exportToCSV(suggestions)
+      const csv = exportToCSV(activities)
       const lines = csv.split('\n')
       const dataLine = lines[1] ?? ''
 
@@ -90,17 +90,17 @@ describe('CSV Export', () => {
     })
 
     it('handles missing location', () => {
-      const suggestions = [createSuggestion(1, 'No location activity')]
+      const activities = [createActivity(1, 'No location activity')]
 
-      const csv = exportToCSV(suggestions)
+      const csv = exportToCSV(activities)
 
       expect(csv).not.toContain('undefined')
     })
 
     it('handles missing coordinates', () => {
-      const suggestions = [createSuggestion(1, 'No coords', 'Some Place')]
+      const activities = [createActivity(1, 'No coords', 'Some Place')]
 
-      const csv = exportToCSV(suggestions)
+      const csv = exportToCSV(activities)
       const lines = csv.split('\n')
       const dataLine = lines[1] ?? ''
 
@@ -109,9 +109,9 @@ describe('CSV Export', () => {
     })
 
     it('escapes commas in content', () => {
-      const suggestion = createSuggestion(1, 'Italian, French, and Asian food')
+      const activity = createActivity(1, 'Italian, French, and Asian food')
 
-      const csv = exportToCSV([suggestion])
+      const csv = exportToCSV([activity])
       const lines = csv.split('\n')
       const dataLine = lines[1] ?? ''
 
@@ -119,9 +119,9 @@ describe('CSV Export', () => {
     })
 
     it('escapes quotes in content', () => {
-      const suggestion = createSuggestion(1, 'The "Best" Restaurant')
+      const activity = createActivity(1, 'The "Best" Restaurant')
 
-      const csv = exportToCSV([suggestion])
+      const csv = exportToCSV([activity])
       const lines = csv.split('\n')
       const dataLine = lines[1] ?? ''
 
@@ -129,48 +129,48 @@ describe('CSV Export', () => {
     })
 
     it('escapes newlines in content', () => {
-      const suggestion = createSuggestion(1, 'Line 1\nLine 2')
+      const activity = createActivity(1, 'Line 1\nLine 2')
 
-      const csv = exportToCSV([suggestion])
+      const csv = exportToCSV([activity])
 
       // The content should be quoted to handle newline
       expect(csv).toContain('"')
     })
 
     it('includes Google Maps link when coordinates present', () => {
-      const suggestions = [createSuggestion(1, 'Test', 'Place', 41.9, 12.5)]
+      const activities = [createActivity(1, 'Test', 'Place', 41.9, 12.5)]
 
-      const csv = exportToCSV(suggestions)
+      const csv = exportToCSV(activities)
 
       expect(csv).toContain('https://www.google.com/maps?q=41.9,12.5')
     })
 
     it('formats date as YYYY-MM-DD', () => {
-      const suggestions = [createSuggestion(1, 'Test')]
+      const activities = [createActivity(1, 'Test')]
 
-      const csv = exportToCSV(suggestions)
+      const csv = exportToCSV(activities)
 
       expect(csv).toContain('2025-01-15')
     })
 
     it('formats time as HH:MM:SS', () => {
-      const suggestions = [createSuggestion(1, 'Test')]
+      const activities = [createActivity(1, 'Test')]
 
-      const csv = exportToCSV(suggestions)
+      const csv = exportToCSV(activities)
 
       // Time format is HH:MM:SS (timezone-dependent)
       expect(csv).toMatch(/\d{2}:\d{2}:\d{2}/)
     })
 
     it('formats confidence as decimal', () => {
-      const suggestions = [createSuggestion(1, 'Test')]
+      const activities = [createActivity(1, 'Test')]
 
-      const csv = exportToCSV(suggestions)
+      const csv = exportToCSV(activities)
 
       expect(csv).toContain('0.90')
     })
 
-    it('handles empty suggestions array', () => {
+    it('handles empty activities array', () => {
       const csv = exportToCSV([])
       const lines = csv.split('\n')
 
@@ -179,24 +179,24 @@ describe('CSV Export', () => {
 
     it('truncates long messages', () => {
       const longMessage = 'A'.repeat(600)
-      const suggestion: GeocodedSuggestion = {
-        ...createSuggestion(1, 'Test'),
+      const activity: GeocodedActivity = {
+        ...createActivity(1, 'Test'),
         originalMessage: longMessage
       }
 
-      const csv = exportToCSV([suggestion])
+      const csv = exportToCSV([activity])
 
       // Message should be truncated to 500 chars
       expect(csv.length).toBeLessThan(longMessage.length + 200)
     })
 
     it('replaces newlines in original message', () => {
-      const suggestion: GeocodedSuggestion = {
-        ...createSuggestion(1, 'Test'),
+      const activity: GeocodedActivity = {
+        ...createActivity(1, 'Test'),
         originalMessage: 'Line 1\nLine 2\nLine 3'
       }
 
-      const csv = exportToCSV([suggestion])
+      const csv = exportToCSV([activity])
 
       // Newlines should be replaced with spaces in the original message column
       expect(csv).toContain('Line 1 Line 2 Line 3')
