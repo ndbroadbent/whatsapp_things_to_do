@@ -73,21 +73,24 @@ describe('Classifier Prompt', () => {
       expect(prompt).toContain('42')
     })
 
-    it('requests structured JSON output with new fields', () => {
+    it('requests structured JSON output with activity fields', () => {
       const candidates = [createCandidate(1, 'Test message')]
 
       const prompt = buildClassificationPrompt(candidates, TEST_CONTEXT)
 
-      // New short field names
-      expect(prompt).toContain('is_act')
-      expect(prompt).toContain('title')
-      expect(prompt).toContain('act')
-      expect(prompt).toContain('obj')
-      expect(prompt).toContain('loc')
-      expect(prompt).toContain('city')
-      expect(prompt).toContain('country')
-      expect(prompt).toContain('gen')
-      expect(prompt).toContain('com')
+      // Core output fields
+      expect(prompt).toContain('"msg"')
+      expect(prompt).toContain('"title"')
+      expect(prompt).toContain('"score"')
+      expect(prompt).toContain('"cat"')
+      expect(prompt).toContain('"conf"')
+      expect(prompt).toContain('"act"')
+      expect(prompt).toContain('"obj"')
+      expect(prompt).toContain('"venue"')
+      expect(prompt).toContain('"city"')
+      expect(prompt).toContain('"country"')
+      expect(prompt).toContain('"gen"')
+      expect(prompt).toContain('"com"')
     })
 
     it('lists valid categories', () => {
@@ -161,9 +164,9 @@ describe('Classifier Prompt', () => {
       const prompt = buildClassificationPrompt(candidates, TEST_CONTEXT)
 
       expect(prompt).toContain('[AGREE]')
-      expect(prompt).toContain('positive responses')
-      expect(prompt).toContain('Look carefully at surrounding context')
-      expect(prompt).toContain("is_act=false if context doesn't reveal")
+      expect(prompt).toContain('agreement/enthusiasm')
+      expect(prompt).toContain('activity is usually in the surrounding context')
+      expect(prompt).toContain('If context has no clear activity, skip it')
     })
   })
 
@@ -298,10 +301,18 @@ Hope this helps!`
       expect(() => parseClassificationResponse(response)).toThrow()
     })
 
-    it('throws on empty response', () => {
+    it('throws on empty string response', () => {
       const response = ''
 
       expect(() => parseClassificationResponse(response)).toThrow()
+    })
+
+    it('returns empty array when no activities found', () => {
+      const response = '[]'
+
+      const parsed = parseClassificationResponse(response)
+
+      expect(parsed).toEqual([])
     })
 
     it('validates message IDs when expected IDs provided', () => {

@@ -71,90 +71,79 @@ USER CONTEXT:
 Home country: ${context.homeCountry}${timezoneInfo}
 `
 
-  return `PURPOSE: We are building a "things to do" map/list from a user's chat history. The goal is to surface specific activity suggestions and places they talked about wanting to visit - things they can actually act on later. We want to show pins on a map and a list of actionable ideas.
+  return `GOAL: Extract "things to do" from chat history - activities, places, and plans worth putting on a map or list.
 ${userContext}
 
-For each message marked with >>>, classify whether it's a mappable/actionable activity suggestion.
+WHY THESE MESSAGES:
+You're seeing messages pre-filtered by heuristics (regex patterns like "let's go", "we should try") and semantic search (embeddings). We intentionally cast a wide net - you'll see some false positives. Your job is to identify the real activities worth saving.
 
-Messages tagged [AGREE] are positive responses (like "sounds great!", "I'm keen") rather than direct suggestions. For these:
-- Look carefully at surrounding context to understand what's being agreed to
-- Extract activity details from the context, not the agreement message itself
-- Set is_act=false if context doesn't reveal a clear, specific activity
-- The title should describe the activity being agreed to, not the agreement
+Messages marked >>> are candidates. Use surrounding context to understand what they refer to.
 
-URLs may have [URL_META: {...}] with scraped metadata. Use this to understand what the link is about.
+[AGREE] = agreement/enthusiasm ("sounds great!", "I'm keen") rather than a direct suggestion. For these, the activity is usually in the surrounding context - extract it from there. If context has no clear activity, skip it.
 
-NORMALIZATION RULES:
-- Normalize action to common informal American English: tramping→hike, trekking→hike, cycling→bike, film→movie
-- Strip light verbs (go, do, take, try, check out, let's) - extract the real action
-- Do NOT over-normalize distinct concepts: cafe≠restaurant, diner≠restaurant, bar≠restaurant
-- Preserve original casing in all fields
+URLs may have [URL_META: {...}] with scraped metadata - use this to understand what links are about.
 
-CATEGORIES: restaurant, cafe, bar, hike, nature, beach, trip, hotel, event, concert, museum, entertainment, adventure, sports, gaming, art, skills, experiences, hobbies, family, social, shopping, fitness, health, food, home, pets, work, errand, appointment, other
+INCLUDE (output these):
+- Named places: restaurants, cafes, bars, venues, parks, trails
+- Specific activities: hiking, kayaking, concerts, movies, shows
+- Travel plans: trips, destinations, hotels, Airbnb
+- Events: festivals, markets, concerts, exhibitions
+- Generic but actionable: "Let's go to a cafe" (specific type of place)
 
-CRITICAL: The "other" category is a last resort. If you can't fit something into a specific category, it might not be a real activity suggestion. Set is_act=false unless there's a clear, specific, actionable activity or place to visit.
-
-is_act=true ONLY for specific, actionable suggestions:
-- Named places (restaurants, cafes, venues, parks, cities, countries)
-- Specific activities (hiking, kayaking, concerts, movies, shows)
-- Travel plans with destinations (trips, hotels, Airbnb)
-- Events to attend (festivals, markets, concerts)
-- Generic but specific activities: "Let's go to a cafe" (specific type of place)
-
-is_act=false for:
-- Vague suggestions: "wanna go out?", "do something fun", "go somewhere"
+SKIP (don't output):
+- Vague: "wanna go out?", "do something fun", "go somewhere"
 - Logistics: "leave at 3:50pm", "skip the nachos"
-- Questions without suggestions: "where should we go?"
-- Just sharing links without clear suggestion to visit
-- Mundane errands (groceries, cleaning, vet, mechanic)
-- Work tasks, appointments, chores
-- Past events (things already done)
-- Romantic/intimate invitations, adult content
-- Pet care, household routines
-- Context-dependent references: "go there again" (where?), "check it out" (what?)
-- Bare Google Maps links without accompanying suggestion text
+- Questions: "where should we go?"
+- Links without clear intent to visit
+- Errands: groceries, vet, mechanic, cleaning
+- Work/appointments/chores
+- Past events (already done)
+- Romantic/intimate, adult content
+- Unclear references: "go there again" (where?), "check it out" (what?)
 
 ${messagesText}
 
-LOCATION FIELDS:
-- Only fill city/region/country if EXPLICITLY mentioned in the message
-- For ambiguous locations (e.g., "Omaha"), assume user's home country unless context suggests otherwise
-- region = state, province, prefecture, or region name
+OUTPUT FORMAT:
+Return JSON array with ONLY activities worth saving. Skip non-activities entirely. Return [] if none found.
 
-Respond with JSON array (short keys to save tokens):
 \`\`\`json
 [
   {
     "msg": <message_id>,
-    "is_act": true/false,
-    "title": "<human-readable activity description, under 100 chars>",
-    "score": <0.0=errand/chore, 1.0=fun activity - used to filter out mundane tasks>,
-    "fun": <0.0-1.0 how fun/enjoyable? 0=boring, 1=exciting>,
-    "int": <0.0-1.0 how interesting/unique? 0=common, 1=rare/novel>,
+    "title": "<activity description, under 100 chars>",
+    "score": <0.0=errand, 1.0=fun activity>,
+    "fun": <0.0-1.0 how fun/enjoyable>,
+    "int": <0.0-1.0 how interesting/unique>,
     "cat": "<category>",
-    "conf": <0.0-1.0 confidence>,
-    "gen": <true if generic activity, no specific name/URL>,
-    "com": <true if a compound/complex activity that JSON can't fully capture, false if the JSON is lossless>,
-    "act": "<normalized action: hike, eat, watch, etc.>",
-    "act_orig": "<original action word before normalization>",
-    "obj": "<normalized object: movie, restaurant, etc.>",
+    "conf": <0.0-1.0 your confidence>,
+    "gen": <true if generic, no specific venue/URL>,
+    "com": <true if compound/complex multi-part activity that one JSON object can't fully represent>,
+    "act": "<normalized action: hike, eat, watch, visit>",
+    "act_orig": "<original action word>",
+    "obj": "<normalized object: movie, restaurant>",
     "obj_orig": "<original object word>",
-    "venue": "<venue/place name: Coffee Lab, Kazuya, etc.>",
-    "city": "<city name>",
-    "region": "<state/province/prefecture/region>",
-    "country": "<country>"
+    "venue": "<place name if specific>",
+    "city": "<city if mentioned>",
+    "region": "<state/province if mentioned>",
+    "country": "<country if mentioned>"
   }
 ]
 \`\`\`
 
-EXAMPLES:
-- "Go tramping in Queenstown" → act:"hike", act_orig:"tramping", city:"Queenstown", gen:false, com:false
-- "Watch a movie" → act:"watch", obj:"movie", gen:true, com:false
-- "Go to Coffee Lab" → act:"visit", venue:"Coffee Lab", gen:false, com:false
-- "Let's visit Omaha" (user in NZ) → city:"Omaha", country:"New Zealand", gen:false, com:false
-- "Go to Iceland and see the aurora" → act:"travel", obj:"aurora", country:"Iceland", gen:false, com:true (compound)
+CATEGORIES: restaurant, cafe, bar, hike, nature, beach, trip, hotel, event, concert, museum, entertainment, adventure, sports, gaming, art, skills, experiences, hobbies, family, social, shopping, fitness, health, food, home, pets, work, errand, appointment, other
 
-Include ALL messages in response.`
+NORMALIZATION: tramping→hike, cycling→bike, film→movie. But keep distinct: cafe≠restaurant, bar≠restaurant.
+
+LOCATION: Only fill city/region/country if explicitly mentioned. For ambiguous names (e.g., "Omaha"), assume user's home country.
+
+EXAMPLES:
+- "Go tramping in Queenstown" → act:"hike", city:"Queenstown", gen:false
+- "Watch a movie" → act:"watch", obj:"movie", gen:true
+- "Go to Coffee Lab" → act:"visit", venue:"Coffee Lab", gen:false
+- "Let's visit Omaha" (user in NZ) → city:"Omaha", country:"New Zealand"
+- "Go to Iceland and see the aurora" → act:"travel", country:"Iceland", com:true (two activities: travel + aurora viewing)
+
+COMPOUND vs MULTIPLE: For com:true, still emit ONE object - it just flags that the JSON is lossy so that we prevent activity aggregation errors. But if a message lists truly separate activities ("Try Kazuya, also check out the Botanic Gardens"), emit multiple objects.`
 }
 
 export interface ParsedClassification {
@@ -260,8 +249,9 @@ export function parseClassificationResponse(
     throw new Error('Response is not an array')
   }
 
+  // Empty array is valid - means no activities found
   if (parsed.length === 0) {
-    throw new Error('Response array is empty')
+    return []
   }
 
   const results = parsed.map((item: unknown) => {
