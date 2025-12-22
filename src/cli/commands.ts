@@ -1,7 +1,7 @@
 /**
  * CLI Commands
  *
- * Individual command implementations for preview, scan, analyze, parse.
+ * Individual command implementations for preview, scan, analyze, parse, candidates.
  */
 
 import { writeFile } from 'node:fs/promises'
@@ -153,10 +153,7 @@ export async function cmdPreview(args: CLIArgs, logger: Logger): Promise<void> {
     logger.log('')
   }
 
-  const totalCandidates = scanResult.stats.totalUnique
-  logger.log(
-    `💡 Run 'chat-to-map analyze ${basename(args.input)}' to process all ${totalCandidates} candidates`
-  )
+  logger.log(`💡 Run 'chat-to-map analyze ${basename(args.input)}' for full analysis`)
 }
 
 export async function cmdScan(args: CLIArgs, logger: Logger): Promise<void> {

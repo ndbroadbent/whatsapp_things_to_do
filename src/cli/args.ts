@@ -27,6 +27,8 @@ export interface CLIArgs {
   jsonOutput: string | undefined
   homeCountry: string | undefined
   timezone: string | undefined
+  scrapeConcurrency: number
+  scrapeTimeout: number
 }
 
 export const DEFAULT_BASE_DIR = './chat-to-map'
@@ -39,10 +41,12 @@ function createProgram(): Command {
     .description('Transform chat exports into interactive maps of activities and places.')
     .version(VERSION, '-V, --version', 'Show version number')
 
-  // ============ ANALYZE ============
+  // ============ ANALYZE (full pipeline - most common) ============
   program
     .command('analyze')
-    .description('Run the complete pipeline (parse → classify → geocode → export)')
+    .description(
+      'Run the complete pipeline (parse → candidates → scrape → classify → geocode → export)'
+    )
     .argument('<input>', 'Chat export file (.txt or .zip)')
     .requiredOption('-c, --home-country <name>', 'Your home country for location disambiguation')
     .option('--timezone <tz>', 'Your timezone, e.g. Pacific/Auckland')
@@ -61,7 +65,27 @@ function createProgram(): Command {
     .option('--dry-run', 'Show stats without API calls')
     .option('--debug', 'Print debug info')
 
-  // ============ PREVIEW ============
+  // ============ PARSE ============
+  program
+    .command('parse')
+    .description('Parse a chat export file and show stats')
+    .argument('<input>', 'Chat export file (.txt or .zip)')
+    .option('-o, --output <file>', 'Save parsed messages to JSON file')
+    .option('-m, --max-messages <num>', 'Max messages to process')
+    .option('-q, --quiet', 'Minimal output')
+    .option('-v, --verbose', 'Verbose output')
+
+  // ============ SCAN (heuristics only, free) ============
+  program
+    .command('scan')
+    .description('Heuristic scan: show pattern matches (free, no API key)')
+    .argument('<input>', 'Chat export file (.txt or .zip)')
+    .option('-n, --max-results <num>', 'Max results to return', '10')
+    .option('-m, --max-messages <num>', 'Max messages to process (for testing)')
+    .option('-q, --quiet', 'Minimal output')
+    .option('-v, --verbose', 'Verbose output')
+
+  // ============ PREVIEW (AI on top heuristic candidates) ============
   program
     .command('preview')
     .description('AI-powered preview: classify top candidates (~$0.01)')
@@ -75,20 +99,10 @@ function createProgram(): Command {
     .option('--dry-run', 'Show stats without API calls')
     .option('--debug', 'Print debug info')
 
-  // ============ SCAN ============
-  program
-    .command('scan')
-    .description('Heuristic scan: show pattern matches (free, no API key)')
-    .argument('<input>', 'Chat export file (.txt or .zip)')
-    .option('-n, --max-results <num>', 'Max results to return', '10')
-    .option('-m, --max-messages <num>', 'Max messages to process (for testing)')
-    .option('-q, --quiet', 'Minimal output')
-    .option('-v, --verbose', 'Verbose output')
-
-  // ============ CANDIDATES ============
+  // ============ CANDIDATES (heuristics + embeddings extraction) ============
   program
     .command('candidates')
-    .description('Debug candidate extraction (heuristics, embeddings, or both)')
+    .description('Extract candidate messages (heuristics, embeddings, or both)')
     .argument('<input>', 'Chat export file (.txt or .zip)')
     .option('--method <method>', 'Extraction method: heuristics, embeddings, both', 'both')
     .option('--json [file]', 'Output as JSON (to file if specified, otherwise stdout)')
@@ -99,13 +113,15 @@ function createProgram(): Command {
     .option('--dry-run', 'Show cost estimate without API calls')
     .option('--debug', 'Print debug info')
 
-  // ============ PARSE ============
+  // ============ SCRAPE (scrape URLs for metadata) ============
   program
-    .command('parse')
-    .description('Parse a chat export file and show stats')
-    .argument('<input>', 'Chat export file (.txt or .zip)')
-    .option('-o, --output <file>', 'Save parsed messages to JSON file')
-    .option('-m, --max-messages <num>', 'Max messages to process')
+    .command('scrape')
+    .description('Scrape URLs from candidates and cache metadata')
+    .argument('<input>', 'Chat export file (.txt or .zip) or candidates JSON file')
+    .option('--json [file]', 'Output as JSON (to file if specified, otherwise stdout)')
+    .option('--concurrency <num>', 'Max concurrent scrapes', '5')
+    .option('--timeout <ms>', 'Timeout per URL in ms', '4000')
+    .option('-m, --max-messages <num>', 'Max messages to process (for testing)')
     .option('-q, --quiet', 'Minimal output')
     .option('-v, --verbose', 'Verbose output')
 
@@ -183,7 +199,9 @@ function buildCLIArgs(commandName: string, input: string, opts: Record<string, u
     jsonOutput:
       opts.json === true ? 'stdout' : typeof opts.json === 'string' ? opts.json : undefined,
     homeCountry: typeof opts.homeCountry === 'string' ? opts.homeCountry : undefined,
-    timezone: typeof opts.timezone === 'string' ? opts.timezone : undefined
+    timezone: typeof opts.timezone === 'string' ? opts.timezone : undefined,
+    scrapeConcurrency: Number.parseInt(String(opts.concurrency ?? '5'), 10),
+    scrapeTimeout: Number.parseInt(String(opts.timeout ?? '4000'), 10)
   }
 }
 

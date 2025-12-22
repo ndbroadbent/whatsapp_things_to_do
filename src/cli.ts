@@ -12,6 +12,7 @@ import { parseCliArgs } from './cli/args.js'
 import { cmdAnalyze, cmdCandidates, cmdParse, cmdPreview, cmdScan } from './cli/commands.js'
 import { cmdList } from './cli/list.js'
 import { createLogger } from './cli/logger.js'
+import { cmdScrape } from './cli/scrape.js'
 
 async function main(): Promise<void> {
   const args = parseCliArgs()
@@ -23,24 +24,28 @@ async function main(): Promise<void> {
         await cmdAnalyze(args, logger)
         break
 
-      case 'preview':
-        await cmdPreview(args, logger)
+      case 'parse':
+        await cmdParse(args, logger)
         break
 
       case 'scan':
         await cmdScan(args, logger)
         break
 
+      case 'preview':
+        await cmdPreview(args, logger)
+        break
+
       case 'candidates':
         await cmdCandidates(args, logger)
         break
 
-      case 'list':
-        await cmdList(args.outputDir, logger)
+      case 'scrape':
+        await cmdScrape(args, logger)
         break
 
-      case 'parse':
-        await cmdParse(args, logger)
+      case 'list':
+        await cmdList(args.outputDir, logger)
         break
 
       default:
