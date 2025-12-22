@@ -55,8 +55,8 @@ describe('Classifier Pronoun Resolution', () => {
     expect(visitCandidate?.context).toContain('Sarah')
 
     if (!visitCandidate) throw new Error('visitCandidate not found')
-    const apiKey = process.env.OPENAI_API_KEY
-    if (!apiKey) throw new Error('OPENAI_API_KEY not set')
+    // Use real API key if available, otherwise use dummy (cache will provide response)
+    const apiKey = process.env.OPENAI_API_KEY || 'dummy-key-for-cached-tests'
 
     // Classify with AI (uses cached response if available)
     const result = await classifyMessages(
