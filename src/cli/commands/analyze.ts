@@ -4,14 +4,11 @@
  * Full pipeline with caching: parse → candidates → scrape → classify → geocode → export
  */
 
-import { homedir } from 'node:os'
 import { basename, join } from 'node:path'
 import { FilesystemCache } from '../../cache/filesystem'
 import { PipelineCache } from '../../cache/pipeline'
 import {
-  classifyMessages,
   extractCandidatesByHeuristics,
-  filterActivities,
   geocodeActivities,
   parseChatWithStats,
   VERSION
@@ -20,7 +17,6 @@ import { scrapeAndEnrichCandidates } from '../../scraper/enrich'
 import type {
   CandidateMessage,
   ClassifiedActivity,
-  ClassifierConfig,
   GeocodedActivity,
   GeocoderConfig,
   ParsedMessage
@@ -28,8 +24,8 @@ import type {
 import type { CLIArgs } from '../args'
 import { readInputFile } from '../io'
 import type { Logger } from '../logger'
-import { resolveContext, resolveModelConfig } from '../model'
-import { runExport } from '../pipeline'
+import { runClassify, runExport } from '../pipeline'
+import { getCacheDir } from '../steps/context'
 
 export async function cmdAnalyze(args: CLIArgs, logger: Logger): Promise<void> {
   if (!args.input) {
@@ -41,7 +37,7 @@ export async function cmdAnalyze(args: CLIArgs, logger: Logger): Promise<void> {
 
   // Initialize caches
   const content = await readInputFile(args.input)
-  const cacheDir = join(homedir(), '.cache', 'chat-to-map')
+  const cacheDir = getCacheDir(args.cacheDir)
   const pipelineCache = new PipelineCache(cacheDir)
   const apiCache = new FilesystemCache(cacheDir)
 
@@ -123,7 +119,7 @@ export async function cmdAnalyze(args: CLIArgs, logger: Logger): Promise<void> {
     logger.log('\n🤖 Classifying... 📦 cached')
     logger.success(`${classifications.length} activities`)
   } else {
-    classifications = await runClassifyStep(enrichedCandidates, args, logger, apiCache)
+    classifications = await runClassify(enrichedCandidates, args, logger)
     pipelineCache.setStage('classifications', classifications)
   }
 
@@ -149,59 +145,6 @@ export async function cmdAnalyze(args: CLIArgs, logger: Logger): Promise<void> {
 
   const mapPath = join(args.outputDir, 'map.html')
   logger.log(`\n✨ Done! Open ${mapPath} to view your activity map.`)
-}
-
-async function runClassifyStep(
-  candidates: CandidateMessage[],
-  args: CLIArgs,
-  logger: Logger,
-  cache: FilesystemCache
-): Promise<ClassifiedActivity[]> {
-  const { provider, apiModel: model, apiKey } = resolveModelConfig()
-  const { homeCountry, timezone } = resolveContext(args.homeCountry, args.timezone)
-  const batchSize = 10
-  const totalBatches = Math.ceil(candidates.length / batchSize)
-
-  logger.log(`\n🤖 Classifying ${candidates.length} candidates with ${model}...`)
-  logger.log(`   Processing in ${totalBatches} batches of ${batchSize}`)
-
-  const config: ClassifierConfig = {
-    provider,
-    apiKey,
-    model,
-    homeCountry,
-    timezone,
-    batchSize,
-    onBatchStart: (info) => {
-      const n = info.batchIndex + 1
-      logger.log(`   [${n}/${info.totalBatches}] Sending ${info.candidateCount} candidates...`)
-    },
-    onBatchComplete: (info) => {
-      const n = info.batchIndex + 1
-      logger.log(
-        `   [${n}/${info.totalBatches}] ✓ ${info.activityCount} activities (${info.durationMs}ms)`
-      )
-    },
-    onCacheCheck: (info) => {
-      if (args.verbose && info.hit) {
-        logger.log(`   [${info.batchIndex + 1}] 📦 API cache hit`)
-      }
-    }
-  }
-
-  const result = await classifyMessages(candidates, config, cache)
-  if (!result.ok) {
-    throw new Error(`Classification failed: ${result.error.message}`)
-  }
-
-  const activities = filterActivities(result.value)
-  const errands = result.value.filter((s) => !s.isActivity || s.activityScore < 0.5)
-
-  logger.log('')
-  logger.success(`Activities: ${activities.length}`)
-  logger.success(`Errands (filtered): ${errands.length}`)
-
-  return activities
 }
 
 async function runGeocodeStep(

@@ -50,7 +50,6 @@ export async function exportToExcel(activities: readonly GeocodedActivity[]): Pr
     { header: 'Latitude', key: 'latitude', width: 12 },
     { header: 'Longitude', key: 'longitude', width: 12 },
     { header: 'Confidence', key: 'confidence', width: 12 },
-    { header: 'Activity Score', key: 'activity_score', width: 14 },
     { header: 'Category', key: 'category', width: 15 },
     { header: 'Map Link', key: 'map_link', width: 45 },
     { header: 'Status', key: 'status', width: 10 }
@@ -82,7 +81,6 @@ export async function exportToExcel(activities: readonly GeocodedActivity[]): Pr
       latitude: a.latitude ?? '',
       longitude: a.longitude ?? '',
       confidence: a.confidence,
-      activity_score: a.activityScore,
       category: a.category,
       map_link: mapLink,
       status: 'pending'

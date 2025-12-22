@@ -282,7 +282,6 @@ describe('FixtureCache', () => {
       // Simulate classifier response
       const classifierResult = {
         activity: 'hiking',
-        activityScore: 0.95,
         category: 'outdoor',
         isMappable: true
       }

@@ -54,7 +54,7 @@ export interface PipelineContext {
 /**
  * Get the cache directory: CLI arg > env var > default.
  */
-function getCacheDir(override?: string): string {
+export function getCacheDir(override?: string): string {
   return override ?? process.env.CHAT_TO_MAP_CACHE_DIR ?? join(homedir(), '.cache', 'chat-to-map')
 }
 

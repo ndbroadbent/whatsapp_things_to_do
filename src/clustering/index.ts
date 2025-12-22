@@ -52,14 +52,9 @@ export interface ClusterResult {
 
 /**
  * Configuration for clustering.
+ * Currently empty - reserved for future options.
  */
-export interface ClusterConfig {
-  /**
-   * Minimum activity score to include (default: 0).
-   * Activities below this threshold are filtered.
-   */
-  readonly minActivityScore?: number
-}
+export type ClusterConfig = Record<string, never>
 
 /**
  * Generate a clustering key from normalized fields.
@@ -83,9 +78,7 @@ function getClusterKey(a: ClassifiedActivity): string {
 function selectRepresentative(activities: readonly ClassifiedActivity[]): ClassifiedActivity {
   const sorted = [...activities].sort((a, b) => {
     // Higher confidence first
-    if (b.confidence !== a.confidence) return b.confidence - a.confidence
-    // Then higher activity score
-    return b.activityScore - a.activityScore
+    return b.confidence - a.confidence
   })
 
   const first = sorted[0]
@@ -141,23 +134,11 @@ function buildCluster(
  */
 export function clusterActivities(
   activities: readonly ClassifiedActivity[],
-  config: ClusterConfig = {}
+  _config: ClusterConfig = {}
 ): ClusterResult {
-  const { minActivityScore = 0 } = config
-
-  // Separate into valid and filtered
+  // All activities are valid - no filtering by activity score
+  const valid: ClassifiedActivity[] = [...activities]
   const filtered: ClassifiedActivity[] = []
-  const valid: ClassifiedActivity[] = []
-
-  for (const activity of activities) {
-    // Filter by activity score
-    if (activity.activityScore < minActivityScore) {
-      filtered.push(activity)
-      continue
-    }
-
-    valid.push(activity)
-  }
 
   // Separate simple and compound entries
   const simple = valid.filter((a) => !a.isCompound)

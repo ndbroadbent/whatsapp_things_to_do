@@ -9,7 +9,8 @@ import {
   type ActivityCategory,
   formatLocation,
   type GeocodedActivity,
-  type PDFConfig
+  type PDFConfig,
+  VALID_CATEGORIES
 } from '../types'
 
 // PDFKit uses CommonJS exports, so we need to handle it carefully
@@ -67,9 +68,21 @@ const CATEGORY_NAMES: Record<ActivityCategory, string> = {
   museum: 'Museums',
   entertainment: 'Entertainment',
   adventure: 'Adventure',
+  sports: 'Sports',
+  gaming: 'Gaming',
+  art: 'Art',
+  skills: 'Skills',
+  experiences: 'Experiences',
+  hobbies: 'Hobbies',
   family: 'Family Activities',
-  errand: 'Errands',
-  appointment: 'Appointments',
+  social: 'Social',
+  shopping: 'Shopping',
+  fitness: 'Fitness',
+  health: 'Health',
+  food: 'Food',
+  home: 'Home',
+  pets: 'Pets',
+  work: 'Work',
   other: 'Other'
 }
 
@@ -160,26 +173,8 @@ export async function exportToPDF(
     .text(`Contributors: ${uniqueSenders}`)
     .text(`Generated: ${new Date().toLocaleDateString()}`)
 
-  // Categories
-  const categoryOrder: ActivityCategory[] = [
-    'restaurant',
-    'cafe',
-    'bar',
-    'hike',
-    'nature',
-    'beach',
-    'trip',
-    'hotel',
-    'event',
-    'concert',
-    'museum',
-    'entertainment',
-    'adventure',
-    'family',
-    'other',
-    'errand',
-    'appointment'
-  ]
+  // Categories - use VALID_CATEGORIES order
+  const categoryOrder: ActivityCategory[] = [...VALID_CATEGORIES]
 
   for (const category of categoryOrder) {
     const items = grouped.get(category)

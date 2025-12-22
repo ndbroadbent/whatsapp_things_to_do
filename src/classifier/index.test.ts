@@ -62,9 +62,7 @@ function createCandidate(id: number, content: string, sender = 'Test User'): Can
 function createMockClassifierResponse(
   items: Array<{
     message_id: number
-    is_activity: boolean
     activity: string
-    activity_score: number
     category: string
     confidence: number
     city?: string
@@ -75,9 +73,9 @@ function createMockClassifierResponse(
   return JSON.stringify(
     items.map((item) => ({
       msg: item.message_id,
-      is_act: item.is_activity,
       title: item.activity,
-      score: item.activity_score,
+      fun: 0.7,
+      int: 0.5,
       cat: item.category,
       conf: item.confidence,
       gen: true,
@@ -112,9 +110,8 @@ describe('Classifier Module', () => {
               text: createMockClassifierResponse([
                 {
                   message_id: 1,
-                  is_activity: true,
+
                   activity: 'Test',
-                  activity_score: 0.8,
                   category: 'restaurant',
                   confidence: 0.9
                 }
@@ -154,9 +151,8 @@ describe('Classifier Module', () => {
                 content: createMockClassifierResponse([
                   {
                     message_id: 1,
-                    is_activity: true,
+
                     activity: 'Test',
-                    activity_score: 0.8,
                     category: 'restaurant',
                     confidence: 0.9
                   }
@@ -196,9 +192,8 @@ describe('Classifier Module', () => {
                 content: createMockClassifierResponse([
                   {
                     message_id: 1,
-                    is_activity: true,
+
                     activity: 'Test',
-                    activity_score: 0.8,
                     category: 'restaurant',
                     confidence: 0.9
                   }
@@ -233,9 +228,8 @@ describe('Classifier Module', () => {
               text: createMockClassifierResponse([
                 {
                   message_id: 1,
-                  is_activity: true,
+
                   activity: 'Italian Restaurant',
-                  activity_score: 0.9,
                   category: 'restaurant',
                   confidence: 0.95,
                   city: 'Rome',
@@ -349,9 +343,8 @@ describe('Classifier Module', () => {
       // Mock returns responses for all 25 IDs - each batch finds its matching IDs
       const allResponses = Array.from({ length: 25 }, (_, i) => ({
         message_id: i + 1,
-        is_activity: true,
+
         activity: 'Test',
-        activity_score: 0.8,
         category: 'restaurant',
         confidence: 0.9
       }))
@@ -393,9 +386,8 @@ describe('Classifier Module', () => {
               text: createMockClassifierResponse([
                 {
                   message_id: 1,
-                  is_activity: true,
+
                   activity: 'Test',
-                  activity_score: 0.8,
                   category: 'INVALID_CATEGORY',
                   confidence: 0.9
                 }
@@ -429,9 +421,8 @@ describe('Classifier Module', () => {
               text: createMockClassifierResponse([
                 {
                   message_id: 1,
-                  is_activity: true,
+
                   activity: 'Test',
-                  activity_score: 0.8,
                   category: 'restaurant',
                   confidence: 0.9
                 }
@@ -489,9 +480,8 @@ describe('Classifier Module', () => {
                 content: createMockClassifierResponse([
                   {
                     message_id: 1,
-                    is_activity: true,
+
                     activity: 'Fallback Test',
-                    activity_score: 0.8,
                     category: 'restaurant',
                     confidence: 0.9
                   }
@@ -607,12 +597,10 @@ describe('Classifier Module', () => {
   describe('filterActivities', async () => {
     const { filterActivities } = await import('./index')
 
-    function createActivity(isActivity: boolean, activityScore: number): ClassifiedActivity {
+    function createActivity(): ClassifiedActivity {
       return {
         messageId: 1,
-        isActivity,
         activity: 'Test',
-        activityScore,
         funScore: 0.7,
         interestingScore: 0.5,
         category: 'restaurant',
@@ -633,37 +621,12 @@ describe('Classifier Module', () => {
       }
     }
 
-    it('filters out non-activities', () => {
-      const suggestions = [createActivity(true, 0.8), createActivity(false, 0.8)]
+    it('returns all activities (no filtering)', () => {
+      const suggestions = [createActivity(), createActivity(), createActivity()]
 
       const filtered = filterActivities(suggestions)
 
-      expect(filtered).toHaveLength(1)
-      expect(filtered[0]?.isActivity).toBe(true)
-    })
-
-    it('filters by minimum activity score', () => {
-      const suggestions = [
-        createActivity(true, 0.3),
-        createActivity(true, 0.6),
-        createActivity(true, 0.9)
-      ]
-
-      const filtered = filterActivities(suggestions, 0.5)
-
-      expect(filtered).toHaveLength(2)
-    })
-
-    it('uses default minimum score of 0.5', () => {
-      const suggestions = [
-        createActivity(true, 0.4),
-        createActivity(true, 0.5),
-        createActivity(true, 0.6)
-      ]
-
-      const filtered = filterActivities(suggestions)
-
-      expect(filtered).toHaveLength(2)
+      expect(filtered).toHaveLength(3)
     })
   })
 
@@ -673,9 +636,7 @@ describe('Classifier Module', () => {
     function createActivity(category: string): ClassifiedActivity {
       return {
         messageId: 1,
-        isActivity: true,
         activity: 'Test',
-        activityScore: 0.8,
         funScore: 0.7,
         interestingScore: 0.5,
         category: category as ClassifiedActivity['category'],

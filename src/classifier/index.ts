@@ -5,8 +5,6 @@
  * and extract activity/location details.
  */
 
-import { generateClassifierCacheKey } from '../cache/key'
-import { DEFAULT_CACHE_TTL_SECONDS } from '../cache/types'
 import type {
   ActivityCategory,
   CandidateMessage,
@@ -37,27 +35,9 @@ export {
   parseClassificationResponse
 } from './prompt'
 
-const DEFAULT_BATCH_SIZE = 10
+import { VALID_CATEGORIES } from './categories'
 
-const VALID_CATEGORIES: readonly ActivityCategory[] = [
-  'restaurant',
-  'cafe',
-  'bar',
-  'hike',
-  'nature',
-  'beach',
-  'trip',
-  'hotel',
-  'event',
-  'concert',
-  'museum',
-  'entertainment',
-  'adventure',
-  'family',
-  'errand',
-  'appointment',
-  'other'
-]
+const DEFAULT_BATCH_SIZE = 10
 
 /**
  * Validate and normalize a category string.
@@ -79,9 +59,7 @@ function toClassifiedActivity(
 ): ClassifiedActivity {
   return {
     messageId: candidate.messageId,
-    isActivity: response.is_act,
     activity: response.title ?? candidate.content.slice(0, 100),
-    activityScore: response.score,
     funScore: response.fun,
     interestingScore: response.int,
     category: normalizeCategory(response.cat),
@@ -102,37 +80,15 @@ function toClassifiedActivity(
   }
 }
 
-interface ClassifyBatchResult {
-  result: Result<ClassifiedActivity[]>
-  cacheHit: boolean
-  cacheKey: string
-}
-
 /**
  * Classify a batch of candidates.
+ * Caching is handled by the provider layer (callProviderWithFallbacks).
  */
 async function classifyBatch(
   candidates: readonly CandidateMessage[],
   config: ClassifierConfig,
   cache?: ResponseCache
-): Promise<ClassifyBatchResult> {
-  const model = config.model ?? DEFAULT_MODELS[config.provider]
-
-  // Generate cache key
-  const cacheKey = generateClassifierCacheKey(
-    config.provider,
-    model,
-    candidates.map((c) => ({ messageId: c.messageId, content: c.content }))
-  )
-
-  // Check cache first
-  if (cache) {
-    const cached = await cache.get<ClassifiedActivity[]>(cacheKey)
-    if (cached) {
-      return { result: { ok: true, value: cached.data }, cacheHit: true, cacheKey }
-    }
-  }
-
+): Promise<Result<ClassifiedActivity[]>> {
   const prompt = buildClassificationPrompt(candidates, {
     homeCountry: config.homeCountry,
     timezone: config.timezone
@@ -142,21 +98,23 @@ async function classifyBatch(
   const tokenCount = countTokens(prompt)
   if (tokenCount > MAX_BATCH_TOKENS) {
     return {
-      result: {
-        ok: false,
-        error: {
-          type: 'invalid_request',
-          message: `Batch too large: ${tokenCount} tokens exceeds limit of ${MAX_BATCH_TOKENS}.`
-        }
-      },
-      cacheHit: false,
-      cacheKey
+      ok: false,
+      error: {
+        type: 'invalid_request',
+        message: `Batch too large: ${tokenCount} tokens exceeds limit of ${MAX_BATCH_TOKENS}.`
+      }
     }
   }
 
-  const responseResult = await callProviderWithFallbacks(prompt, config)
+  // Call provider with caching at HTTP layer
+  const responseResult = await callProviderWithFallbacks(prompt, config, {
+    cache,
+    messageIds: candidates.map((c) => c.messageId),
+    messageContents: candidates.map((c) => c.content)
+  })
+
   if (!responseResult.ok) {
-    return { result: responseResult, cacheHit: false, cacheKey }
+    return responseResult
   }
 
   try {
@@ -173,25 +131,12 @@ async function classifyBatch(
       }
     }
 
-    // Cache the results
-    if (cache) {
-      await cache.set(
-        cacheKey,
-        { data: suggestions, cachedAt: Date.now() },
-        DEFAULT_CACHE_TTL_SECONDS
-      )
-    }
-
-    return { result: { ok: true, value: suggestions }, cacheHit: false, cacheKey }
+    return { ok: true, value: suggestions }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     return {
-      result: {
-        ok: false,
-        error: { type: 'invalid_response', message: `Failed to parse response: ${message}` }
-      },
-      cacheHit: false,
-      cacheKey
+      ok: false,
+      error: { type: 'invalid_response', message: `Failed to parse response: ${message}` }
     }
   }
 }
@@ -236,22 +181,18 @@ export async function classifyMessages(
     })
 
     const startTime = Date.now()
-    const { result, cacheHit, cacheKey } = await classifyBatch(batch, config, cache)
+    const result = await classifyBatch(batch, config, cache)
     const durationMs = Date.now() - startTime
-
-    // Call onCacheCheck for debug logging
-    config.onCacheCheck?.({ batchIndex: i, cacheKey, hit: cacheHit })
 
     if (!result.ok) {
       return result
     }
 
     // Call onBatchComplete with results
-    const activityCount = result.value.filter((s) => s.isActivity).length
     config.onBatchComplete?.({
       batchIndex: i,
       totalBatches: batches.length,
-      activityCount,
+      activityCount: result.value.length,
       durationMs
     })
 
@@ -263,16 +204,13 @@ export async function classifyMessages(
 
 /**
  * Filter classified suggestions to only include activities.
+ * Note: All items are activities now (no errands), so this just returns all.
  *
  * @param suggestions All classified suggestions
- * @param minActivityScore Minimum activity score (default: 0.5)
- * @returns Only activity suggestions (not errands)
+ * @returns All suggestions (kept for API compatibility)
  */
-export function filterActivities(
-  suggestions: readonly ClassifiedActivity[],
-  minActivityScore = 0.5
-): ClassifiedActivity[] {
-  return suggestions.filter((s) => s.isActivity && s.activityScore >= minActivityScore)
+export function filterActivities(suggestions: readonly ClassifiedActivity[]): ClassifiedActivity[] {
+  return [...suggestions]
 }
 
 /**

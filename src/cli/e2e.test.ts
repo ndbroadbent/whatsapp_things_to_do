@@ -73,10 +73,10 @@ function extractCacheFixture(targetDir: string): void {
  * Compress cache directory to fixture
  */
 function compressCacheFixture(sourceDir: string): void {
-  const apisDir = join(sourceDir, 'apis')
-  if (!existsSync(apisDir)) return
+  const requestsDir = join(sourceDir, 'requests')
+  if (!existsSync(requestsDir)) return
 
-  execSync(`tar -czf ${CACHE_FIXTURE} -C ${sourceDir} apis`, { encoding: 'utf-8' })
+  execSync(`tar -czf ${CACHE_FIXTURE} -C ${sourceDir} requests`, { encoding: 'utf-8' })
 }
 
 /**
@@ -156,12 +156,12 @@ beforeAll(() => {
   extractCacheFixture(tempCacheDir)
 
   // Calculate initial hash
-  initialCacheHash = hashDirectory(join(tempCacheDir, 'apis'))
+  initialCacheHash = hashDirectory(join(tempCacheDir, 'requests'))
 })
 
 afterAll(() => {
   // Check if cache changed
-  const finalCacheHash = hashDirectory(join(tempCacheDir, 'apis'))
+  const finalCacheHash = hashDirectory(join(tempCacheDir, 'requests'))
 
   if (finalCacheHash !== initialCacheHash && finalCacheHash !== '') {
     // Cache was updated - save new fixture
@@ -269,6 +269,62 @@ describe('CLI E2E', () => {
       const { stdout } = runCli(`scan ${FIXTURE_INPUT} --cache-dir ${tempCacheDir} -n 3`)
 
       expect(stdout).toContain('Top 3 candidates')
+    })
+  })
+
+  describe('preview command', () => {
+    it('classifies candidates with AI', () => {
+      const { stdout, exitCode } = runCli(
+        `preview ${FIXTURE_INPUT} --cache-dir ${tempCacheDir} -c "New Zealand"`
+      )
+
+      expect(exitCode).toBe(0)
+      expect(stdout).toContain('AI classification')
+    })
+
+    it('writes preview_stats.json to cache', () => {
+      runCli(`preview ${FIXTURE_INPUT} --cache-dir ${tempCacheDir} -c "New Zealand"`)
+
+      const stats = readCacheJson<{ classifiedCount: number }>(tempCacheDir, 'preview_stats.json')
+      expect(stats.classifiedCount).toBeGreaterThanOrEqual(1)
+    })
+
+    it('writes candidates.classified.json to cache', () => {
+      runCli(`preview ${FIXTURE_INPUT} --cache-dir ${tempCacheDir} -c "New Zealand"`)
+
+      const candidates = readCacheJson<Candidate[]>(tempCacheDir, 'candidates.classified.json')
+      expect(candidates.length).toBeGreaterThanOrEqual(1)
+
+      // Check classifications have required fields
+      const first = candidates[0]
+      expect(first).toHaveProperty('content')
+      expect(first).toHaveProperty('candidateType')
+    })
+
+    it('shows classified activities in output', () => {
+      const { stdout } = runCli(
+        `preview ${FIXTURE_INPUT} --cache-dir ${tempCacheDir} -c "New Zealand"`
+      )
+
+      // Should show some activity names from classification
+      expect(stdout).toMatch(/activity|hike|restaurant|trip/i)
+    })
+
+    it('respects --max-results flag', () => {
+      const { stdout } = runCli(
+        `preview ${FIXTURE_INPUT} --cache-dir ${tempCacheDir} -c "New Zealand" -n 3`
+      )
+
+      expect(stdout).toMatch(/3|three/i)
+    })
+
+    it('respects --dry-run flag', () => {
+      const { stdout, exitCode } = runCli(
+        `preview ${FIXTURE_INPUT} --cache-dir ${tempCacheDir} -c "New Zealand" --dry-run`
+      )
+
+      expect(exitCode).toBe(0)
+      expect(stdout).toContain('dry run')
     })
   })
 })

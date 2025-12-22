@@ -41,9 +41,8 @@ function createActivity(
 ): GeocodedActivity {
   return {
     messageId: id,
-    isActivity: true,
+
     activity,
-    activityScore: 0.8,
     funScore: 0.7,
     interestingScore: 0.5,
     category: 'restaurant',
@@ -250,15 +249,14 @@ describe('Excel Export', () => {
       )
     })
 
-    it('includes confidence and activity score', async () => {
+    it('includes confidence', async () => {
       const activities = [createActivity(1, 'Test', 41.9, 12.5)]
 
       await exportToExcel(activities)
 
       expect(mockAddRow).toHaveBeenCalledWith(
         expect.objectContaining({
-          confidence: 0.9,
-          activity_score: 0.8
+          confidence: 0.9
         })
       )
     })

@@ -10,9 +10,19 @@
  * - Minimum 2 messages on each side
  * - Each message truncated to max 280 chars with "[truncated to 280 chars]" suffix
  * - Snaps to message boundaries
+ * - Messages include timestamps in WhatsApp format so AI understands time gaps
  */
 
 import type { CandidateMessage, ParsedMessage } from '../types'
+
+/**
+ * Format a message line with ISO timestamp.
+ * Example: "[2024-10-11T13:34] John: Hello world"
+ */
+export function formatMessageLine(msg: ParsedMessage): string {
+  const iso = msg.timestamp.toISOString().slice(0, 16) // "2024-10-11T13:34"
+  return `[${iso}] ${msg.sender}: ${msg.content}`
+}
 
 export const MIN_CONTEXT_CHARS = 280
 export const MIN_CONTEXT_MESSAGES = 2
@@ -84,7 +94,7 @@ export function getMessageContext(
   for (let i = index - 1; i >= 0; i--) {
     const msg = messages[i]
     if (!msg) continue
-    const rawLine = `${msg.sender}: ${msg.content}`
+    const rawLine = formatMessageLine(msg)
     const line = truncateMessage(rawLine)
 
     beforeMessages.unshift(line)
@@ -101,7 +111,7 @@ export function getMessageContext(
   for (let i = index + 1; i < messages.length; i++) {
     const msg = messages[i]
     if (!msg) continue
-    const rawLine = `${msg.sender}: ${msg.content}`
+    const rawLine = formatMessageLine(msg)
     const line = truncateMessage(rawLine)
 
     afterMessages.push(line)
@@ -129,9 +139,10 @@ export function getMessageContext(
  * Build full context string: before + >>> target + after
  */
 export function buildContextString(msg: ParsedMessage, ctx: MessageContext): string {
+  const iso = msg.timestamp.toISOString().slice(0, 16)
   const parts: string[] = []
   if (ctx.before) parts.push(ctx.before)
-  parts.push(`>>> ${msg.sender}: ${msg.content}`)
+  parts.push(`>>> [${iso}] ${msg.sender}: ${msg.content}`)
   if (ctx.after) parts.push(ctx.after)
   return parts.join('\n')
 }

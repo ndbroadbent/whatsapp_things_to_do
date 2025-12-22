@@ -5,8 +5,7 @@
  */
 
 import { writeFile } from 'node:fs/promises'
-import { homedir } from 'node:os'
-import { basename, join } from 'node:path'
+import { basename } from 'node:path'
 import { FilesystemCache } from '../../cache/filesystem'
 import { countTokens } from '../../classifier/tokenizer'
 import {
@@ -19,6 +18,7 @@ import type { CandidateMessage, ParsedMessage } from '../../types'
 import type { CLIArgs, ExtractionMethod } from '../args'
 import { formatDate, runParseWithLogs, truncate } from '../helpers'
 import type { Logger } from '../logger'
+import { getCacheDir } from '../steps/context'
 
 interface CandidatesOutput {
   method: ExtractionMethod
@@ -132,7 +132,7 @@ export async function cmdCandidates(args: CLIArgs, logger: Logger): Promise<void
     return
   }
 
-  const cacheDir = join(homedir(), '.cache', 'chat-to-map')
+  const cacheDir = getCacheDir(args.cacheDir)
   const cache = new FilesystemCache(cacheDir)
 
   let output: CandidatesOutput

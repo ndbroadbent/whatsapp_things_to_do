@@ -5,9 +5,9 @@
  */
 
 import { readFile, writeFile } from 'node:fs/promises'
-import { homedir } from 'node:os'
-import { basename, join } from 'node:path'
+import { basename } from 'node:path'
 import { FilesystemCache } from '../../cache/filesystem'
+import { generateUrlCacheKey } from '../../cache/key'
 import { extractCandidatesByHeuristics, VERSION } from '../../index'
 import { extractUrlsFromCandidates } from '../../scraper/enrich'
 import { scrapeUrl } from '../../scraper/index'
@@ -16,6 +16,7 @@ import type { CandidateMessage } from '../../types'
 import type { CLIArgs } from '../args'
 import { runParseWithLogs, truncate } from '../helpers'
 import type { Logger } from '../logger'
+import { getCacheDir } from '../steps/context'
 
 interface ScrapeResult {
   url: string
@@ -34,10 +35,6 @@ interface ScrapeOutput {
 
 /** Cache TTL for scraped metadata (24 hours) */
 const SCRAPE_CACHE_TTL_SECONDS = 24 * 60 * 60
-
-function getScrapeCacheKey(url: string): string {
-  return `scrape:${url}`
-}
 
 async function loadCandidatesForScrape(args: CLIArgs, logger: Logger): Promise<CandidateMessage[]> {
   if (args.input.endsWith('.json')) {
@@ -68,7 +65,7 @@ async function scrapeUrlWithCache(
   timeout: number,
   cache: FilesystemCache
 ): Promise<ScrapeResult> {
-  const cacheKey = getScrapeCacheKey(url)
+  const cacheKey = generateUrlCacheKey(url)
 
   const cached = await cache.get<ScrapedMetadata>(cacheKey)
   if (cached) {
@@ -122,7 +119,7 @@ export async function cmdScrape(args: CLIArgs, logger: Logger): Promise<void> {
   logger.log(`\nChatToMap Scrape v${VERSION}`)
   logger.log(`\n📁 ${basename(args.input)}`)
 
-  const cacheDir = join(homedir(), '.cache', 'chat-to-map')
+  const cacheDir = getCacheDir(args.cacheDir)
   const cache = new FilesystemCache(cacheDir)
 
   const candidates = await loadCandidatesForScrape(args, logger)

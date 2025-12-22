@@ -11,9 +11,8 @@ function createActivity(
 ): GeocodedActivity {
   return {
     messageId: id,
-    isActivity: true,
+
     activity,
-    activityScore: 0.8,
     funScore: 0.7,
     interestingScore: 0.5,
     category: 'restaurant',

@@ -79,7 +79,6 @@ describe('Classifier Pronoun Resolution', () => {
           "action": null,
           "actionOriginal": null,
           "activity": "No activity — I'm busy all day today",
-          "activityScore": 0,
           "category": "other",
           "city": null,
           "confidence": 0.9,

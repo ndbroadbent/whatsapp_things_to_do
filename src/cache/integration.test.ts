@@ -54,9 +54,8 @@ function createCandidate(id: number, content: string): CandidateMessage {
 function createClassifiedActivity(id: number, activity: string, city: string): ClassifiedActivity {
   return {
     messageId: id,
-    isActivity: true,
+
     activity,
-    activityScore: 0.9,
     funScore: 0.8,
     interestingScore: 0.5,
     category: 'restaurant',

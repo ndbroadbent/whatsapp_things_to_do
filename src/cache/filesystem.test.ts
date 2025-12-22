@@ -75,7 +75,7 @@ describe('FilesystemCache', () => {
       await cache.get<string>(hash)
 
       // Verify file is deleted by checking path
-      const path = join(testDir, 'apis', hash.slice(0, 2), `${hash}.json`)
+      const path = join(testDir, 'requests', hash.slice(0, 2), `${hash}.json`)
       expect(existsSync(path)).toBe(false)
     })
   })
@@ -90,7 +90,7 @@ describe('FilesystemCache', () => {
 
       await cache.set(hash, response, 300)
 
-      const expectedDir = join(testDir, 'apis', hash.slice(0, 2))
+      const expectedDir = join(testDir, 'requests', hash.slice(0, 2))
       expect(existsSync(expectedDir)).toBe(true)
     })
 
@@ -177,21 +177,21 @@ describe('FilesystemCache', () => {
       await cache.set(hash3, { data: 'v3', cachedAt: Date.now() }, 300)
 
       // hash1 and hash2 should be in same directory (prefix 'aa')
-      expect(existsSync(join(testDir, 'apis', 'aa', `${hash1}.json`))).toBe(true)
-      expect(existsSync(join(testDir, 'apis', 'aa', `${hash2}.json`))).toBe(true)
+      expect(existsSync(join(testDir, 'requests', 'aa', `${hash1}.json`))).toBe(true)
+      expect(existsSync(join(testDir, 'requests', 'aa', `${hash2}.json`))).toBe(true)
 
       // hash3 should be in different directory (prefix 'cc')
-      expect(existsSync(join(testDir, 'apis', 'cc', `${hash3}.json`))).toBe(true)
+      expect(existsSync(join(testDir, 'requests', 'cc', `${hash3}.json`))).toBe(true)
     })
   })
 
   describe('error handling', () => {
     it('should return null for corrupted cache file', async () => {
       const hash = 'corrupt123'
-      const path = join(testDir, 'apis', hash.slice(0, 2), `${hash}.json`)
+      const path = join(testDir, 'requests', hash.slice(0, 2), `${hash}.json`)
 
       // Create corrupted file
-      mkdirSync(join(testDir, 'apis', hash.slice(0, 2)), { recursive: true })
+      mkdirSync(join(testDir, 'requests', hash.slice(0, 2)), { recursive: true })
       const { writeFileSync } = await import('node:fs')
       writeFileSync(path, 'not valid json{{{')
 

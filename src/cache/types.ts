@@ -35,6 +35,14 @@ export interface ResponseCache {
    * @param ttlSeconds - Time-to-live in seconds
    */
   set<T = unknown>(hash: string, response: CachedResponse<T>, ttlSeconds: number): Promise<void>
+
+  /**
+   * Store prompt text for debugging (optional).
+   * Saved alongside cached response as .prompt.txt
+   * @param hash - Same hash key used for set()
+   * @param prompt - The prompt text to save
+   */
+  setPrompt?(hash: string, prompt: string): Promise<void>
 }
 
 /**

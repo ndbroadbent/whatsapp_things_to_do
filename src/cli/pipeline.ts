@@ -5,7 +5,6 @@
  */
 
 import { writeFile } from 'node:fs/promises'
-import { homedir } from 'node:os'
 import { basename, join } from 'node:path'
 import { FilesystemCache } from '../cache/filesystem'
 import {
@@ -33,6 +32,7 @@ import type { CLIArgs } from './args'
 import { ensureDir, readInputFile } from './io'
 import type { Logger } from './logger'
 import { resolveContext, resolveModelConfig } from './model'
+import { getCacheDir } from './steps/context'
 
 export async function runParse(
   input: string,
@@ -94,7 +94,7 @@ export async function runClassify(
   logger.log(`   Processing in ${totalBatches} batches of ${batchSize}`)
 
   // Use filesystem cache for API responses
-  const cacheDir = join(homedir(), '.cache', 'chat-to-map')
+  const cacheDir = getCacheDir(args.cacheDir)
   const cache = new FilesystemCache(cacheDir)
 
   const config: ClassifierConfig = {
@@ -113,12 +113,6 @@ export async function runClassify(
       logger.log(
         `   [${info.batchIndex + 1}/${info.totalBatches}] ✓ Found ${info.activityCount} activities (${info.durationMs}ms)`
       )
-    },
-    onCacheCheck: (info) => {
-      if (args.verbose) {
-        const status = info.hit ? '✅ cache hit' : '❌ cache miss'
-        logger.log(`   [${info.batchIndex + 1}] ${status}`)
-      }
     }
   }
 
@@ -130,11 +124,9 @@ export async function runClassify(
 
   // Always filter by activity score - low scores are errands/chores, not fun activities
   const validActivities = filterActivities(result.value)
-  const errands = result.value.filter((s) => !s.isActivity || s.activityScore < 0.5)
 
   logger.log('')
   logger.success(`Activities: ${validActivities.length}`)
-  logger.success(`Errands (filtered): ${errands.length}`)
 
   return validActivities
 }

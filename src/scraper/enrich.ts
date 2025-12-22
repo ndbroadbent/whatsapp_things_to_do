@@ -10,6 +10,7 @@
  * - Caching via ResponseCache interface
  */
 
+import { generateUrlCacheKey } from '../cache/key'
 import type { ResponseCache } from '../cache/types'
 import type { CandidateMessage } from '../types'
 import { scrapeUrl } from './index'
@@ -117,13 +118,6 @@ export interface EnrichOptions extends ScraperConfig {
   cache?: ResponseCache
 }
 
-/**
- * Generate cache key for a URL.
- */
-function getCacheKey(url: string): string {
-  return `scrape:${url}`
-}
-
 /** Cache TTL for scraped metadata (24 hours - URLs don't change often) */
 const SCRAPE_CACHE_TTL_SECONDS = 24 * 60 * 60
 
@@ -135,7 +129,7 @@ async function scrapeWithCache(
   options: EnrichOptions
 ): Promise<{ url: string; metadata: ScrapedMetadata | null }> {
   const cache = options.cache
-  const cacheKey = getCacheKey(url)
+  const cacheKey = generateUrlCacheKey(url)
 
   // Check cache first
   if (cache) {

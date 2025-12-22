@@ -4,8 +4,7 @@
  * AI-powered preview of top activity candidates.
  */
 
-import { homedir } from 'node:os'
-import { basename, join } from 'node:path'
+import { basename } from 'node:path'
 import { FilesystemCache } from '../../cache/filesystem'
 import { buildClassificationPrompt } from '../../classifier/prompt'
 import { classifyMessages, VERSION } from '../../index'
@@ -15,6 +14,7 @@ import type { CLIArgs } from '../args'
 import { formatDate, getCategoryEmoji, runQuickScanWithLogs, truncate } from '../helpers'
 import type { Logger } from '../logger'
 import { resolveContext, resolveModelConfig } from '../model'
+import { getCacheDir } from '../steps/context'
 
 export async function cmdPreview(args: CLIArgs, logger: Logger): Promise<void> {
   if (!args.input) {
@@ -41,7 +41,7 @@ export async function cmdPreview(args: CLIArgs, logger: Logger): Promise<void> {
 
   logger.log(`\n🔍 Quick scan found ${scanResult.stats.totalUnique} potential activities`)
 
-  const cacheDir = join(homedir(), '.cache', 'chat-to-map')
+  const cacheDir = getCacheDir(args.cacheDir)
   const cache = new FilesystemCache(cacheDir)
 
   const enrichedCandidates = await scrapeAndEnrichCandidates(topCandidates, {
@@ -84,16 +84,6 @@ export async function cmdPreview(args: CLIArgs, logger: Logger): Promise<void> {
       homeCountry,
       timezone,
       batchSize: 30,
-      onCacheCheck: (info) => {
-        if (args.debug) {
-          const status = info.hit ? '✅ cache hit' : '❌ cache miss'
-          logger.log(`   [debug] Batch ${info.batchIndex + 1}: ${status}`)
-          logger.log(`   [debug] Key: ${info.cacheKey.slice(0, 16)}...`)
-        }
-        if (info.hit) {
-          logger.log('\n📦 Using cached results...')
-        }
-      },
       onBatchStart: (info) => {
         if (info.totalBatches === 1) {
           logger.log(`\n🤖 Sending ${info.candidateCount} candidates to ${info.model}...`)
@@ -112,10 +102,7 @@ export async function cmdPreview(args: CLIArgs, logger: Logger): Promise<void> {
     throw new Error(`Classification failed: ${classifyResult.error.message}`)
   }
 
-  const activities = classifyResult.value
-    .filter((s) => s.isActivity && s.activityScore >= 0.5)
-    .sort((a, b) => b.activityScore - a.activityScore)
-    .slice(0, args.maxResults)
+  const activities = classifyResult.value.slice(0, args.maxResults)
 
   if (activities.length === 0) {
     logger.log('   No activities found after AI classification.')

@@ -5,6 +5,7 @@
  */
 
 import type { CandidateMessage } from '../types'
+import { VALID_CATEGORIES } from './categories'
 
 /**
  * Format context for display. Context already includes target marked with >>>.
@@ -84,23 +85,25 @@ Messages marked >>> are candidates. Use surrounding context to understand what t
 URLs may have [URL_META: {...}] with scraped metadata - use this to understand what links are about.
 
 INCLUDE (output these):
-- Named places: restaurants, cafes, bars, venues, parks, trails
+- Named places: restaurants, cafes, food trucks, bars, venues, parks, trails
 - Specific activities: hiking, kayaking, concerts, movies, shows
 - Travel plans: trips, destinations, hotels, Airbnb
 - Events: festivals, markets, concerts, exhibitions
+- Things to do: hobbies, experiences, skills, sports, games
 - Generic but actionable: "Let's go to a cafe" (specific type of place)
 
 SKIP (don't output):
 - Vague: "wanna go out?", "do something fun", "go somewhere"
 - Logistics: "leave at 3:50pm", "skip the nachos"
 - Questions: "where should we go?"
-- Links without clear intent to visit
+- Links without clear discussion about visiting/attending
 - Errands: groceries, vet, mechanic, cleaning
 - Work/appointments/chores
-- Past events (already done)
 - Romantic/intimate, adult content
+- Sensitive: potential secrets, embarrassing messages, offensive content, or illegal activities
 - Unclear references: "go there again" (where?), "check it out" (what?)
 
+MESSAGES:
 ${messagesText}
 
 OUTPUT FORMAT:
@@ -111,13 +114,12 @@ Return JSON array with ONLY activities worth saving. Skip non-activities entirel
   {
     "msg": <message_id>,
     "title": "<activity description, under 100 chars>",
-    "score": <0.0=errand, 1.0=fun activity>,
     "fun": <0.0-1.0 how fun/enjoyable>,
     "int": <0.0-1.0 how interesting/unique>,
     "cat": "<category>",
     "conf": <0.0-1.0 your confidence>,
     "gen": <true if generic, no specific venue/URL>,
-    "com": <true if compound/complex multi-part activity that one JSON object can't fully represent>,
+    "com": <true if compound/complex activity that one JSON object can't fully represent>,
     "act": "<normalized action: hike, eat, watch, visit>",
     "act_orig": "<original action word>",
     "obj": "<normalized object: movie, restaurant>",
@@ -130,7 +132,7 @@ Return JSON array with ONLY activities worth saving. Skip non-activities entirel
 ]
 \`\`\`
 
-CATEGORIES: restaurant, cafe, bar, hike, nature, beach, trip, hotel, event, concert, museum, entertainment, adventure, sports, gaming, art, skills, experiences, hobbies, family, social, shopping, fitness, health, food, home, pets, work, errand, appointment, other
+CATEGORIES: ${VALID_CATEGORIES.join(', ')}
 
 NORMALIZATION: tramping→hike, cycling→bike, film→movie. But keep distinct: cafe≠restaurant, bar≠restaurant.
 
@@ -148,10 +150,7 @@ COMPOUND vs MULTIPLE: For com:true, still emit ONE object - it just flags that t
 
 export interface ParsedClassification {
   msg: number
-  is_act: boolean
   title: string | null
-  /** Is this an errand (0) or a fun activity (1)? */
-  score: number
   /** How fun/enjoyable is this activity? 0=boring, 1=exciting */
   fun: number
   /** How interesting/unique is this activity? 0=common/mundane, 1=rare/novel */
@@ -213,9 +212,7 @@ function parseBoolean(val: unknown, fallback: boolean): boolean {
 function parseItem(obj: Record<string, unknown>): ParsedClassification {
   return {
     msg: parseNumber(obj.msg, 0, false), // msg is an ID, not clamped to 0-1
-    is_act: parseBoolean(obj.is_act, false),
     title: parseString(obj.title),
-    score: parseNumber(obj.score, 0.5),
     fun: parseNumber(obj.fun, 0.5),
     int: parseNumber(obj.int, 0.5),
     cat: typeof obj.cat === 'string' ? obj.cat : 'other',

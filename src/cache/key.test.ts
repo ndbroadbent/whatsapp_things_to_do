@@ -194,7 +194,7 @@ describe('generateClassifierCacheKey', () => {
 
   it('should handle empty messages array', () => {
     const key = generateClassifierCacheKey('anthropic', 'claude-haiku-4-5', [])
-    expect(key).toMatch(/^[a-f0-9]{64}$/)
+    expect(key).toMatch(/^ai\/anthropic\/claude-haiku-4-5\/[a-f0-9]{64}$/)
   })
 })
 

@@ -20,7 +20,7 @@ interface CacheEntry<T> {
  *
  * Directory structure:
  * ```
- * ./chat-to-map/cache/apis/
+ * ./chat-to-map/cache/requests/
  * ├── ab/
  * │   └── abcd1234...json
  * ├── cd/
@@ -89,23 +89,41 @@ export class FilesystemCache implements ResponseCache {
     writeFileSync(path, JSON.stringify(entry, null, 2))
   }
 
+  async setPrompt(hash: string, prompt: string): Promise<void> {
+    const jsonPath = this.getCachePath(hash)
+    const promptPath = jsonPath.replace(/\.json$/, '.prompt.txt')
+
+    // Ensure directory exists
+    const dir = dirname(promptPath)
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true })
+    }
+
+    writeFileSync(promptPath, prompt)
+  }
+
   /**
    * Get the file path for a cache entry.
-   * Uses first 2 chars of hash as subdirectory.
+   * If key contains '/', use as subdirectory. Otherwise use first 2 chars as prefix.
    */
-  private getCachePath(hash: string): string {
-    const prefix = hash.slice(0, 2)
-    return join(this.cacheDir, 'apis', prefix, `${hash}.json`)
+  private getCachePath(key: string): string {
+    if (key.includes('/')) {
+      // Key has explicit path (e.g., 'web/example_com_abc123')
+      return join(this.cacheDir, 'requests', `${key}.json`)
+    }
+    // Use first 2 chars as subdirectory prefix
+    const prefix = key.slice(0, 2)
+    return join(this.cacheDir, 'requests', prefix, `${key}.json`)
   }
 
   /**
    * Clear all cached entries (for testing or manual cleanup)
    */
   async clear(): Promise<void> {
-    const apisDir = join(this.cacheDir, 'apis')
-    if (existsSync(apisDir)) {
+    const requestsDir = join(this.cacheDir, 'requests')
+    if (existsSync(requestsDir)) {
       const { rmSync } = await import('node:fs')
-      rmSync(apisDir, { recursive: true, force: true })
+      rmSync(requestsDir, { recursive: true, force: true })
     }
   }
 }

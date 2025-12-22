@@ -51,25 +51,28 @@ export function generateCacheKey(components: CacheKeyComponents): string {
 }
 
 /**
- * Generate cache key for embedding requests
+ * Generate cache key for embedding requests.
+ * Path: ai/openai/<model>/<hash>.json
  */
 export function generateEmbeddingCacheKey(model: string, inputs: readonly string[]): string {
-  return generateCacheKey({
+  const hash = generateCacheKey({
     service: 'openai',
     model,
     payload: { inputs: [...inputs].sort() }
   })
+  return `ai/openai/${model}/${hash}`
 }
 
 /**
- * Generate cache key for classification requests
+ * Generate cache key for classification requests.
+ * Path: ai/<provider>/<model>/<hash>.json
  */
 export function generateClassifierCacheKey(
   provider: string,
   model: string,
   messages: readonly { readonly content: string; readonly messageId: number }[]
 ): string {
-  return generateCacheKey({
+  const hash = generateCacheKey({
     service: provider,
     model,
     payload: {
@@ -79,15 +82,35 @@ export function generateClassifierCacheKey(
       }))
     }
   })
+  return `ai/${provider}/${model}/${hash}`
 }
 
 /**
- * Generate cache key for geocoding requests
+ * Generate cache key for geocoding requests.
+ * Path: geo/google/<hash>.json
  */
 export function generateGeocodeCacheKey(location: string, regionBias?: string): string {
-  return generateCacheKey({
+  const hash = generateCacheKey({
     service: 'google',
     model: 'geocoding',
     payload: { location, regionBias }
   })
+  return `geo/google/${hash}`
+}
+
+/**
+ * Generate cache key for URL-based requests (scraping, fetching).
+ * Creates readable filename: sanitized URL + short hash suffix.
+ * Use with subdirectory 'web/' in cache path.
+ */
+export function generateUrlCacheKey(url: string): string {
+  // Sanitize URL for filename: replace invalid chars with _, collapse multiple _
+  const sanitized = url
+    .replace(/[^a-zA-Z0-9.-]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '')
+    .slice(0, 80)
+  // Add short hash of full URL for uniqueness
+  const hash = createHash('sha256').update(url).digest('hex').slice(0, 8)
+  return `web/${sanitized}_${hash}`
 }

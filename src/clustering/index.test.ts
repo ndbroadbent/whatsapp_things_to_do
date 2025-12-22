@@ -23,9 +23,8 @@ function createActivity(
 ): ClassifiedActivity {
   return {
     messageId: Math.floor(Math.random() * 10000),
-    isActivity: true,
+
     activity,
-    activityScore: 0.9,
     funScore: 0.7,
     interestingScore: 0.5,
     category: 'other' as ActivityCategory,
@@ -181,18 +180,17 @@ describe('clusterActivities', () => {
     })
   })
 
-  describe('filtering', () => {
-    it('should filter by minActivityScore', () => {
+  describe('no filtering', () => {
+    it('should return all activities without filtering', () => {
       const activities = [
-        createActivity('Go biking', { action: 'bike', activityScore: 0.9 }),
-        createActivity('Take out trash', { action: 'dispose', activityScore: 0.2 })
+        createActivity('Try new restaurant', { action: 'eat', funScore: 0.9 }),
+        createActivity('Take out trash', { action: 'chore', funScore: 0.2 })
       ]
 
-      const result = clusterActivities(activities, { minActivityScore: 0.5 })
+      const result = clusterActivities(activities)
 
-      expect(result.clusters.length).toBe(1)
-      expect(result.filtered.length).toBe(1)
-      expect(result.filtered[0]?.activity).toBe('Take out trash')
+      expect(result.clusters.length).toBe(2)
+      expect(result.filtered.length).toBe(0)
     })
   })
 
@@ -202,17 +200,6 @@ describe('clusterActivities', () => {
         createActivity('Go biking', { action: 'bike', confidence: 0.7 }),
         createActivity('Ride a bike', { action: 'bike', confidence: 0.95 }),
         createActivity('Go for a bike ride', { action: 'bike', confidence: 0.8 })
-      ]
-
-      const result = clusterActivities(activities)
-
-      expect(result.clusters[0]?.representative.activity).toBe('Ride a bike')
-    })
-
-    it('should fall back to activityScore when confidence is equal', () => {
-      const activities = [
-        createActivity('Go biking', { action: 'bike', confidence: 0.9, activityScore: 0.7 }),
-        createActivity('Ride a bike', { action: 'bike', confidence: 0.9, activityScore: 0.95 })
       ]
 
       const result = clusterActivities(activities)
@@ -376,9 +363,8 @@ describe('clusterActivities', () => {
     ): ClassifiedActivity {
       return {
         messageId: id,
-        isActivity: true,
+
         activity,
-        activityScore: 0.9,
         funScore: 0.7,
         interestingScore: 0.5,
         category: 'other' as ActivityCategory,
@@ -434,14 +420,12 @@ describe('clusterActivities', () => {
                   "action": "hike",
                   "actionOriginal": "hiking",
                   "activity": "Go hiking",
-                  "activityScore": 0.9,
                   "category": "other",
                   "city": null,
                   "confidence": 0.9,
                   "country": null,
                   "funScore": 0.7,
                   "interestingScore": 0.5,
-                  "isActivity": true,
                   "isCompound": false,
                   "isGeneric": true,
                   "messageId": 1,
@@ -457,14 +441,12 @@ describe('clusterActivities', () => {
                   "action": "hike",
                   "actionOriginal": "tramping",
                   "activity": "Go tramping",
-                  "activityScore": 0.9,
                   "category": "other",
                   "city": null,
                   "confidence": 0.9,
                   "country": null,
                   "funScore": 0.7,
                   "interestingScore": 0.5,
-                  "isActivity": true,
                   "isCompound": false,
                   "isGeneric": true,
                   "messageId": 2,
@@ -482,14 +464,12 @@ describe('clusterActivities', () => {
                 "action": "hike",
                 "actionOriginal": "hiking",
                 "activity": "Go hiking",
-                "activityScore": 0.9,
                 "category": "other",
                 "city": null,
                 "confidence": 0.9,
                 "country": null,
                 "funScore": 0.7,
                 "interestingScore": 0.5,
-                "isActivity": true,
                 "isCompound": false,
                 "isGeneric": true,
                 "messageId": 1,
@@ -508,7 +488,7 @@ describe('clusterActivities', () => {
       `)
     })
 
-    it('multiple clusters with filtering', () => {
+    it('multiple clusters sorted by instance count', () => {
       const activities = [
         // Cluster 1: Hiking (3 mentions)
         createDeterministicSuggestion(1, 'Go hiking', {
@@ -543,18 +523,10 @@ describe('clusterActivities', () => {
           timestamp: new Date('2025-02-01T10:00:00Z'),
           sender: 'Charlie',
           category: 'restaurant' as ActivityCategory
-        }),
-        // Filtered: Low activity score
-        createDeterministicSuggestion(5, 'Take out trash', {
-          action: 'dispose',
-          activityScore: 0.2,
-          category: 'errand' as ActivityCategory,
-          timestamp: new Date('2025-02-10T10:00:00Z'),
-          sender: 'Alice'
         })
       ]
 
-      const result = clusterActivities(activities, { minActivityScore: 0.5 })
+      const result = clusterActivities(activities)
 
       expect(result).toMatchInlineSnapshot(`
         {
@@ -572,14 +544,12 @@ describe('clusterActivities', () => {
                   "action": "hike",
                   "actionOriginal": null,
                   "activity": "Go hiking",
-                  "activityScore": 0.9,
                   "category": "other",
                   "city": "Queenstown",
                   "confidence": 0.95,
                   "country": "New Zealand",
                   "funScore": 0.7,
                   "interestingScore": 0.5,
-                  "isActivity": true,
                   "isCompound": false,
                   "isGeneric": true,
                   "messageId": 1,
@@ -595,14 +565,12 @@ describe('clusterActivities', () => {
                   "action": "hike",
                   "actionOriginal": null,
                   "activity": "Tramping trip",
-                  "activityScore": 0.9,
                   "category": "other",
                   "city": "Queenstown",
                   "confidence": 0.85,
                   "country": "New Zealand",
                   "funScore": 0.7,
                   "interestingScore": 0.5,
-                  "isActivity": true,
                   "isCompound": false,
                   "isGeneric": true,
                   "messageId": 2,
@@ -618,14 +586,12 @@ describe('clusterActivities', () => {
                   "action": "hike",
                   "actionOriginal": null,
                   "activity": "Hike the mountains",
-                  "activityScore": 0.9,
                   "category": "other",
                   "city": "Queenstown",
                   "confidence": 0.9,
                   "country": "New Zealand",
                   "funScore": 0.7,
                   "interestingScore": 0.5,
-                  "isActivity": true,
                   "isCompound": false,
                   "isGeneric": true,
                   "messageId": 3,
@@ -643,14 +609,12 @@ describe('clusterActivities', () => {
                 "action": "hike",
                 "actionOriginal": null,
                 "activity": "Go hiking",
-                "activityScore": 0.9,
                 "category": "other",
                 "city": "Queenstown",
                 "confidence": 0.95,
                 "country": "New Zealand",
                 "funScore": 0.7,
                 "interestingScore": 0.5,
-                "isActivity": true,
                 "isCompound": false,
                 "isGeneric": true,
                 "messageId": 1,
@@ -675,14 +639,12 @@ describe('clusterActivities', () => {
                   "action": "eat",
                   "actionOriginal": null,
                   "activity": "Try Kazuya",
-                  "activityScore": 0.9,
                   "category": "restaurant",
                   "city": "Auckland",
                   "confidence": 0.9,
                   "country": null,
                   "funScore": 0.7,
                   "interestingScore": 0.5,
-                  "isActivity": true,
                   "isCompound": false,
                   "isGeneric": true,
                   "messageId": 4,
@@ -700,14 +662,12 @@ describe('clusterActivities', () => {
                 "action": "eat",
                 "actionOriginal": null,
                 "activity": "Try Kazuya",
-                "activityScore": 0.9,
                 "category": "restaurant",
                 "city": "Auckland",
                 "confidence": 0.9,
                 "country": null,
                 "funScore": 0.7,
                 "interestingScore": 0.5,
-                "isActivity": true,
                 "isCompound": false,
                 "isGeneric": true,
                 "messageId": 4,
@@ -721,31 +681,7 @@ describe('clusterActivities', () => {
               },
             },
           ],
-          "filtered": [
-            {
-              "action": "dispose",
-              "actionOriginal": null,
-              "activity": "Take out trash",
-              "activityScore": 0.2,
-              "category": "errand",
-              "city": null,
-              "confidence": 0.9,
-              "country": null,
-              "funScore": 0.7,
-              "interestingScore": 0.5,
-              "isActivity": true,
-              "isCompound": false,
-              "isGeneric": true,
-              "messageId": 5,
-              "object": null,
-              "objectOriginal": null,
-              "originalMessage": "We should take out trash",
-              "region": null,
-              "sender": "Alice",
-              "timestamp": 2025-02-10T10:00:00.000Z,
-              "venue": null,
-            },
-          ],
+          "filtered": [],
         }
       `)
     })
@@ -799,14 +735,12 @@ describe('clusterActivities', () => {
                   "action": "hike",
                   "actionOriginal": null,
                   "activity": "Go hiking",
-                  "activityScore": 0.9,
                   "category": "other",
                   "city": null,
                   "confidence": 0.9,
                   "country": null,
                   "funScore": 0.7,
                   "interestingScore": 0.5,
-                  "isActivity": true,
                   "isCompound": false,
                   "isGeneric": true,
                   "messageId": 1,
@@ -822,14 +756,12 @@ describe('clusterActivities', () => {
                   "action": "hike",
                   "actionOriginal": null,
                   "activity": "Tramping",
-                  "activityScore": 0.9,
                   "category": "other",
                   "city": null,
                   "confidence": 0.9,
                   "country": null,
                   "funScore": 0.7,
                   "interestingScore": 0.5,
-                  "isActivity": true,
                   "isCompound": false,
                   "isGeneric": true,
                   "messageId": 2,
@@ -847,14 +779,12 @@ describe('clusterActivities', () => {
                 "action": "hike",
                 "actionOriginal": null,
                 "activity": "Go hiking",
-                "activityScore": 0.9,
                 "category": "other",
                 "city": null,
                 "confidence": 0.9,
                 "country": null,
                 "funScore": 0.7,
                 "interestingScore": 0.5,
-                "isActivity": true,
                 "isCompound": false,
                 "isGeneric": true,
                 "messageId": 1,
@@ -880,14 +810,12 @@ describe('clusterActivities', () => {
                   "action": "travel",
                   "actionOriginal": null,
                   "activity": "Trip to Iceland and see aurora",
-                  "activityScore": 0.9,
                   "category": "other",
                   "city": null,
                   "confidence": 0.9,
                   "country": null,
                   "funScore": 0.7,
                   "interestingScore": 0.5,
-                  "isActivity": true,
                   "isCompound": true,
                   "isGeneric": true,
                   "messageId": 3,
@@ -903,14 +831,12 @@ describe('clusterActivities', () => {
                   "action": "travel",
                   "actionOriginal": null,
                   "activity": "Trip to Iceland and see aurora",
-                  "activityScore": 0.9,
                   "category": "other",
                   "city": null,
                   "confidence": 0.9,
                   "country": null,
                   "funScore": 0.7,
                   "interestingScore": 0.5,
-                  "isActivity": true,
                   "isCompound": true,
                   "isGeneric": true,
                   "messageId": 4,
@@ -928,14 +854,12 @@ describe('clusterActivities', () => {
                 "action": "travel",
                 "actionOriginal": null,
                 "activity": "Trip to Iceland and see aurora",
-                "activityScore": 0.9,
                 "category": "other",
                 "city": null,
                 "confidence": 0.9,
                 "country": null,
                 "funScore": 0.7,
                 "interestingScore": 0.5,
-                "isActivity": true,
                 "isCompound": true,
                 "isGeneric": true,
                 "messageId": 3,

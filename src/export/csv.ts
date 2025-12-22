@@ -18,7 +18,6 @@ const CSV_COLUMNS = [
   'latitude',
   'longitude',
   'confidence',
-  'activity_score',
   'category',
   'google_maps_link',
   'status'
@@ -71,7 +70,6 @@ export function exportToCSV(suggestions: readonly GeocodedActivity[]): string {
       s.latitude ?? '',
       s.longitude ?? '',
       s.confidence.toFixed(2),
-      s.activityScore.toFixed(2),
       s.category,
       googleMapsLink(s.latitude, s.longitude),
       'pending' // status

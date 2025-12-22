@@ -4,53 +4,16 @@
  * Types for AI classification and aggregation.
  */
 
-export type ActivityCategory =
-  | 'restaurant'
-  | 'cafe'
-  | 'bar'
-  | 'hike'
-  | 'nature'
-  | 'beach'
-  | 'trip'
-  | 'hotel'
-  | 'event'
-  | 'concert'
-  | 'museum'
-  | 'entertainment'
-  | 'adventure'
-  | 'family'
-  | 'errand'
-  | 'appointment'
-  | 'other'
+export type { ActivityCategory } from '../classifier/categories'
+// Re-export from categories (source of truth)
+export { CATEGORY_EMOJI, VALID_CATEGORIES } from '../classifier/categories'
 
-/** Emoji for each activity category. */
-export const CATEGORY_EMOJI: Record<ActivityCategory, string> = {
-  restaurant: '🍽️',
-  cafe: '☕',
-  bar: '🍺',
-  hike: '🥾',
-  nature: '🌲',
-  beach: '🏖️',
-  trip: '✈️',
-  hotel: '🏨',
-  event: '🎉',
-  concert: '🎵',
-  museum: '🏛️',
-  entertainment: '🎬',
-  adventure: '🎢',
-  family: '👨‍👩‍👧',
-  errand: '📋',
-  appointment: '📅',
-  other: '📍'
-}
+import type { ActivityCategory } from '../classifier/categories'
 
 export interface ClassifiedActivity {
   readonly messageId: number
-  readonly isActivity: boolean
   /** Human-readable activity title */
   readonly activity: string
-  /** Is this an errand (0) or a fun activity (1)? Used for filtering out mundane tasks. */
-  readonly activityScore: number
   /** How fun/enjoyable is this activity? 0=boring, 1=exciting */
   readonly funScore: number
   /** How interesting/unique is this activity? 0=common/mundane, 1=rare/novel */
@@ -124,12 +87,6 @@ export interface BatchInfo {
   readonly provider: ClassifierProvider
 }
 
-export interface CacheCheckInfo {
-  readonly batchIndex: number
-  readonly cacheKey: string
-  readonly hit: boolean
-}
-
 export interface BatchCompleteInfo {
   readonly batchIndex: number
   readonly totalBatches: number
@@ -155,8 +112,6 @@ export interface ClassifierConfig {
   readonly onBatchStart?: (info: BatchInfo) => void
   /** Called after each batch completes. Use for progress logging. */
   readonly onBatchComplete?: (info: BatchCompleteInfo) => void
-  /** Called after cache check. Use for debug logging. */
-  readonly onCacheCheck?: (info: CacheCheckInfo) => void
 }
 
 /**
@@ -166,8 +121,6 @@ export interface ClassifierConfig {
 export interface ClassifierResponse {
   /** Message ID */
   readonly msg: number
-  /** Is this an activity? */
-  readonly is_act: boolean
   /** Human-readable activity title */
   readonly title: string | null
   /** Activity score (0.0 = errand, 1.0 = fun) */

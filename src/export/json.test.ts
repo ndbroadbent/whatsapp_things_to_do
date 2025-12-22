@@ -9,9 +9,8 @@ function createActivity(
 ): GeocodedActivity {
   return {
     messageId: id,
-    isActivity: true,
+
     activity,
-    activityScore: 0.8,
     funScore: 0.7,
     interestingScore: 0.5,
     category: category as GeocodedActivity['category'],
@@ -134,9 +133,8 @@ describe('JSON Export', () => {
     it('handles activities without coordinates', () => {
       const activity: GeocodedActivity = {
         messageId: 1,
-        isActivity: true,
+
         activity: 'No location',
-        activityScore: 0.8,
         funScore: 0.7,
         interestingScore: 0.5,
         category: 'other',
@@ -167,9 +165,8 @@ describe('JSON Export', () => {
       const withCoords = createActivity(1, 'With coords')
       const withoutCoords: GeocodedActivity = {
         messageId: 2,
-        isActivity: true,
+
         activity: 'Without coords',
-        activityScore: 0.8,
         funScore: 0.7,
         interestingScore: 0.5,
         category: 'other',
