@@ -79,20 +79,14 @@ function createProgram(): Command {
     .option('--dry-run', 'Show stats without API calls')
     .option('--debug', 'Print debug info')
 
-  // ============ VALIDATE ============
-  program
-    .command('validate')
-    .description('Validate a chat export: check format, count messages, list participants')
-    .argument('<input>', 'Chat export (.zip, directory, or .txt file)')
-    .option('-q, --quiet', 'Minimal output')
-    .option('-v, --verbose', 'Verbose output')
-
   // ============ PARSE ============
   program
     .command('parse')
-    .description('Parse a chat export file and show stats')
+    .description(
+      'Parse and validate a chat export: check format, count messages, list participants'
+    )
     .argument('<input>', 'Chat export (.zip, directory, or .txt file)')
-    .option('-o, --output <file>', 'Save parsed messages to JSON file')
+    .option('--json [file]', 'Output as JSON (to file if specified, otherwise stdout)')
     .option('-m, --max-messages <num>', 'Max messages to process')
     .option('-q, --quiet', 'Minimal output')
     .option('-v, --verbose', 'Verbose output')

@@ -142,27 +142,27 @@ describe('CLI Args', () => {
       expect(args.timezone).toBeUndefined()
     })
 
-    it('parses validate command with input', () => {
-      const args = parseArgs(['validate', 'chat.zip'], false)
-      expect(args.command).toBe('validate')
+    it('parses parse command with input', () => {
+      const args = parseArgs(['parse', 'chat.zip'], false)
+      expect(args.command).toBe('parse')
       expect(args.input).toBe('chat.zip')
     })
 
-    it('parses validate command with directory input', () => {
-      const args = parseArgs(['validate', './imessage-export/'], false)
-      expect(args.command).toBe('validate')
+    it('parses parse command with directory input', () => {
+      const args = parseArgs(['parse', './imessage-export/'], false)
+      expect(args.command).toBe('parse')
       expect(args.input).toBe('./imessage-export/')
     })
 
-    it('parses validate command with verbose flag', () => {
-      const args = parseArgs(['validate', 'chat.zip', '-v'], false)
-      expect(args.command).toBe('validate')
+    it('parses parse command with verbose flag', () => {
+      const args = parseArgs(['parse', 'chat.zip', '-v'], false)
+      expect(args.command).toBe('parse')
       expect(args.verbose).toBe(true)
     })
 
-    it('parses validate command with quiet flag', () => {
-      const args = parseArgs(['validate', 'chat.zip', '-q'], false)
-      expect(args.command).toBe('validate')
+    it('parses parse command with quiet flag', () => {
+      const args = parseArgs(['parse', 'chat.zip', '-q'], false)
+      expect(args.command).toBe('parse')
       expect(args.quiet).toBe(true)
     })
   })
