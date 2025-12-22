@@ -22,9 +22,9 @@ import { extractCandidatesByHeuristics } from './heuristics/index.js'
 // Re-export embeddings
 export {
   ACTIVITY_TYPE_QUERIES,
+  AGREEMENT_QUERIES,
   cosineSimilarity,
   DEFAULT_ACTIVITY_QUERIES,
-  DIRECT_SUGGESTION_QUERIES,
   embedMessages,
   embedQueries,
   extractCandidatesByEmbeddings,
@@ -35,7 +35,9 @@ export {
   getQueryEmbedding,
   getQueryEmbeddingsDimensions,
   getQueryEmbeddingsModel,
-  loadQueryEmbeddings
+  getQueryType,
+  loadQueryEmbeddings,
+  SUGGESTION_QUERIES
 } from './embeddings/index.js'
 // Re-export heuristics
 export {

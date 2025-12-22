@@ -33,7 +33,12 @@ function createCandidate(
 ): CandidateMessage {
   const source =
     sourceType === 'semantic'
-      ? { type: 'semantic' as const, similarity: confidence, query: 'test query' }
+      ? {
+          type: 'semantic' as const,
+          similarity: confidence,
+          query: 'test query',
+          queryType: 'suggestion' as const
+        }
       : sourceType === 'url'
         ? { type: 'url' as const, urlType: 'google_maps' as const }
         : { type: 'regex' as const, pattern: 'test_pattern' }

@@ -7,22 +7,21 @@
 
 import { generateClassifierCacheKey } from '../cache/key.js'
 import { DEFAULT_CACHE_TTL_SECONDS } from '../cache/types.js'
-import { emptyResponseError, handleHttpError, handleNetworkError, httpFetch } from '../http.js'
 import type {
   ActivityCategory,
   CandidateMessage,
   ClassifiedActivity,
   ClassifierConfig,
-  ClassifierProvider,
-  ProviderConfig,
   ResponseCache,
   Result
 } from '../types.js'
+import { DEFAULT_MODELS } from './models.js'
 import {
   buildClassificationPrompt,
   type ParsedClassification,
   parseClassificationResponse
 } from './prompt.js'
+import { callProviderWithFallbacks } from './providers.js'
 import { countTokens, MAX_BATCH_TOKENS } from './tokenizer.js'
 
 export {
@@ -30,6 +29,8 @@ export {
   createTokenAwareBatches,
   groupCandidatesByProximity
 } from './batching.js'
+export type { ResolvedModel } from './models.js'
+export { getRequiredApiKeyEnvVar, getValidModelIds, resolveModel } from './models.js'
 export {
   buildClassificationPrompt,
   type ClassificationContext,
@@ -37,63 +38,6 @@ export {
 } from './prompt.js'
 
 const DEFAULT_BATCH_SIZE = 10
-
-const DEFAULT_MODELS: Record<ClassifierProvider, string> = {
-  anthropic: 'claude-haiku-4-5',
-  openai: 'gpt-5-mini',
-  openrouter: 'google/gemini-2.5-flash'
-}
-
-/**
- * Model resolution result.
- */
-export interface ResolvedModel {
-  provider: ClassifierProvider
-  apiModel: string
-}
-
-/**
- * Model ID to provider/API model mapping.
- * Simple convention: model ID determines provider.
- */
-const MODEL_MAP: Record<string, ResolvedModel> = {
-  'gemini-2.5-flash': { provider: 'openrouter', apiModel: 'google/gemini-2.5-flash' },
-  'haiku-4.5': { provider: 'anthropic', apiModel: 'claude-haiku-4-5' },
-  'haiku-4.5-or': { provider: 'openrouter', apiModel: 'anthropic/claude-3-5-haiku-latest' },
-  'gpt-5-mini': { provider: 'openai', apiModel: 'gpt-5-mini' }
-}
-
-/**
- * Get all valid model IDs.
- */
-export function getValidModelIds(): string[] {
-  return Object.keys(MODEL_MAP)
-}
-
-/**
- * Resolve a simple model ID to provider and API model.
- * @param modelId Simple model ID (e.g., 'gemini-2.5-flash', 'haiku-4.5')
- * @returns Provider and API model, or null if unknown
- */
-export function resolveModel(modelId: string): ResolvedModel | null {
-  return MODEL_MAP[modelId] ?? null
-}
-
-/**
- * Get the required API key environment variable for a model.
- */
-export function getRequiredApiKeyEnvVar(modelId: string): string | null {
-  const resolved = resolveModel(modelId)
-  if (!resolved) return null
-  switch (resolved.provider) {
-    case 'openrouter':
-      return 'OPENROUTER_API_KEY'
-    case 'anthropic':
-      return 'ANTHROPIC_API_KEY'
-    case 'openai':
-      return 'OPENAI_API_KEY'
-  }
-}
 
 const VALID_CATEGORIES: readonly ActivityCategory[] = [
   'restaurant',
@@ -126,159 +70,8 @@ function normalizeCategory(category: string): ActivityCategory {
   return 'other'
 }
 
-interface AnthropicResponse {
-  content: Array<{ type: string; text: string }>
-  usage: { input_tokens: number; output_tokens: number }
-}
-
-interface OpenAIResponse {
-  choices: Array<{ message: { content: string } }>
-  usage: { prompt_tokens: number; completion_tokens: number }
-}
-
 /**
- * Call Anthropic Claude API for classification.
- */
-async function callAnthropic(prompt: string, config: ProviderConfig): Promise<Result<string>> {
-  const model = config.model ?? DEFAULT_MODELS.anthropic
-
-  try {
-    const response = await httpFetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': config.apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 16384,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    })
-
-    if (!response.ok) return handleHttpError(response)
-
-    const data = (await response.json()) as AnthropicResponse
-    const text = data.content[0]?.text
-    return text ? { ok: true, value: text } : emptyResponseError()
-  } catch (error) {
-    return handleNetworkError(error)
-  }
-}
-
-/**
- * Call OpenAI-compatible API (OpenAI or OpenRouter).
- */
-async function callOpenAICompatible(
-  url: string,
-  prompt: string,
-  config: ProviderConfig,
-  defaultModel: string
-): Promise<Result<string>> {
-  const model = config.model ?? defaultModel
-
-  try {
-    const response = await httpFetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.apiKey}` },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: 'user', content: prompt }],
-        max_completion_tokens: 16384
-      })
-    })
-
-    if (!response.ok) return handleHttpError(response)
-
-    const data = (await response.json()) as OpenAIResponse
-    const text = data.choices[0]?.message?.content
-    return text ? { ok: true, value: text } : emptyResponseError()
-  } catch (error) {
-    return handleNetworkError(error)
-  }
-}
-
-/**
- * Call a single AI provider.
- */
-async function callProvider(
-  prompt: string,
-  providerConfig: ProviderConfig
-): Promise<Result<string>> {
-  switch (providerConfig.provider) {
-    case 'anthropic':
-      return callAnthropic(prompt, providerConfig)
-    case 'openai':
-      return callOpenAICompatible(
-        'https://api.openai.com/v1/chat/completions',
-        prompt,
-        providerConfig,
-        DEFAULT_MODELS.openai
-      )
-    case 'openrouter':
-      return callOpenAICompatible(
-        'https://openrouter.ai/api/v1/chat/completions',
-        prompt,
-        providerConfig,
-        DEFAULT_MODELS.openrouter
-      )
-    default:
-      return {
-        ok: false,
-        error: { type: 'invalid_response', message: `Unknown provider: ${providerConfig.provider}` }
-      }
-  }
-}
-
-/**
- * Call provider with automatic fallback on rate limit errors.
- * Tries the primary provider first, then each fallback in order.
- */
-async function callProviderWithFallbacks(
-  prompt: string,
-  config: ClassifierConfig
-): Promise<Result<string>> {
-  const primaryConfig: ProviderConfig = {
-    provider: config.provider,
-    apiKey: config.apiKey,
-    ...(config.model !== undefined && { model: config.model })
-  }
-
-  const result = await callProvider(prompt, primaryConfig)
-
-  // If successful or not a rate limit error, return immediately
-  if (result.ok || result.error.type !== 'rate_limit') {
-    return result
-  }
-
-  // No fallbacks configured
-  if (!config.fallbackProviders || config.fallbackProviders.length === 0) {
-    return result
-  }
-
-  // Try each fallback provider in order
-  for (const fallbackConfig of config.fallbackProviders) {
-    const fallbackResult = await callProvider(prompt, fallbackConfig)
-
-    // If successful or not a rate limit error, return
-    if (fallbackResult.ok || fallbackResult.error.type !== 'rate_limit') {
-      return fallbackResult
-    }
-  }
-
-  // All providers rate limited - return the original error
-  return {
-    ok: false,
-    error: {
-      type: 'rate_limit',
-      message: 'All providers rate limited (primary and fallbacks)'
-    }
-  }
-}
-
-/**
- * Convert a parsed classification to a classified suggestion.
+ * Convert a parsed classification to a classified activity.
  */
 function toClassifiedActivity(
   response: ParsedClassification,
@@ -289,6 +82,8 @@ function toClassifiedActivity(
     isActivity: response.is_act,
     activity: response.title ?? candidate.content.slice(0, 100),
     activityScore: response.score,
+    funScore: response.fun,
+    interestingScore: response.int,
     category: normalizeCategory(response.cat),
     confidence: response.conf,
     originalMessage: candidate.content,
@@ -351,7 +146,7 @@ async function classifyBatch(
         ok: false,
         error: {
           type: 'invalid_request',
-          message: `Batch too large: ${tokenCount} tokens exceeds limit of ${MAX_BATCH_TOKENS}. Reduce batch size.`
+          message: `Batch too large: ${tokenCount} tokens exceeds limit of ${MAX_BATCH_TOKENS}.`
         }
       },
       cacheHit: false,

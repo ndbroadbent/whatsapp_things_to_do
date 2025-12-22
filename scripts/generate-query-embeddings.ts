@@ -12,7 +12,8 @@ import { gzipSync } from 'node:zlib'
 
 // Load queries
 import activityTypes from '../src/extraction/embeddings/queries/activity-types.json'
-import directSuggestions from '../src/extraction/embeddings/queries/direct-suggestions.json'
+import agreementQueries from '../src/extraction/embeddings/queries/agreement.json'
+import suggestionQueries from '../src/extraction/embeddings/queries/suggestions.json'
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 if (!OPENAI_API_KEY) {
@@ -60,9 +61,10 @@ async function main() {
 
   // Flatten all queries
   const allActivityTypes = Object.values(activityTypes).flat()
-  const allQueries = [...directSuggestions, ...allActivityTypes]
-  
-  console.log(`Direct suggestions: ${directSuggestions.length}`)
+  const allQueries = [...suggestionQueries, ...agreementQueries, ...allActivityTypes]
+
+  console.log(`Suggestion queries: ${suggestionQueries.length}`)
+  console.log(`Agreement queries: ${agreementQueries.length}`)
   console.log(`Activity types: ${allActivityTypes.length}`)
   console.log(`Total queries: ${allQueries.length}\n`)
 

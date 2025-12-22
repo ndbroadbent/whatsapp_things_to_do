@@ -51,10 +51,10 @@ export {
   ACTIVITY_PATTERNS,
   ACTIVITY_TYPE_QUERIES,
   type ActivityLinkOptions,
+  AGREEMENT_QUERIES,
   classifyUrl,
   cosineSimilarity,
   DEFAULT_ACTIVITY_QUERIES,
-  DIRECT_SUGGESTION_QUERIES,
   EXCLUSION_PATTERNS,
   embedMessages,
   embedQueries,
@@ -70,9 +70,11 @@ export {
   getQueryEmbedding,
   getQueryEmbeddingsDimensions,
   getQueryEmbeddingsModel,
+  getQueryType,
   isActivityUrl,
   isSocialUrl,
-  loadQueryEmbeddings
+  loadQueryEmbeddings,
+  SUGGESTION_QUERIES
 } from './extraction/index.js'
 
 // Geocoder module

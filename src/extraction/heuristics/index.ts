@@ -12,6 +12,7 @@ import type {
   ExtractorResult,
   ParsedMessage
 } from '../../types.js'
+import { HIGH_SIGNAL_KEYWORDS } from './activity-links.js'
 import {
   ACTIVITY_KEYWORDS,
   ACTIVITY_PATTERNS,
@@ -20,7 +21,14 @@ import {
 } from './patterns.js'
 import { classifyUrl, isActivityUrl, isSocialUrl } from './url-classifier.js'
 
-export { type ActivityLinkOptions, extractActivityLinks } from './activity-links.js'
+export {
+  type ActivityLinkOptions,
+  AGREEMENT_KEYWORDS,
+  EXCLAMATION_KEYWORDS,
+  extractActivityLinks,
+  HIGH_SIGNAL_KEYWORDS,
+  SUGGESTION_KEYWORDS
+} from './activity-links.js'
 export { ACTIVITY_KEYWORDS, ACTIVITY_PATTERNS, EXCLUSION_PATTERNS } from './patterns.js'
 export {
   classifyUrl,
@@ -57,21 +65,11 @@ function shouldExclude(content: string, additionalExclusions?: readonly RegExp[]
 
 /**
  * Check if content contains activity-like phrases (for URL boost).
+ * Uses the shared HIGH_SIGNAL_KEYWORDS from activity-links.ts.
  */
 function hasActivityPhrase(content: string): boolean {
-  const phrases = [
-    "let's go",
-    'we should',
-    'wanna go',
-    'want to go',
-    'should we',
-    'check this out',
-    'look at this',
-    'this looks',
-    'bucket list'
-  ]
   const contentLower = content.toLowerCase()
-  return phrases.some((phrase) => contentLower.includes(phrase))
+  return HIGH_SIGNAL_KEYWORDS.some((phrase) => contentLower.includes(phrase))
 }
 
 const MIN_CONTEXT_CHARS = 280

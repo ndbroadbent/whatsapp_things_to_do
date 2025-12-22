@@ -14,13 +14,15 @@ import type {
   EmbeddedMessage,
   EmbeddingConfig,
   ParsedMessage,
+  QueryType,
   ResponseCache,
   Result,
   SemanticSearchConfig
 } from '../../types.js'
 import { findTopK } from './cosine-similarity.js'
 import activityTypes from './queries/activity-types.json' with { type: 'json' }
-import directSuggestions from './queries/direct-suggestions.json' with { type: 'json' }
+import agreementQueries from './queries/agreement.json' with { type: 'json' }
+import suggestionQueries from './queries/suggestions.json' with { type: 'json' }
 import { getDefaultQueryEmbeddings } from './query-embeddings.js'
 
 export { cosineSimilarity, findTopK } from './cosine-similarity.js'
@@ -39,25 +41,29 @@ const DEFAULT_CONCURRENCY = 10
 const MAX_OPENAI_BATCH_SIZE = 2048
 const DEFAULT_MIN_SIMILARITY = 0.4
 
-/**
- * Direct suggestion queries - phrases indicating intent to do something.
- */
-export const DIRECT_SUGGESTION_QUERIES: readonly string[] = directSuggestions
+/** Suggestion queries - phrases indicating direct intent to do something. */
+export const SUGGESTION_QUERIES: readonly string[] = suggestionQueries
 
-/**
- * Activity type queries - short keywords for different activity categories.
- * Flattened from categorized JSON for embedding.
- */
+/** Agreement queries - phrases indicating interest/agreement with a suggestion. */
+export const AGREEMENT_QUERIES: readonly string[] = agreementQueries
+
+/** Activity type queries - short keywords for different activity categories. */
 export const ACTIVITY_TYPE_QUERIES: readonly string[] = Object.values(activityTypes).flat()
 
-/**
- * All default activity queries for semantic search.
- * Combined from direct suggestions and activity types.
- */
+/** All default activity queries for semantic search. */
 export const DEFAULT_ACTIVITY_QUERIES: readonly string[] = [
-  ...DIRECT_SUGGESTION_QUERIES,
+  ...SUGGESTION_QUERIES,
+  ...AGREEMENT_QUERIES,
   ...ACTIVITY_TYPE_QUERIES
 ]
+
+/** Get the query type for a given query string. */
+export function getQueryType(query: string): QueryType {
+  if (AGREEMENT_QUERIES.includes(query)) {
+    return 'agreement'
+  }
+  return 'suggestion'
+}
 
 interface OpenAIEmbeddingResponse {
   data: Array<{
@@ -312,7 +318,8 @@ export function findSemanticCandidates(
     const source: CandidateSource = {
       type: 'semantic',
       similarity,
-      query
+      query,
+      queryType: getQueryType(query)
     }
 
     candidates.push({
@@ -321,7 +328,7 @@ export function findSemanticCandidates(
       sender: msg.sender,
       timestamp: msg.timestamp,
       source,
-      confidence: similarity, // Use similarity as confidence
+      confidence: similarity,
       urls: msg.urls
     })
   }

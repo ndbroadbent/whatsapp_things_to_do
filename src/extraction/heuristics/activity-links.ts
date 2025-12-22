@@ -23,71 +23,128 @@ import { classifyUrl } from './url-classifier.js'
 // ============================================================================
 
 /**
- * High-signal keywords that indicate activity intent.
- * Organized by signal strength.
+ * Exclamation keywords - single-word positive reactions.
+ * These are risky for false positives but high signal when near a URL.
  */
-const HIGH_SIGNAL_KEYWORDS: readonly string[] = [
-  'go',
-  'try',
-  'visit',
-  'check out',
-  'this place',
-  'looks fun',
-  'next time',
-  'we should',
-  "let's",
-  'want to',
-  'wanna',
-  'bucket list',
-  'must visit',
-  'have to go',
-  'so good',
+export const EXCLAMATION_KEYWORDS: readonly string[] = [
   'amazing',
-  'incredible',
+  'awesome',
   'beautiful',
-  'looks cool',
-  'looks nice',
-  'looks great',
-  'should we'
+  'delicious',
+  'incredible'
 ]
 
 /**
- * High-signal emojis that indicate activity intent.
- * These suggest enthusiasm about a place, activity, or event.
+ * Agreement keywords - positive reactions indicating interest in shared content.
+ * All phrases are 2+ words to avoid false positives.
  */
-const HIGH_SIGNAL_EMOJIS: readonly string[] = [
-  '\u{1F525}', // fire
-  '\u{1F60D}', // heart eyes
-  '\u{1F929}', // star eyes
-  '\u{1F924}', // drooling
-  '\u{1F3C3}', // running
-  '\u{2708}\uFE0F', // airplane
-  '\u{1F389}', // party popper
-  '\u{1F3D6}\uFE0F', // beach
-  '\u{26F7}\uFE0F', // skier
-  '\u{1F30D}', // globe
-  '\u{1F30E}', // globe americas
-  '\u{1F30F}', // globe asia
-  '\u{1F3DE}\uFE0F', // national park
-  '\u{26F0}\uFE0F', // mountain
-  '\u{1F3D4}\uFE0F', // snow mountain
-  '\u{1F334}', // palm tree
-  '\u{1F4CD}', // pin
-  '\u{1F4CC}', // pushpin
-  '\u{1F37D}\uFE0F', // fork and knife
-  '\u{1F374}', // fork and knife 2
-  '\u{2615}', // coffee
-  '\u{1F37A}', // beer
-  '\u{1F377}', // wine
-  '\u{1F4AF}', // 100
-  '\u{1F64C}', // raised hands
-  '\u{1F44D}', // thumbs up
-  '\u{2764}\uFE0F', // red heart
-  '\u{1F499}', // blue heart
-  '\u{1F49C}', // purple heart
-  '\u{2728}', // sparkles
-  '\u{1F31F}' // glowing star
+export const AGREEMENT_KEYWORDS: readonly string[] = [
+  'looks fun',
+  'looks good',
+  'looks great',
+  'looks cool',
+  'looks nice',
+  'sounds fun',
+  'sounds good',
+  'sounds great',
+  'so good',
+  'so cool',
+  "i'm keen",
+  "i'm down",
+  "let's book",
+  "let's do it"
 ]
+
+/**
+ * Suggestion keywords - indicate intent to do an activity.
+ * All phrases are 2+ words to avoid false positives.
+ */
+export const SUGGESTION_KEYWORDS: readonly string[] = [
+  'we should',
+  'should we',
+  "let's go",
+  "let's try",
+  "let's visit",
+  "let's check",
+  'want to go',
+  'want to try',
+  'want to visit',
+  'wanna go',
+  'wanna try',
+  'wanna visit',
+  'have to go',
+  'have to try',
+  'have to visit',
+  'need to go',
+  'need to try',
+  'gotta try',
+  'gotta go',
+  'must visit',
+  'must try',
+  'check this out',
+  'check it out',
+  'this place',
+  'this spot',
+  'next time',
+  'bucket list',
+  'on my list',
+  'adding to list'
+]
+
+/** All high-signal keywords (exclamation + agreement + suggestion). */
+export const HIGH_SIGNAL_KEYWORDS: readonly string[] = [
+  ...EXCLAMATION_KEYWORDS,
+  ...AGREEMENT_KEYWORDS,
+  ...SUGGESTION_KEYWORDS
+]
+
+/**
+ * Agreement emojis - positive reactions indicating interest in shared content.
+ * These are typically responses to someone sharing a link or suggestion.
+ */
+const AGREEMENT_EMOJIS: readonly string[] = [
+  '\u{1F525}', // fire 🔥
+  '\u{1F60D}', // heart eyes 😍
+  '\u{1F929}', // star eyes 🤩
+  '\u{1F924}', // drooling 🤤
+  '\u{1F4AF}', // 100 💯
+  '\u{1F64C}', // raised hands 🙌
+  '\u{1F44D}', // thumbs up 👍
+  '\u{2764}\uFE0F', // red heart ❤️
+  '\u{1F499}', // blue heart 💙
+  '\u{1F49C}', // purple heart 💜
+  '\u{2728}', // sparkles ✨
+  '\u{1F31F}' // glowing star 🌟
+]
+
+/**
+ * Suggestion emojis - indicate activity type being discussed.
+ * These suggest what kind of place, activity, or event is being shared.
+ */
+const SUGGESTION_EMOJIS: readonly string[] = [
+  '\u{1F3C3}', // running 🏃
+  '\u{2708}\uFE0F', // airplane ✈️
+  '\u{1F389}', // party popper 🎉
+  '\u{1F3D6}\uFE0F', // beach 🏖️
+  '\u{26F7}\uFE0F', // skier ⛷️
+  '\u{1F30D}', // globe 🌍
+  '\u{1F30E}', // globe americas 🌎
+  '\u{1F30F}', // globe asia 🌏
+  '\u{1F3DE}\uFE0F', // national park 🏞️
+  '\u{26F0}\uFE0F', // mountain ⛰️
+  '\u{1F3D4}\uFE0F', // snow mountain 🏔️
+  '\u{1F334}', // palm tree 🌴
+  '\u{1F4CD}', // pin 📍
+  '\u{1F4CC}', // pushpin 📌
+  '\u{1F37D}\uFE0F', // fork and knife 🍽️
+  '\u{1F374}', // fork and knife 2 🍴
+  '\u{2615}', // coffee ☕
+  '\u{1F37A}', // beer 🍺
+  '\u{1F377}' // wine 🍷
+]
+
+/** All high-signal emojis (agreement + suggestion). */
+const HIGH_SIGNAL_EMOJIS: readonly string[] = [...AGREEMENT_EMOJIS, ...SUGGESTION_EMOJIS]
 
 /**
  * Emoji patterns for regex matching (some emojis have multiple representations).

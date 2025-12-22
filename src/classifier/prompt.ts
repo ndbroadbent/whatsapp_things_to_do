@@ -121,7 +121,9 @@ Respond with JSON array (short keys to save tokens):
     "msg": <message_id>,
     "is_act": true/false,
     "title": "<human-readable activity description, under 100 chars>",
-    "score": <0.0=errand to 1.0=fun>,
+    "score": <0.0=errand/chore, 1.0=fun activity - used to filter out mundane tasks>,
+    "fun": <0.0-1.0 how fun/enjoyable? 0=boring, 1=exciting>,
+    "int": <0.0-1.0 how interesting/unique? 0=common, 1=rare/novel>,
     "cat": "<category>",
     "conf": <0.0-1.0 confidence>,
     "gen": <true if generic activity, no specific name/URL>,
@@ -152,7 +154,12 @@ export interface ParsedClassification {
   msg: number
   is_act: boolean
   title: string | null
+  /** Is this an errand (0) or a fun activity (1)? */
   score: number
+  /** How fun/enjoyable is this activity? 0=boring, 1=exciting */
+  fun: number
+  /** How interesting/unique is this activity? 0=common/mundane, 1=rare/novel */
+  int: number
   cat: string
   conf: number
   gen: boolean
@@ -213,6 +220,8 @@ function parseItem(obj: Record<string, unknown>): ParsedClassification {
     is_act: parseBoolean(obj.is_act, false),
     title: parseString(obj.title),
     score: parseNumber(obj.score, 0.5),
+    fun: parseNumber(obj.fun, 0.5),
+    int: parseNumber(obj.int, 0.5),
     cat: typeof obj.cat === 'string' ? obj.cat : 'other',
     conf: parseNumber(obj.conf, 0.5),
     gen: parseBoolean(obj.gen, true),

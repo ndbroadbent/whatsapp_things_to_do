@@ -49,7 +49,12 @@ export interface ClassifiedActivity {
   readonly isActivity: boolean
   /** Human-readable activity title */
   readonly activity: string
+  /** Is this an errand (0) or a fun activity (1)? Used for filtering out mundane tasks. */
   readonly activityScore: number
+  /** How fun/enjoyable is this activity? 0=boring, 1=exciting */
+  readonly funScore: number
+  /** How interesting/unique is this activity? 0=common/mundane, 1=rare/novel */
+  readonly interestingScore: number
   readonly category: ActivityCategory
   readonly confidence: number
   readonly originalMessage: string

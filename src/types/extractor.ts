@@ -6,10 +6,18 @@
 
 import type { UrlType } from './parser.js'
 
+/** Query type for semantic matches. */
+export type QueryType = 'suggestion' | 'agreement'
+
 export type CandidateSource =
   | { readonly type: 'regex'; readonly pattern: string }
   | { readonly type: 'url'; readonly urlType: UrlType }
-  | { readonly type: 'semantic'; readonly similarity: number; readonly query: string }
+  | {
+      readonly type: 'semantic'
+      readonly similarity: number
+      readonly query: string
+      readonly queryType: QueryType
+    }
 
 export interface CandidateMessage {
   readonly messageId: number

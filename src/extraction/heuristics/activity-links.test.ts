@@ -205,7 +205,8 @@ describe('extractActivityLinks', () => {
       const intent = link.intent
 
       expect(intent.keywords.length).toBeGreaterThan(0)
-      expect(intent.keywords).toContain('try')
+      expect(intent.keywords).toContain("let's go")
+      expect(intent.keywords).toContain('next time')
       expect(intent.score).toBeGreaterThan(0.2)
     })
 

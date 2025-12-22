@@ -22,6 +22,8 @@ export function createActivity(
   return {
     isActivity: true,
     activityScore: 0.8,
+    funScore: 0.7,
+    interestingScore: 0.5,
     category: 'other' as ActivityCategory,
     confidence: 0.9,
     originalMessage: overrides.activity,

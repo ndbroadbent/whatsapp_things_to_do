@@ -179,7 +179,7 @@ describe('readInputFileWithCache', () => {
     const filePath = join(TEST_DIR, 'chat.txt')
     await writeFile(filePath, 'Hello World')
 
-    const result = await readInputFileWithCache(filePath)
+    const result = await readInputFileWithCache(filePath, { cacheDir: TEST_CACHE_DIR })
 
     expect(result.content).toBe('Hello World')
     expect(result.fromCache).toBe(false)
@@ -233,7 +233,9 @@ describe('readInputFileWithCache', () => {
     const filePath = join(TEST_DIR, 'bad.zip')
     await writeFile(filePath, zipContent)
 
-    await expect(readInputFileWithCache(filePath)).rejects.toThrow('No chat file found')
+    await expect(readInputFileWithCache(filePath, { cacheDir: TEST_CACHE_DIR })).rejects.toThrow(
+      'No chat file found'
+    )
   })
 
   it('finds .txt files in zip', async () => {
@@ -245,7 +247,7 @@ describe('readInputFileWithCache', () => {
     const filePath = join(TEST_DIR, 'whatsapp.zip')
     await writeFile(filePath, zipContent)
 
-    const result = await readInputFileWithCache(filePath)
+    const result = await readInputFileWithCache(filePath, { cacheDir: TEST_CACHE_DIR })
     expect(result.content).toBe('Chat content')
   })
 })

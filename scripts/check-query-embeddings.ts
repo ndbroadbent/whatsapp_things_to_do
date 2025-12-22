@@ -11,7 +11,8 @@ import { join } from 'node:path'
 import { gunzipSync } from 'node:zlib'
 
 import activityTypes from '../src/extraction/embeddings/queries/activity-types.json'
-import directSuggestions from '../src/extraction/embeddings/queries/direct-suggestions.json'
+import agreementQueries from '../src/extraction/embeddings/queries/agreement.json'
+import suggestionQueries from '../src/extraction/embeddings/queries/suggestions.json'
 
 // Load compressed embeddings
 const embeddingsPath = join(import.meta.dir, '../src/extraction/embeddings/queries/query-embeddings.json.gz')
@@ -21,7 +22,7 @@ const queryEmbeddings = JSON.parse(jsonData) as { queries: Array<{ text: string 
 
 // Get all queries from source files
 const allActivityTypes = Object.values(activityTypes).flat()
-const allQueries = new Set([...directSuggestions, ...allActivityTypes])
+const allQueries = new Set([...suggestionQueries, ...agreementQueries, ...allActivityTypes])
 
 // Get queries that have embeddings
 const embeddedQueries = new Set(queryEmbeddings.queries.map((q) => q.text))
