@@ -146,9 +146,23 @@ const LOWER_CONFIDENCE_PATTERNS: readonly ActivityPattern[] = [
   },
   {
     name: 'looks_fun',
-    pattern: /\blooks? (?:fun|amazing|awesome|incredible|beautiful|great|good)\b/i,
+    pattern: /\b(?:looks?|sounds?) (?:fun|amazing|awesome|incredible|beautiful|great|good)\b/i,
     confidence: 0.5,
-    description: 'Looks fun/amazing...',
+    description: 'Looks/sounds fun/amazing...',
+    candidateType: 'agreement'
+  },
+  {
+    name: 'im_keen',
+    pattern: /\b(?:i'?m|we'?re|i'?d be|we'?d be) (?:keen|down)\b/i,
+    confidence: 0.5,
+    description: "I'm keen/down",
+    candidateType: 'agreement'
+  },
+  {
+    name: 'lets_book',
+    pattern: /\blet'?s book (?:it|that|this)\b/i,
+    confidence: 0.5,
+    description: "Let's book it",
     candidateType: 'agreement'
   },
   {
