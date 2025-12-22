@@ -36,28 +36,19 @@ const EMBEDDING_COST_PER_MILLION_TOKENS = 0.13
 
 function createEmbeddingCallbacks(logger: Logger) {
   return {
-    onBatchStart: (info: {
-      phase: string
-      batchIndex: number
-      totalBatches: number
-      itemsInBatch: number
-    }) => {
-      if (info.phase === 'messages') {
-        logger.log(
-          `   [${info.batchIndex + 1}/${info.totalBatches}] Embedding ${info.itemsInBatch} messages...`
-        )
-      }
-    },
     onBatchComplete: (info: {
       phase: string
       batchIndex: number
       totalBatches: number
+      itemsInBatch: number
       cacheHit: boolean
       durationMs: number
     }) => {
-      if (info.phase === 'messages') {
-        const status = info.cacheHit ? '📦 cached' : `✓ ${info.durationMs}ms`
-        logger.log(`   [${info.batchIndex + 1}/${info.totalBatches}] ${status}`)
+      // Only log non-cached requests to reduce noise
+      if (info.phase === 'messages' && !info.cacheHit) {
+        logger.log(
+          `   [${info.batchIndex + 1}/${info.totalBatches}] Embedded ${info.itemsInBatch} messages (${info.durationMs}ms)`
+        )
       }
     }
   }
