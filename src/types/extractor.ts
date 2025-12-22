@@ -37,6 +37,18 @@ export interface ExtractorOptions {
   readonly includeUrlBased?: boolean
   readonly additionalPatterns?: readonly RegExp[]
   readonly additionalExclusions?: readonly RegExp[]
+  /**
+   * Skip agreement deduplication. Used by extractCandidates() when calling
+   * child extractors, since it deduplicates the merged result itself.
+   */
+  readonly skipAgreementDeduplication?: boolean
+  /**
+   * Proximity range for agreement deduplication.
+   * If an agreement candidate is within this many messages of a suggestion,
+   * the agreement is dropped (the suggestion contains the activity details).
+   * Default: 5
+   */
+  readonly agreementProximity?: number
 }
 
 export interface ExtractorResult {
@@ -44,6 +56,8 @@ export interface ExtractorResult {
   readonly regexMatches: number
   readonly urlMatches: number
   readonly totalUnique: number
+  /** Number of agreement candidates removed due to overlap with suggestions. */
+  readonly agreementsRemoved?: number
 }
 
 /** Inferred type for an activity link based on context analysis. */

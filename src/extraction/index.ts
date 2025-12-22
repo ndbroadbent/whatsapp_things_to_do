@@ -19,12 +19,12 @@ import type {
   Result,
   SemanticSearchConfig
 } from '../types.js'
+import { deduplicateAgreements } from './context-window.js'
 import { extractCandidatesByEmbeddings } from './embeddings/index.js'
 import { extractCandidatesByHeuristics } from './heuristics/index.js'
 
-/** Default proximity range for agreement deduplication. */
-const DEFAULT_AGREEMENT_PROXIMITY = 5
-
+// Re-export from context-window
+export { deduplicateAgreements } from './context-window.js'
 // Re-export embeddings
 export {
   ACTIVITY_TYPE_QUERIES,
@@ -66,60 +66,6 @@ export interface ExtractCandidatesConfig {
     search?: SemanticSearchConfig
   }
   cache?: ResponseCache
-  /**
-   * Proximity range for agreement deduplication.
-   * If an agreement candidate is within this many messages of a suggestion,
-   * the agreement is dropped (the suggestion contains the activity details).
-   * Set to 0 to disable deduplication.
-   * Default: 5
-   */
-  agreementProximity?: number
-}
-
-/**
- * Deduplicate agreement candidates that overlap with nearby suggestions.
- *
- * Agreement patterns (like "sounds great!", "I'm keen") are responses to prior suggestions.
- * When both appear as candidates, we prefer the suggestion since it contains the activity.
- *
- * @param candidates All candidates (mixed suggestions and agreements)
- * @param proximity Maximum message ID distance for overlap detection
- * @returns Deduplicated candidates with agreement count
- */
-export function deduplicateAgreements(
-  candidates: readonly CandidateMessage[],
-  proximity: number
-): { candidates: CandidateMessage[]; removedCount: number } {
-  if (proximity <= 0) {
-    return { candidates: [...candidates], removedCount: 0 }
-  }
-
-  // Separate suggestions and agreements
-  const suggestions = candidates.filter((c) => c.candidateType === 'suggestion')
-  const agreements = candidates.filter((c) => c.candidateType === 'agreement')
-
-  // Filter agreements: keep only those NOT within proximity of any suggestion
-  const keptAgreements: CandidateMessage[] = []
-  let removedCount = 0
-
-  for (const agreement of agreements) {
-    const hasNearbySuggestion = suggestions.some(
-      (s) => Math.abs(s.messageId - agreement.messageId) <= proximity
-    )
-
-    if (hasNearbySuggestion) {
-      // Agreement is near a suggestion - drop it (suggestion has the activity details)
-      removedCount++
-    } else {
-      // Standalone agreement - keep it (might reference something further back)
-      keptAgreements.push(agreement)
-    }
-  }
-
-  // Merge and sort by confidence
-  const result = [...suggestions, ...keptAgreements].sort((a, b) => b.confidence - a.confidence)
-
-  return { candidates: result, removedCount }
 }
 
 export interface ExtractCandidatesResult extends ExtractorResult {
@@ -136,22 +82,26 @@ export interface ExtractCandidatesResult extends ExtractorResult {
  * Falls back to heuristics-only when embeddings unavailable.
  *
  * Applies agreement deduplication to remove agreement candidates that
- * overlap with nearby suggestions (configurable via agreementProximity).
+ * fall within suggestion context windows.
  */
 export async function extractCandidates(
   messages: readonly ParsedMessage[],
   config?: ExtractCandidatesConfig
 ): Promise<Result<ExtractCandidatesResult>> {
-  const proximity = config?.agreementProximity ?? DEFAULT_AGREEMENT_PROXIMITY
+  // Tell children to skip deduplication - we'll do it after merging
+  const heuristicsOptions: ExtractorOptions = {
+    ...config?.heuristics,
+    skipAgreementDeduplication: true
+  }
 
   // Always run heuristics (fast, free)
-  const heuristicsResult = extractCandidatesByHeuristics(messages, config?.heuristics)
+  const heuristicsResult = extractCandidatesByHeuristics(messages, heuristicsOptions)
 
   // If no embeddings config, apply deduplication and return heuristics only
   if (!config?.embeddings) {
     const { candidates, removedCount } = deduplicateAgreements(
       heuristicsResult.candidates,
-      proximity
+      messages
     )
     return {
       ok: true,
@@ -165,7 +115,7 @@ export async function extractCandidates(
     }
   }
 
-  // Run embeddings extraction
+  // Run embeddings extraction (TODO: add skipAgreementDeduplication support)
   const embeddingsResult = await extractCandidatesByEmbeddings(
     messages,
     config.embeddings.config,
@@ -195,8 +145,8 @@ export async function extractCandidates(
 
   const mergedCandidates = [...candidateMap.values()]
 
-  // Apply agreement deduplication
-  const { candidates, removedCount } = deduplicateAgreements(mergedCandidates, proximity)
+  // Apply agreement deduplication on merged results
+  const { candidates, removedCount } = deduplicateAgreements(mergedCandidates, messages)
 
   return {
     ok: true,

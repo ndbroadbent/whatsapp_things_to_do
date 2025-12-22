@@ -13,6 +13,7 @@ import type {
   ParsedMessage,
   QueryType
 } from '../../types.js'
+import { buildContextString, deduplicateAgreements, getMessageContext } from '../context-window.js'
 import { HIGH_SIGNAL_KEYWORDS } from './activity-links.js'
 import {
   ACTIVITY_KEYWORDS,
@@ -71,88 +72,6 @@ function shouldExclude(content: string, additionalExclusions?: readonly RegExp[]
 function hasActivityPhrase(content: string): boolean {
   const contentLower = content.toLowerCase()
   return HIGH_SIGNAL_KEYWORDS.some((phrase) => contentLower.includes(phrase))
-}
-
-const MIN_CONTEXT_CHARS = 280
-const MIN_CONTEXT_MESSAGES = 2
-const MAX_MESSAGE_CHARS = 280
-const TRUNCATION_MARKER = ' [truncated to 280 chars]'
-
-interface MessageContext {
-  before: string
-  after: string
-}
-
-/**
- * Truncate a message line to max chars with marker.
- */
-function truncateMessage(line: string): string {
-  if (line.length <= MAX_MESSAGE_CHARS) return line
-  return line.slice(0, MAX_MESSAGE_CHARS) + TRUNCATION_MARKER
-}
-
-/**
- * Get context around a message.
- *
- * Rules:
- * - Minimum 280 chars before and 280 chars after
- * - Minimum 2 messages on each side
- * - Each message truncated to max 280 chars with "[truncated to 280 chars]" suffix
- * - For prior context: snap to message boundaries, then truncate
- */
-function getMessageContext(messages: readonly ParsedMessage[], index: number): MessageContext {
-  const beforeMessages: string[] = []
-  const afterMessages: string[] = []
-  let beforeChars = 0
-  let afterChars = 0
-
-  // Get messages before: minimum 2 messages OR 280 chars (whichever comes later)
-  for (let i = index - 1; i >= 0; i--) {
-    const msg = messages[i]
-    if (!msg) continue
-    const rawLine = `${msg.sender}: ${msg.content}`
-    const line = truncateMessage(rawLine)
-
-    beforeMessages.unshift(line)
-    beforeChars += line.length
-
-    // Stop when we have both minimums met
-    if (beforeMessages.length >= MIN_CONTEXT_MESSAGES && beforeChars >= MIN_CONTEXT_CHARS) {
-      break
-    }
-  }
-
-  // Get messages after: minimum 2 messages OR 280 chars (whichever comes later)
-  for (let i = index + 1; i < messages.length; i++) {
-    const msg = messages[i]
-    if (!msg) continue
-    const rawLine = `${msg.sender}: ${msg.content}`
-    const line = truncateMessage(rawLine)
-
-    afterMessages.push(line)
-    afterChars += line.length
-
-    // Stop when we have both minimums met
-    if (afterMessages.length >= MIN_CONTEXT_MESSAGES && afterChars >= MIN_CONTEXT_CHARS) {
-      break
-    }
-  }
-
-  return {
-    before: beforeMessages.join('\n'),
-    after: afterMessages.join('\n')
-  }
-}
-
-/**
- * Build full context string: before + >>> target + after
- */
-function buildContextString(msg: ParsedMessage, ctx: MessageContext): string {
-  const parts: string[] = []
-  if (ctx.before) parts.push(ctx.before)
-  parts.push(`>>> ${msg.sender}: ${msg.content}`)
-  if (ctx.after) parts.push(ctx.after)
-  return parts.join('\n')
 }
 
 interface RegexMatch {
@@ -427,12 +346,21 @@ export function extractCandidatesByHeuristics(
   }
 
   // Sort by confidence descending
-  const candidates = [...candidateMap.values()].sort((a, b) => b.confidence - a.confidence)
+  let candidates = [...candidateMap.values()].sort((a, b) => b.confidence - a.confidence)
+
+  // Deduplicate agreements within suggestion context windows (unless skipped)
+  let agreementsRemoved = 0
+  if (!options?.skipAgreementDeduplication) {
+    const result = deduplicateAgreements(candidates, messages)
+    candidates = result.candidates
+    agreementsRemoved = result.removedCount
+  }
 
   return {
     candidates,
     regexMatches: regexMatches.length,
     urlMatches: urlMatches.length,
-    totalUnique: candidates.length
+    totalUnique: candidates.length,
+    agreementsRemoved
   }
 }

@@ -285,5 +285,81 @@ describe('Candidate Extractor', () => {
         expect(result.candidates).toHaveLength(0)
       })
     })
+
+    describe('agreement deduplication', () => {
+      it('removes agreement candidates near suggestions by default', () => {
+        const messages = [
+          createMessage(
+            1,
+            "Let's do a whale and dolphin safari! https://whalewatchingauckland.com",
+            'Alice',
+            ['https://whalewatchingauckland.com']
+          ),
+          createMessage(2, 'That looks amazing!', 'Bob')
+        ]
+
+        const result = extractCandidatesByHeuristics(messages)
+
+        // Should only return the suggestion, not the agreement response
+        expect(result.candidates).toHaveLength(1)
+        expect(result.candidates[0]?.candidateType).toBe('suggestion')
+        expect(result.candidates[0]?.content).toContain('whale and dolphin safari')
+      })
+
+      it('keeps standalone agreements not near suggestions', () => {
+        // Need many filler messages to exceed 280 chars context window
+        const messages = [
+          createMessage(1, "Let's try that new restaurant", 'Alice'),
+          createMessage(2, 'Filler message one with some content here'),
+          createMessage(3, 'Filler message two with some content here'),
+          createMessage(4, 'Filler message three with some content here'),
+          createMessage(5, 'Filler message four with some content here'),
+          createMessage(6, 'Filler message five with some content here'),
+          createMessage(7, 'Filler message six with some content here'),
+          createMessage(8, 'Filler message seven with some content here'),
+          createMessage(9, 'Filler message eight with some content here'),
+          createMessage(10, 'Filler message nine with some content here'),
+          createMessage(11, 'That looks amazing!', 'Bob') // Uses "looks amazing" pattern
+        ]
+
+        const result = extractCandidatesByHeuristics(messages)
+
+        // Both should be kept since agreement is outside suggestion's context window
+        expect(result.candidates).toHaveLength(2)
+        expect(result.agreementsRemoved).toBe(0)
+      })
+
+      it('skips deduplication when skipAgreementDeduplication is true', () => {
+        const messages = [
+          createMessage(
+            1,
+            "Let's do a whale and dolphin safari! https://whalewatchingauckland.com",
+            'Alice',
+            ['https://whalewatchingauckland.com']
+          ),
+          createMessage(2, 'That looks amazing!', 'Bob')
+        ]
+
+        const result = extractCandidatesByHeuristics(messages, {
+          skipAgreementDeduplication: true
+        })
+
+        // Both should be returned when deduplication is skipped
+        expect(result.candidates).toHaveLength(2)
+      })
+
+      it('reports agreementsRemoved count', () => {
+        const messages = [
+          createMessage(1, "Let's do a whale safari!", 'Alice'),
+          createMessage(2, 'That looks fun!', 'Bob'), // Uses "looks fun" pattern
+          createMessage(3, 'That looks great!', 'Charlie') // Uses "looks great" pattern
+        ]
+
+        const result = extractCandidatesByHeuristics(messages)
+
+        // Should report how many agreements were removed
+        expect(result.agreementsRemoved).toBeGreaterThanOrEqual(1)
+      })
+    })
   })
 })

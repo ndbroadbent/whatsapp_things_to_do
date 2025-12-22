@@ -295,7 +295,7 @@ describe('extractCandidates (combined)', () => {
   })
 
   describe('agreement deduplication in extractCandidates', () => {
-    it('removes agreement candidates near suggestions', async () => {
+    it('removes agreement candidates within suggestion context window', async () => {
       const { extractCandidates } = await import('./index.js')
 
       mockExtractByHeuristics.mockReturnValue({
@@ -323,13 +323,18 @@ describe('extractCandidates (combined)', () => {
       }
     })
 
-    it('keeps standalone agreements not near suggestions', async () => {
+    it('keeps agreements outside suggestion context window', async () => {
       const { extractCandidates } = await import('./index.js')
+
+      // Create many filler messages to exceed context window
+      const fillerMessages = Array.from({ length: 10 }, (_, i) =>
+        createMessage(i + 2, `Filler message ${i + 1} with enough content to exceed context`)
+      )
 
       mockExtractByHeuristics.mockReturnValue({
         candidates: [
           createCandidate(1, 'We should try that restaurant', 0.8, 'regex', 'suggestion'),
-          createCandidate(20, 'That looks amazing!', 0.7, 'regex', 'agreement') // Far from suggestion
+          createCandidate(12, 'That looks amazing!', 0.7, 'regex', 'agreement')
         ],
         regexMatches: 2,
         urlMatches: 0,
@@ -338,70 +343,15 @@ describe('extractCandidates (combined)', () => {
 
       const messages = [
         createMessage(1, 'We should try that restaurant'),
-        createMessage(20, 'That looks amazing!')
+        ...fillerMessages,
+        createMessage(12, 'That looks amazing!')
       ]
 
       const result = await extractCandidates(messages)
 
       expect(result.ok).toBe(true)
       if (result.ok) {
-        // Both kept - agreement is > 5 messages away
-        expect(result.value.candidates).toHaveLength(2)
-        expect(result.value.agreementsRemoved).toBe(0)
-      }
-    })
-
-    it('respects custom agreementProximity', async () => {
-      const { extractCandidates } = await import('./index.js')
-
-      mockExtractByHeuristics.mockReturnValue({
-        candidates: [
-          createCandidate(1, 'We should try that restaurant', 0.8, 'regex', 'suggestion'),
-          createCandidate(3, 'Sounds good', 0.7, 'regex', 'agreement')
-        ],
-        regexMatches: 2,
-        urlMatches: 0,
-        totalUnique: 2
-      })
-
-      const messages = [
-        createMessage(1, 'We should try that restaurant'),
-        createMessage(3, 'Sounds good')
-      ]
-
-      // With proximity 1, agreement at message 3 is NOT near suggestion at message 1
-      const result = await extractCandidates(messages, { agreementProximity: 1 })
-
-      expect(result.ok).toBe(true)
-      if (result.ok) {
-        expect(result.value.candidates).toHaveLength(2)
-        expect(result.value.agreementsRemoved).toBe(0)
-      }
-    })
-
-    it('can disable deduplication with agreementProximity: 0', async () => {
-      const { extractCandidates } = await import('./index.js')
-
-      mockExtractByHeuristics.mockReturnValue({
-        candidates: [
-          createCandidate(1, 'We should try that restaurant', 0.8, 'regex', 'suggestion'),
-          createCandidate(2, 'Sounds great!', 0.7, 'regex', 'agreement')
-        ],
-        regexMatches: 2,
-        urlMatches: 0,
-        totalUnique: 2
-      })
-
-      const messages = [
-        createMessage(1, 'We should try that restaurant'),
-        createMessage(2, 'Sounds great!')
-      ]
-
-      const result = await extractCandidates(messages, { agreementProximity: 0 })
-
-      expect(result.ok).toBe(true)
-      if (result.ok) {
-        // Both kept - deduplication disabled
+        // Both kept - agreement is outside suggestion's context window
         expect(result.value.candidates).toHaveLength(2)
         expect(result.value.agreementsRemoved).toBe(0)
       }
@@ -411,162 +361,136 @@ describe('extractCandidates (combined)', () => {
 
 describe('deduplicateAgreements', () => {
   it('returns empty array for empty input', () => {
-    const { candidates, removedCount } = deduplicateAgreements([], 5)
+    const { candidates, removedCount } = deduplicateAgreements([], [])
     expect(candidates).toEqual([])
     expect(removedCount).toBe(0)
   })
 
   it('returns all candidates when only suggestions', () => {
+    const messages = [createMessage(1, 'Try this restaurant'), createMessage(5, 'Visit that cafe')]
     const candidates = [
       createCandidate(1, 'Try this restaurant', 0.8, 'regex', 'suggestion'),
       createCandidate(5, 'Visit that cafe', 0.7, 'regex', 'suggestion')
     ]
 
-    const { candidates: result, removedCount } = deduplicateAgreements(candidates, 5)
+    const { candidates: result, removedCount } = deduplicateAgreements(candidates, messages)
 
     expect(result).toHaveLength(2)
     expect(removedCount).toBe(0)
   })
 
   it('returns all candidates when only agreements', () => {
+    const messages = [createMessage(1, 'Sounds great'), createMessage(5, 'Love it')]
     const candidates = [
       createCandidate(1, 'Sounds great', 0.8, 'regex', 'agreement'),
       createCandidate(5, 'Love it', 0.7, 'regex', 'agreement')
     ]
 
-    const { candidates: result, removedCount } = deduplicateAgreements(candidates, 5)
+    const { candidates: result, removedCount } = deduplicateAgreements(candidates, messages)
 
     expect(result).toHaveLength(2)
     expect(removedCount).toBe(0)
   })
 
-  it('removes agreement within proximity of suggestion', () => {
+  it('removes agreement within suggestion context window', () => {
+    const messages = [createMessage(1, 'Lets go hiking tomorrow'), createMessage(2, 'Sounds fun!')]
     const candidates = [
-      createCandidate(10, 'Lets go hiking tomorrow', 0.9, 'regex', 'suggestion'),
-      createCandidate(12, 'Sounds fun!', 0.7, 'regex', 'agreement')
+      createCandidate(1, 'Lets go hiking tomorrow', 0.9, 'regex', 'suggestion'),
+      createCandidate(2, 'Sounds fun!', 0.7, 'regex', 'agreement')
     ]
 
-    const { candidates: result, removedCount } = deduplicateAgreements(candidates, 5)
+    const { candidates: result, removedCount } = deduplicateAgreements(candidates, messages)
 
     expect(result).toHaveLength(1)
     expect(result[0]?.candidateType).toBe('suggestion')
     expect(removedCount).toBe(1)
   })
 
-  it('removes agreement before suggestion within proximity', () => {
+  it('removes agreement before suggestion within context window', () => {
     // Agreement comes BEFORE suggestion (less common but possible)
+    const messages = [createMessage(1, 'That looks fun'), createMessage(2, 'Lets do that hike')]
     const candidates = [
-      createCandidate(8, 'That looks fun', 0.7, 'regex', 'agreement'),
-      createCandidate(10, 'Lets do that hike', 0.9, 'regex', 'suggestion')
+      createCandidate(1, 'That looks fun', 0.7, 'regex', 'agreement'),
+      createCandidate(2, 'Lets do that hike', 0.9, 'regex', 'suggestion')
     ]
 
-    const { candidates: result, removedCount } = deduplicateAgreements(candidates, 5)
+    const { candidates: result, removedCount } = deduplicateAgreements(candidates, messages)
 
     expect(result).toHaveLength(1)
     expect(result[0]?.candidateType).toBe('suggestion')
     expect(removedCount).toBe(1)
   })
 
-  it('keeps agreement outside proximity', () => {
+  it('keeps agreement outside context window', () => {
+    // Create enough filler messages to exceed context window
+    const fillerMessages = Array.from({ length: 10 }, (_, i) =>
+      createMessage(
+        i + 2,
+        `Filler message ${i + 1} with enough content to exceed context window size`
+      )
+    )
+    const messages = [
+      createMessage(1, 'Lets try that restaurant'),
+      ...fillerMessages,
+      createMessage(12, 'Amazing!')
+    ]
     const candidates = [
       createCandidate(1, 'Lets try that restaurant', 0.9, 'regex', 'suggestion'),
-      createCandidate(20, 'Amazing!', 0.7, 'regex', 'agreement') // 19 messages away
+      createCandidate(12, 'Amazing!', 0.7, 'regex', 'agreement')
     ]
 
-    const { candidates: result, removedCount } = deduplicateAgreements(candidates, 5)
+    const { candidates: result, removedCount } = deduplicateAgreements(candidates, messages)
 
     expect(result).toHaveLength(2)
     expect(removedCount).toBe(0)
   })
 
-  it('removes multiple agreements near same suggestion', () => {
+  it('removes multiple agreements within same suggestion context window', () => {
+    const messages = [
+      createMessage(1, 'Lets go to that cafe'),
+      createMessage(2, 'Yes!'),
+      createMessage(3, 'Im keen'),
+      createMessage(4, 'Sounds good')
+    ]
     const candidates = [
-      createCandidate(10, 'Lets go to that cafe', 0.9, 'regex', 'suggestion'),
-      createCandidate(11, 'Yes!', 0.6, 'regex', 'agreement'),
-      createCandidate(12, 'Im keen', 0.7, 'regex', 'agreement'),
-      createCandidate(13, 'Sounds good', 0.5, 'regex', 'agreement')
+      createCandidate(1, 'Lets go to that cafe', 0.9, 'regex', 'suggestion'),
+      createCandidate(2, 'Yes!', 0.6, 'regex', 'agreement'),
+      createCandidate(3, 'Im keen', 0.7, 'regex', 'agreement'),
+      createCandidate(4, 'Sounds good', 0.5, 'regex', 'agreement')
     ]
 
-    const { candidates: result, removedCount } = deduplicateAgreements(candidates, 5)
+    const { candidates: result, removedCount } = deduplicateAgreements(candidates, messages)
 
     expect(result).toHaveLength(1)
     expect(result[0]?.candidateType).toBe('suggestion')
     expect(removedCount).toBe(3)
   })
 
-  it('handles multiple suggestion/agreement clusters', () => {
-    const candidates = [
-      // Cluster 1: messages 1-5
-      createCandidate(1, 'Try this restaurant', 0.9, 'regex', 'suggestion'),
-      createCandidate(3, 'Sounds great', 0.7, 'regex', 'agreement'),
-      // Cluster 2: messages 50-55
-      createCandidate(50, 'Lets go hiking', 0.85, 'regex', 'suggestion'),
-      createCandidate(52, 'Im down', 0.6, 'regex', 'agreement'),
-      // Standalone agreement far from both
-      createCandidate(100, 'That looks amazing', 0.7, 'regex', 'agreement')
-    ]
-
-    const { candidates: result, removedCount } = deduplicateAgreements(candidates, 5)
-
-    expect(result).toHaveLength(3)
-    expect(result.filter((c) => c.candidateType === 'suggestion')).toHaveLength(2)
-    expect(result.filter((c) => c.candidateType === 'agreement')).toHaveLength(1)
-    expect(result.find((c) => c.messageId === 100)).toBeDefined() // Standalone kept
-    expect(removedCount).toBe(2)
-  })
-
-  it('uses exact proximity boundary', () => {
-    const candidates = [
-      createCandidate(10, 'Suggestion', 0.9, 'regex', 'suggestion'),
-      createCandidate(15, 'Exactly 5 away', 0.7, 'regex', 'agreement'), // Exactly at boundary
-      createCandidate(16, 'One past boundary', 0.6, 'regex', 'agreement') // Just outside
-    ]
-
-    const { candidates: result, removedCount } = deduplicateAgreements(candidates, 5)
-
-    expect(result).toHaveLength(2)
-    // Agreement at 15 (distance = 5) should be removed
-    expect(result.find((c) => c.messageId === 15)).toBeUndefined()
-    // Agreement at 16 (distance = 6) should be kept
-    expect(result.find((c) => c.messageId === 16)).toBeDefined()
-    expect(removedCount).toBe(1)
-  })
-
   it('sorts results by confidence descending', () => {
+    // Far apart messages so no deduplication happens
+    const fillerMessages = Array.from({ length: 15 }, (_, i) =>
+      createMessage(i + 2, `Filler message ${i + 1} with content to exceed context`)
+    )
+    const messages = [
+      createMessage(1, 'Low conf suggestion'),
+      ...fillerMessages,
+      createMessage(17, 'High conf suggestion'),
+      ...Array.from({ length: 15 }, (_, i) =>
+        createMessage(i + 18, `More filler ${i + 1} with content`)
+      ),
+      createMessage(33, 'Medium conf agreement')
+    ]
     const candidates = [
       createCandidate(1, 'Low conf suggestion', 0.5, 'regex', 'suggestion'),
-      createCandidate(100, 'High conf suggestion', 0.95, 'regex', 'suggestion'),
-      createCandidate(200, 'Medium conf agreement', 0.7, 'regex', 'agreement')
+      createCandidate(17, 'High conf suggestion', 0.95, 'regex', 'suggestion'),
+      createCandidate(33, 'Medium conf agreement', 0.7, 'regex', 'agreement')
     ]
 
-    const { candidates: result } = deduplicateAgreements(candidates, 5)
+    const { candidates: result } = deduplicateAgreements(candidates, messages)
 
+    expect(result).toHaveLength(3)
     expect(result[0]?.confidence).toBe(0.95)
     expect(result[1]?.confidence).toBe(0.7)
     expect(result[2]?.confidence).toBe(0.5)
-  })
-
-  it('returns copy when proximity is 0 (disabled)', () => {
-    const candidates = [
-      createCandidate(1, 'Suggestion', 0.9, 'regex', 'suggestion'),
-      createCandidate(2, 'Agreement right next to it', 0.7, 'regex', 'agreement')
-    ]
-
-    const { candidates: result, removedCount } = deduplicateAgreements(candidates, 0)
-
-    expect(result).toHaveLength(2)
-    expect(removedCount).toBe(0)
-  })
-
-  it('returns copy when proximity is negative (disabled)', () => {
-    const candidates = [
-      createCandidate(1, 'Suggestion', 0.9, 'regex', 'suggestion'),
-      createCandidate(2, 'Agreement', 0.7, 'regex', 'agreement')
-    ]
-
-    const { candidates: result, removedCount } = deduplicateAgreements(candidates, -1)
-
-    expect(result).toHaveLength(2)
-    expect(removedCount).toBe(0)
   })
 })
