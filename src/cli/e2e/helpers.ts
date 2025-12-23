@@ -214,6 +214,18 @@ export function readCacheJson<T>(cacheDir: string, filename: string): T {
   return JSON.parse(readFileSync(filePath, 'utf-8'))
 }
 
+/**
+ * Read classifier prompt files from the API cache.
+ * Returns all prompt.txt file contents as an array.
+ */
+export function readClassifierPrompts(cacheDir: string): string[] {
+  const promptDir = join(cacheDir, 'requests', 'ai', 'openrouter', 'google', 'gemini-2.5-flash')
+  if (!existsSync(promptDir)) return []
+
+  const files = readdirSync(promptDir).filter((f) => f.endsWith('.prompt.txt'))
+  return files.map((f) => readFileSync(join(promptDir, f), 'utf-8'))
+}
+
 /** Shared type definitions */
 export interface ParseStats {
   messageCount: number
@@ -264,11 +276,21 @@ export function setupE2ETests(): E2ETestState {
 export function teardownE2ETests(state: E2ETestState): void {
   const finalCacheHash = hashDirectory(join(state.tempCacheDir, 'requests'))
 
-  // Only update fixture if allowed AND hash changed
-  if (state.allowCacheUpdates && finalCacheHash !== state.initialCacheHash) {
+  // Update fixture if:
+  // 1. UPDATE_E2E_CACHE=true AND hash changed, OR
+  // 2. No fixture exists (first run - always save)
+  const shouldSave =
+    (state.allowCacheUpdates && finalCacheHash !== state.initialCacheHash) ||
+    (!state.hasFixture && finalCacheHash)
+
+  if (shouldSave) {
     compressCacheFixture(state.tempCacheDir)
     console.log('📦 Cache fixture updated: tests/fixtures/cli/cache-fixture.tar.gz')
-  } else if (!state.allowCacheUpdates && finalCacheHash !== state.initialCacheHash) {
+  } else if (
+    state.hasFixture &&
+    !state.allowCacheUpdates &&
+    finalCacheHash !== state.initialCacheHash
+  ) {
     // This should NOT happen in locked mode - it means HTTP guard failed
     console.error('❌ ERROR: Cache was modified in LOCKED mode!')
     console.error('   This indicates uncached HTTP requests were made.')

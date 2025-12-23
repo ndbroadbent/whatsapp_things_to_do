@@ -3,6 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
+import type { ScrapedMetadata } from '../../scraper/types'
 import { FIXTURE_INPUT, readCacheJson, runCli, testState } from './helpers'
 
 interface ScrapeStats {
@@ -10,6 +11,11 @@ interface ScrapeStats {
   successCount: number
   failedCount: number
   cachedCount: number
+}
+
+interface ScrapeMetadataCache {
+  allUrls: string[]
+  entries: Array<[string, ScrapedMetadata]>
 }
 
 describe('scrape command', () => {
@@ -36,9 +42,46 @@ describe('scrape command', () => {
 
   it('writes scrape_stats.json to cache', () => {
     const stats = readCacheJson<ScrapeStats>(testState.tempCacheDir, 'scrape_stats.json')
-    expect(stats.urlCount).toBeGreaterThanOrEqual(4)
+    expect(stats.urlCount).toBeGreaterThanOrEqual(5)
     // cachedCount depends on API cache from fixture
     expect(stats.cachedCount).toBeGreaterThanOrEqual(0)
+  })
+
+  it('writes scrape_metadata.json with all scraped URLs', () => {
+    const cache = readCacheJson<ScrapeMetadataCache>(testState.tempCacheDir, 'scrape_metadata.json')
+
+    // Check expected URLs are present
+    expect(cache.allUrls).toContain('https://tinyurl.com/a6vzxrj4')
+    expect(cache.allUrls).toContain('https://whalewatchingauckland.com/')
+    expect(cache.allUrls).toContain('https://en.wikipedia.org/wiki/The_Matrix')
+    expect(cache.allUrls).toContain('https://www.reddit.com/r/oddlysatisfying/s/6jHbC0UQEi')
+
+    // Convert entries to a Map for easier lookup
+    const metadataMap = new Map(cache.entries)
+
+    // tinyurl: scrape failed but redirect URL captured
+    const tinyurlMeta = metadataMap.get('https://tinyurl.com/a6vzxrj4')
+    expect(tinyurlMeta).toBeDefined()
+    expect(tinyurlMeta?.canonicalUrl).toBe(
+      'https://fakesiteexample.com/blog/go-hiking-at-yellowstone-tips'
+    )
+
+    // whalewatching: successful scrape with title
+    const whaleMeta = metadataMap.get('https://whalewatchingauckland.com/')
+    expect(whaleMeta).toBeDefined()
+    expect(whaleMeta?.title).toContain('Whale')
+
+    // wikipedia: successful scrape
+    const wikiMeta = metadataMap.get('https://en.wikipedia.org/wiki/The_Matrix')
+    expect(wikiMeta).toBeDefined()
+    expect(wikiMeta?.title).toContain('Matrix')
+
+    // reddit: successful scrape via redirect with title
+    const redditMeta = metadataMap.get('https://www.reddit.com/r/oddlysatisfying/s/6jHbC0UQEi')
+    expect(redditMeta).toBeDefined()
+    expect(redditMeta?.canonicalUrl).toContain('/comments/')
+    expect(redditMeta?.title).toContain('affogato')
+    expect(redditMeta?.description).toContain('oddlysatisfying')
   })
 
   it('shows scraped URLs in output', () => {
@@ -46,6 +89,13 @@ describe('scrape command', () => {
     expect(stdout).toContain('Scraped URLs')
     // Should find at least one URL with scraped metadata
     expect(stdout).toContain('Title:')
+  })
+
+  it('shows redirect URL for tinyurl even though scrape failed', () => {
+    const { stdout } = runCli(`scrape ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir}`)
+    // tinyurl redirects to fakesiteexample.com - should show the redirect
+    expect(stdout).toContain('tinyurl.com')
+    expect(stdout).toContain('fakesiteexample.com/blog/go-hiking-at-yellowstone')
   })
 
   it('supports --dry-run flag', () => {

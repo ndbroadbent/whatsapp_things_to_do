@@ -114,6 +114,8 @@ export interface ClassifierConfig {
   readonly onBatchStart?: (info: BatchInfo) => void
   /** Called after each batch completes. Use for progress logging. */
   readonly onBatchComplete?: (info: BatchCompleteInfo) => void
+  /** URL metadata to enrich prompts with scraped page info (title, description, redirect URLs) */
+  readonly urlMetadata?: Map<string, import('../scraper/types').ScrapedMetadata> | undefined
 }
 
 /** A single message that mentioned an activity/location. */

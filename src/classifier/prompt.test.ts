@@ -433,6 +433,30 @@ Hope this helps!`
       expect(result).toContain(longFinalUrl.slice(0, 200))
     })
 
+    it('includes redirect_url even when scrape failed (no title/description)', () => {
+      // When a shortened URL redirects but the destination fails to scrape,
+      // we still want the classifier to see the final URL path (contains useful info)
+      const shortUrl = 'https://tinyurl.com/a6vzxrj4'
+      const finalUrl = 'https://fakesiteexample.com/blog/go-hiking-at-yellowstone-tips'
+      const minimalMetadata: ScrapedMetadata = {
+        canonicalUrl: finalUrl,
+        contentId: null,
+        title: null,
+        description: null,
+        hashtags: [],
+        creator: null,
+        thumbnailUrl: null,
+        categories: [],
+        suggestedKeywords: []
+      }
+      const text = `Check out this blog post: ${shortUrl}`
+      const metadataMap = new Map([[shortUrl, minimalMetadata]])
+
+      const result = injectMetadataIntoText(text, metadataMap)
+
+      expect(result).toContain(`"redirect_url":"${finalUrl}"`)
+    })
+
     it('omits null fields from JSON', () => {
       const minimalMetadata: ScrapedMetadata = {
         canonicalUrl: 'https://example.com',

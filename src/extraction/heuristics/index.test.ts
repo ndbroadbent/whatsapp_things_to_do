@@ -306,6 +306,25 @@ describe('Candidate Extractor', () => {
         expect(result.candidates[0]?.content).toContain('whale and dolphin safari')
       })
 
+      it('removes "would be awesome" agreement near suggestion with URL', () => {
+        const messages = [
+          createMessage(
+            1,
+            'Morning! I just saw this blog post, we should totally do this: https://tinyurl.com/a6vzxrj4',
+            'John',
+            ['https://tinyurl.com/a6vzxrj4']
+          ),
+          createMessage(2, 'Yeah that would be awesome!', 'Alice')
+        ]
+
+        const result = extractCandidatesByHeuristics(messages)
+
+        // Should only return John's suggestion, not Alice's agreement
+        expect(result.candidates).toHaveLength(1)
+        expect(result.candidates[0]?.sender).toBe('John')
+        expect(result.candidates[0]?.candidateType).toBe('suggestion')
+      })
+
       it('keeps standalone agreements not near suggestions', () => {
         // Need many filler messages to exceed 280 chars context window
         const messages = [

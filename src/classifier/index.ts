@@ -88,7 +88,8 @@ async function classifyBatch(
 ): Promise<Result<ClassifiedActivity[]>> {
   const prompt = buildClassificationPrompt(candidates, {
     homeCountry: config.homeCountry,
-    timezone: config.timezone
+    timezone: config.timezone,
+    urlMetadata: config.urlMetadata
   })
 
   // Safety check: ensure prompt isn't too long

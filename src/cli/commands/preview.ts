@@ -8,6 +8,7 @@ import { basename } from 'node:path'
 import { buildClassificationPrompt } from '../../classifier/prompt'
 import { classifyMessages, VERSION } from '../../index'
 import { extractUrlsFromCandidates, fetchMetadataForUrls } from '../../scraper/metadata'
+import type { ScrapedMetadata } from '../../scraper/types'
 import type { ClassifiedActivity } from '../../types'
 import { formatLocation } from '../../types'
 import type { CLIArgs } from '../args'
@@ -37,6 +38,7 @@ async function stepClassify(
     model: string
     homeCountry: string
     timezone: string
+    urlMetadata?: Map<string, ScrapedMetadata> | undefined
   },
   logger: Logger
 ): Promise<{ activities: ClassifiedActivity[]; stats: PreviewStats; fromCache: boolean }> {
@@ -67,6 +69,7 @@ async function stepClassify(
       model: config.model,
       homeCountry: config.homeCountry,
       timezone: config.timezone,
+      urlMetadata: config.urlMetadata,
       batchSize: 30,
       onBatchStart: (info) => {
         if (info.fromCache) {
@@ -150,10 +153,11 @@ export async function cmdPreview(args: CLIArgs, logger: Logger): Promise<void> {
   const PREVIEW_CLASSIFY_COUNT = args.maxResults * 3
   const topCandidates = scanResult.candidates.slice(0, PREVIEW_CLASSIFY_COUNT)
 
-  // Fetch URL metadata (stored in cache, used by classifier when building prompts)
+  // Fetch URL metadata to enrich classifier prompts
   const urls = extractUrlsFromCandidates(topCandidates)
+  let urlMetadata: Map<string, ScrapedMetadata> | undefined
   if (urls.length > 0) {
-    await fetchMetadataForUrls(urls, {
+    urlMetadata = await fetchMetadataForUrls(urls, {
       timeout: 4000,
       concurrency: 5,
       cache: ctx.apiCache,
@@ -177,7 +181,7 @@ export async function cmdPreview(args: CLIArgs, logger: Logger): Promise<void> {
   }
 
   if (args.debug) {
-    const prompt = buildClassificationPrompt(topCandidates, { homeCountry, timezone })
+    const prompt = buildClassificationPrompt(topCandidates, { homeCountry, timezone, urlMetadata })
     logger.log('\n--- DEBUG: Classifier Prompt ---')
     logger.log(prompt)
     logger.log('--- END DEBUG ---\n')
@@ -192,7 +196,7 @@ export async function cmdPreview(args: CLIArgs, logger: Logger): Promise<void> {
   const { activities, fromCache } = await stepClassify(
     ctx,
     topCandidates,
-    { provider, apiKey, model, homeCountry, timezone },
+    { provider, apiKey, model, homeCountry, timezone, urlMetadata },
     logger
   )
 

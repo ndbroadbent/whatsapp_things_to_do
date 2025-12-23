@@ -88,9 +88,10 @@ task file-length      # Check file lengths
 task check-ignores    # Verify no biome-ignore
 
 # Testing
-task test             # Run tests
-task test:watch       # Run tests in watch mode
-task test:cov         # Run tests with coverage
+task test             # Run unit tests (excludes E2E)
+task test:watch       # Run unit tests in watch mode
+task test:cov         # Run unit tests with coverage
+task test:e2e         # Run CLI E2E tests (separate vitest config)
 
 # Git hooks
 task hooks:install    # Install lefthook hooks
@@ -120,7 +121,14 @@ task hooks:run        # Run pre-commit manually
 - ❌ `bun test` → Bun's native runner - NO .env, NO vitest config, BROKEN setup files
 - ✅ `bun run test` → Vitest - loads .env, proper config, works correctly
 - ✅ `task test` → Same as above (preferred)
-- ✅ `task test:e2e` → E2E tests only
+- ✅ `task test:e2e` → E2E tests only (uses separate vitest config)
+
+**E2E Tests:**
+- Located in `src/cli/e2e/`
+- Use their own vitest config: `src/cli/e2e/vitest.config.ts`
+- Excluded from regular `task test` runs
+- Run with `task test:e2e` or `bun run test:e2e`
+- To run a single E2E test file: `bun run test:e2e -- src/cli/e2e/5-preview.test.ts`
 
 **VCR Testing Model:** Tests are NEVER skipped. API responses are recorded locally and replayed on CI:
 1. Run tests locally with API keys in `.env` → responses cached to fixtures

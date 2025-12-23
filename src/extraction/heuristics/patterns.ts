@@ -91,9 +91,11 @@ const MEDIUM_CONFIDENCE_PATTERNS: readonly ActivityPattern[] = [
   },
   {
     name: 'would_be_fun',
-    pattern: /\bwould be (?:fun|cool|nice|awesome|amazing)\b/i,
+    // Must have activity after "would be fun" - e.g. "would be fun to go hiking"
+    // Excludes standalone agreements like "that would be awesome!"
+    pattern: /\bwould be (?:fun|cool|nice|awesome|amazing)\b.*?\b(?:to|if)\b/i,
     confidence: 0.75,
-    description: 'Would be fun/cool/nice...',
+    description: 'Would be fun/cool/nice to...',
     candidateType: 'suggestion'
   },
   {
