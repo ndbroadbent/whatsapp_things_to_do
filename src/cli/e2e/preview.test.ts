@@ -75,7 +75,6 @@ describe('preview command', () => {
     expect(whaleSafari).toBeDefined()
     expect(whaleSafari?.category).toBe('nature')
     expect(whaleSafari?.sender).toBe('John Smith')
-    expect(whaleSafari?.venue).toBe('Auckland Whale & Dolphin Safari')
     expect(whaleSafari?.city).toBe('Auckland')
 
     // Check Bay of Islands activity

@@ -71,7 +71,7 @@ function formatCandidatesText(output: FilterOutput, logger: Logger, showAll: boo
   const displayCount = showAll ? candidates.length : Math.min(10, candidates.length)
   const header = showAll
     ? `\n📋 All ${candidates.length} Candidates:`
-    : `\n📋 Top ${displayCount} Candidates:`
+    : `\n📋 First ${displayCount} Candidates:`
   logger.log(header)
   logger.log('')
 
