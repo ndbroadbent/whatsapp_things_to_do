@@ -5,10 +5,9 @@
  */
 
 import { basename } from 'node:path'
-import { parseChatWithStats, VERSION } from '../index'
-import { type ActivityCategory, CATEGORY_EMOJI, type ParsedMessage } from '../types'
+import { VERSION } from '../index'
+import { type ActivityCategory, CATEGORY_EMOJI } from '../types'
 import type { CLIArgs } from './args'
-import { readInputFile } from './io'
 import type { Logger } from './logger'
 import { initContext, type PipelineContext } from './steps/context'
 import { type ParseResult, stepParse } from './steps/parse'
@@ -84,40 +83,5 @@ export function createEmbeddingProgressLogger(logger: Logger, verb: string) {
       const percent = Math.floor((batchNum / info.totalBatches) * 100)
       logger.log(`   ${percent}% ${verb} (${batchNum}/${info.totalBatches} batches)`)
     }
-  }
-}
-
-// ============================================================================
-// Parse with Logging
-// ============================================================================
-
-interface ParseWithLogsOptions {
-  maxMessages?: number | undefined
-}
-
-interface ParseWithLogsOutput {
-  messages: ParsedMessage[]
-  messageCount: number
-  senderCount: number
-}
-
-export async function runParseWithLogs(
-  input: string,
-  logger: Logger,
-  options?: ParseWithLogsOptions
-): Promise<ParseWithLogsOutput> {
-  logger.log('\n📝 Parsing messages...')
-  const content = await readInputFile(input)
-  const parseResult = parseChatWithStats(content)
-  const messages = options?.maxMessages
-    ? [...parseResult.messages.slice(0, options.maxMessages)]
-    : [...parseResult.messages]
-  logger.success(
-    `${parseResult.messageCount.toLocaleString()} messages from ${parseResult.senders.length} senders`
-  )
-  return {
-    messages,
-    messageCount: parseResult.messageCount,
-    senderCount: parseResult.senders.length
   }
 }

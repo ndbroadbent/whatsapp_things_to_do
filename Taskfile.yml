@@ -53,7 +53,7 @@ tasks:
   typecheck:
     desc: TypeScript type checking
     cmds:
-      - bun run check
+      - bun run typecheck
 
   duplication:
     desc: Check for code duplication

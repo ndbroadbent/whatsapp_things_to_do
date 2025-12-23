@@ -22,21 +22,35 @@ function isTestMode(): boolean {
 }
 
 /**
- * Check if running tests in CI - this combination must not make real HTTP requests.
+ * Check if E2E cache is locked (no real HTTP requests allowed).
+ * Set by E2E test harness when cache fixture exists.
  */
-function isTestInCI(): boolean {
-  return isCI() && isTestMode()
+function isE2ECacheLocked(): boolean {
+  return process.env.E2E_CACHE_LOCKED === 'true'
 }
 
 /**
- * Error thrown when an uncached HTTP request is made during tests in CI.
+ * Check if HTTP requests should be blocked.
+ * True when:
+ * - Running tests in CI (CI=true + test mode)
+ * - E2E cache is locked (E2E_CACHE_LOCKED=true)
+ */
+function shouldBlockHttpRequests(): boolean {
+  return (isCI() && isTestMode()) || isE2ECacheLocked()
+}
+
+/**
+ * Error thrown when an uncached HTTP request is made in locked mode.
  */
 class UncachedHttpRequestError extends Error {
   constructor(url: string) {
+    const reason = isE2ECacheLocked()
+      ? 'E2E cache is locked (E2E_CACHE_LOCKED=true)'
+      : 'running tests in CI'
     super(
-      `Uncached HTTP request to ${url} during tests in CI. ` +
-        'All HTTP requests must be cached or mocked when running tests in CI. ' +
-        'Use FixtureCache or HttpRecorder to cache this response.'
+      `Uncached HTTP request to ${url} blocked: ${reason}. ` +
+        'All HTTP requests must be cached. ' +
+        'For E2E tests, set UPDATE_E2E_CACHE=true to allow API calls.'
     )
     this.name = 'UncachedHttpRequestError'
   }
@@ -59,10 +73,10 @@ export interface HttpResponse {
 /**
  * Perform a fetch request and return a typed response.
  *
- * @throws UncachedHttpRequestError when running tests in CI - all requests must be cached/mocked
+ * @throws UncachedHttpRequestError when HTTP requests are blocked (CI tests or E2E locked mode)
  */
 export async function httpFetch(url: string, init?: RequestInit): Promise<HttpResponse> {
-  if (isTestInCI()) {
+  if (shouldBlockHttpRequests()) {
     throw new UncachedHttpRequestError(url)
   }
   const response = await fetch(url, init)
@@ -70,7 +84,7 @@ export async function httpFetch(url: string, init?: RequestInit): Promise<HttpRe
 }
 
 /**
- * Guarded fetch for scrapers - throws in CI test mode if not mocked.
+ * Guarded fetch for scrapers - throws when HTTP requests are blocked.
  * Use this as the default instead of global fetch.
  * Type assertion needed to match FetchFn = typeof fetch.
  */
@@ -84,7 +98,7 @@ export const guardedFetch = ((input: string | URL | Request, init?: RequestInit)
     // Request object - use String() to get URL
     url = String(input)
   }
-  if (isTestInCI()) {
+  if (shouldBlockHttpRequests()) {
     throw new UncachedHttpRequestError(url)
   }
   return fetch(input, init)

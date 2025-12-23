@@ -145,6 +145,8 @@ function createProgram(): Command {
     .option('--concurrency <num>', 'Max concurrent scrapes', '5')
     .option('--timeout <ms>', 'Timeout per URL in ms', '4000')
     .option('-m, --max-messages <num>', 'Max messages to process (for testing)')
+    .option('-a, --all', 'Show all enriched URLs (default: first 10)')
+    .option('--dry-run', 'Show URL count without scraping')
 
   // ============ CLASSIFY ============
   program

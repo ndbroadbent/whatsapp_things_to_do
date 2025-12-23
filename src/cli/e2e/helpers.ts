@@ -2,6 +2,10 @@
  * E2E Test Helpers
  *
  * Shared utilities for CLI E2E tests.
+ *
+ * CRITICAL: When cache-fixture.tar.gz exists, ALL API keys are stripped
+ * and real HTTP requests are forbidden. Set UPDATE_E2E_CACHE=true to
+ * allow updating the cache with new API responses.
  */
 
 import { execSync, spawnSync } from 'node:child_process'
@@ -14,15 +18,30 @@ const FIXTURES_DIR = 'tests/fixtures/cli'
 export const FIXTURE_INPUT = join(FIXTURES_DIR, 'whatsapp-sample.txt')
 const CACHE_FIXTURE = join(FIXTURES_DIR, 'cache-fixture.tar.gz')
 
+/** API key environment variables to strip during locked tests */
+const API_KEY_ENV_VARS = [
+  'OPENAI_API_KEY',
+  'ANTHROPIC_API_KEY',
+  'OPENROUTER_API_KEY',
+  'GOOGLE_MAPS_API_KEY',
+  'GOOGLE_API_KEY'
+]
+
 /** Shared test state */
 interface E2ETestState {
   tempCacheDir: string
   initialCacheHash: string
+  /** Whether cache updates are allowed (UPDATE_E2E_CACHE=true) */
+  allowCacheUpdates: boolean
+  /** Whether cache fixture exists */
+  hasFixture: boolean
 }
 
 export const testState: E2ETestState = {
   tempCacheDir: '',
-  initialCacheHash: ''
+  initialCacheHash: '',
+  allowCacheUpdates: false,
+  hasFixture: false
 }
 
 /**
@@ -111,13 +130,36 @@ function parseArgs(args: string): string[] {
 }
 
 /**
+ * Build environment for CLI subprocess.
+ *
+ * When cache fixture exists and UPDATE_E2E_CACHE is not set:
+ * - Strip all API keys
+ * - Set E2E_CACHE_LOCKED=true to block HTTP requests
+ */
+function buildCliEnv(): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { ...process.env, NO_COLOR: '1' }
+
+  // If fixture exists and we're NOT updating, lock down the environment
+  if (testState.hasFixture && !testState.allowCacheUpdates) {
+    // Strip all API keys
+    for (const key of API_KEY_ENV_VARS) {
+      delete env[key]
+    }
+    // Signal to HTTP layer to block uncached requests
+    env.E2E_CACHE_LOCKED = 'true'
+  }
+
+  return env
+}
+
+/**
  * Run CLI command and return output
  */
 export function runCli(args: string): { stdout: string; stderr: string; exitCode: number } {
   const parsedArgs = parseArgs(args)
   const result = spawnSync('bun', ['src/cli.ts', ...parsedArgs], {
     encoding: 'utf-8',
-    env: { ...process.env, NO_COLOR: '1' }
+    env: buildCliEnv()
   })
 
   return {
@@ -185,7 +227,16 @@ export interface Candidate {
  * Setup test environment - call in beforeAll
  */
 export function setupE2ETests(): void {
+  testState.hasFixture = existsSync(CACHE_FIXTURE)
+  testState.allowCacheUpdates = process.env.UPDATE_E2E_CACHE === 'true'
   testState.tempCacheDir = mkdtempSync(join(tmpdir(), 'chat-to-map-e2e-'))
+
+  if (testState.allowCacheUpdates) {
+    console.log('🔓 E2E tests running in UPDATE mode (API calls allowed)')
+  } else if (!testState.hasFixture) {
+    console.log('⚠️  No cache fixture found - API calls will be made')
+  }
+
   extractCacheFixture(testState.tempCacheDir)
   testState.initialCacheHash = hashDirectory(join(testState.tempCacheDir, 'requests'))
 }
@@ -196,9 +247,15 @@ export function setupE2ETests(): void {
 export function teardownE2ETests(): void {
   const finalCacheHash = hashDirectory(join(testState.tempCacheDir, 'requests'))
 
-  if (finalCacheHash !== testState.initialCacheHash && finalCacheHash !== '') {
+  // Only update fixture if allowed AND hash changed
+  if (testState.allowCacheUpdates && finalCacheHash !== testState.initialCacheHash) {
     compressCacheFixture(testState.tempCacheDir)
     console.log('📦 Cache fixture updated: tests/fixtures/cli/cache-fixture.tar.gz')
+  } else if (!testState.allowCacheUpdates && finalCacheHash !== testState.initialCacheHash) {
+    // This should NOT happen in locked mode - it means HTTP guard failed
+    console.error('❌ ERROR: Cache was modified in LOCKED mode!')
+    console.error('   This indicates uncached HTTP requests were made.')
+    console.error('   Check E2E_CACHE_LOCKED handling in src/http.ts')
   }
 
   rmSync(testState.tempCacheDir, { recursive: true, force: true })

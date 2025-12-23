@@ -64,7 +64,7 @@ describe('preview command', () => {
       a.activity.toLowerCase().includes('hot air balloon')
     )
     expect(hotAirBalloon).toBeDefined()
-    expect(hotAirBalloon?.category).toBe('experiences')
+    expect(hotAirBalloon?.category).toBe('travel')
     expect(hotAirBalloon?.sender).toBe('Alice Smith')
     expect(hotAirBalloon?.funScore).toBeGreaterThanOrEqual(0.8)
     expect(hotAirBalloon?.interestingScore).toBeGreaterThanOrEqual(0.8)

@@ -50,7 +50,7 @@
     "build:types": "tsc -p tsconfig.types.json",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:binary": "bun build src/cli.ts --compile --outfile chat-to-map",
-    "check": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

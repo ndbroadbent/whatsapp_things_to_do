@@ -16,7 +16,7 @@ pre-commit:
 
     typecheck:
       glob: "*.ts"
-      run: bun run check
+      run: bun run typecheck
 
     duplication:
       glob: "*.ts"
