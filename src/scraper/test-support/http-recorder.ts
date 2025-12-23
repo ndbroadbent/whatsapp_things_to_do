@@ -13,6 +13,7 @@ import type { FetchFn } from '../types'
  * Minimal response interface to work around Bun's Response type conflicts.
  */
 interface FetchResponse {
+  url: string
   status: number
   headers: { forEach(callback: (value: string, key: string) => void): void }
   text(): Promise<string>
@@ -20,6 +21,7 @@ interface FetchResponse {
 
 interface RecordedFixture {
   url: string
+  finalUrl: string
   method: string
   status: number
   headers: Record<string, string>
@@ -63,10 +65,13 @@ export class HttpRecorder {
 
   private replay(fixturePath: string): Response {
     const fixture: RecordedFixture = JSON.parse(readFileSync(fixturePath, 'utf-8'))
-    return new Response(fixture.body, {
+    const response = new Response(fixture.body, {
       status: fixture.status,
       headers: new Headers(fixture.headers)
     })
+    // Set the final URL after redirects (Response.url is read-only, so we use Object.defineProperty)
+    Object.defineProperty(response, 'url', { value: fixture.finalUrl ?? fixture.url })
+    return response
   }
 
   private async record(
@@ -87,6 +92,7 @@ export class HttpRecorder {
 
     const fixture: RecordedFixture = {
       url,
+      finalUrl: response.url || url,
       method,
       status: response.status,
       headers,
@@ -96,10 +102,12 @@ export class HttpRecorder {
 
     writeFileSync(fixturePath, JSON.stringify(fixture, null, 2))
 
-    return new Response(body, {
+    const result = new Response(body, {
       status: response.status,
       headers: new Headers(headers)
     })
+    Object.defineProperty(result, 'url', { value: fixture.finalUrl })
+    return result
   }
 
   private getFixturePath(method: string, url: string): string {

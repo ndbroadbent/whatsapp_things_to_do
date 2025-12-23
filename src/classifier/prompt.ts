@@ -15,13 +15,17 @@ const URL_REGEX = /https?:\/\/[^\s<>"{}|\\^`[\]]+/g
 /**
  * Format scraped metadata as compact JSON for injection.
  * Only includes non-null fields to minimize prompt tokens.
+ * If the final URL differs from the original, includes redirect_url (truncated to 200 chars).
  */
-function formatMetadataJson(metadata: ScrapedMetadata): string {
+function formatMetadataJson(metadata: ScrapedMetadata, originalUrl: string): string {
   const obj: Record<string, unknown> = {}
   if (metadata.title) obj.title = metadata.title
   if (metadata.description) obj.description = metadata.description.slice(0, 200)
   if (metadata.creator) obj.creator = metadata.creator
   if (metadata.categories?.length) obj.categories = metadata.categories
+  if (metadata.canonicalUrl && metadata.canonicalUrl !== originalUrl) {
+    obj.redirect_url = metadata.canonicalUrl.slice(0, 200)
+  }
   return JSON.stringify(obj)
 }
 
@@ -48,7 +52,7 @@ export function injectMetadataIntoText(
     if (!metadata) continue
 
     const insertPos = match.index + url.length
-    const json = formatMetadataJson(metadata)
+    const json = formatMetadataJson(metadata, url)
     result = `${result.slice(0, insertPos)}\n[URL_META: ${json}]${result.slice(insertPos)}`
   }
 

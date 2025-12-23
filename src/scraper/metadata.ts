@@ -123,8 +123,31 @@ async function scrapeWithCache(
       return { url, metadata: decoded }
     }
 
-    // Scrape returned error
+    // Scrape failed - but if we got a finalUrl from redirect, create minimal metadata
+    // This preserves valuable URL path info (slugs, IDs) from shortened URLs
     const errorMsg = result.error?.message ?? 'Unknown error'
+    const finalUrl = result.error?.finalUrl
+
+    if (finalUrl) {
+      // Create minimal metadata with just the redirect URL
+      const minimalMetadata: ScrapedMetadata = {
+        canonicalUrl: finalUrl,
+        contentId: null,
+        title: null,
+        description: null,
+        hashtags: [],
+        creator: null,
+        thumbnailUrl: null,
+        categories: [],
+        suggestedKeywords: []
+      }
+      if (cache) {
+        await cache.set(cacheKey, { data: minimalMetadata, cachedAt: Date.now() })
+      }
+      return { url, metadata: minimalMetadata, error: errorMsg }
+    }
+
+    // No finalUrl - just cache the error
     if (cache) {
       await cache.set(cacheKey, {
         data: { error: true, message: errorMsg } as CachedError,

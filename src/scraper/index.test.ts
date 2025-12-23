@@ -43,9 +43,14 @@ describe('detectPlatform', () => {
     expect(detectPlatform('https://www.google.com/maps/place/Test')).toBe('google_maps')
   })
 
+  it('detects Reddit URLs', () => {
+    expect(detectPlatform('https://www.reddit.com/r/test/comments/abc123/title/')).toBe('reddit')
+    expect(detectPlatform('https://reddit.com/r/test')).toBe('reddit')
+    expect(detectPlatform('https://redd.it/abc123')).toBe('reddit')
+  })
+
   it('returns "other" for unknown URLs', () => {
     expect(detectPlatform('https://example.com')).toBe('other')
-    expect(detectPlatform('https://reddit.com/r/test')).toBe('other')
     expect(detectPlatform('https://linkedin.com/post/123')).toBe('other')
   })
 })

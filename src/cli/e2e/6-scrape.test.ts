@@ -41,11 +41,11 @@ describe('scrape command', () => {
     expect(stats.cachedCount).toBeGreaterThanOrEqual(0)
   })
 
-  it('shows enriched URLs in output', () => {
+  it('shows scraped URLs in output', () => {
     const { stdout } = runCli(`scrape ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir}`)
-    expect(stdout).toContain('Enriched URLs')
-    // Should find at least one enriched URL with metadata
-    expect(stdout).toContain('Platform:')
+    expect(stdout).toContain('Scraped URLs')
+    // Should find at least one URL with scraped metadata
+    expect(stdout).toContain('Title:')
   })
 
   it('supports --dry-run flag', () => {

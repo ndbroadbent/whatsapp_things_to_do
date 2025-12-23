@@ -29,6 +29,7 @@ interface RedirectResponse {
  * Uses type assertion to work around Bun's Response type conflicts.
  */
 interface FullResponse {
+  url: string
   ok: boolean
   status: number
   text(): Promise<string>

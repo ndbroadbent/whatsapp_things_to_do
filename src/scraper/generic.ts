@@ -7,7 +7,10 @@
  * Security:
  * - Blocks requests to our own domains
  * - Validates URLs to prevent path traversal
- * - Follows max 3 redirects
+ *
+ * Redirect handling:
+ * - Manually follows up to 10 redirects
+ * - Captures final URL even if destination fails (valuable for shortened URLs)
  */
 
 import { guardedFetch } from '../http'
@@ -19,14 +22,24 @@ import {
   extractImageUrl,
   extractJsonLd,
   extractOpenGraph,
-  type FullResponse,
   findJsonLdByType,
-  networkError,
   wrapParseResult
 } from './utils'
 
+/** Response interface for manual redirect handling */
+interface RedirectResponse {
+  url: string
+  ok: boolean
+  status: number
+  headers: { get(name: string): string | null }
+  text(): Promise<string>
+}
+
 /** Domains we refuse to scrape (our own infrastructure) */
 const BLOCKED_DOMAINS = ['chattomap.com', 'docspring.com']
+
+/** Max redirects to follow */
+const MAX_REDIRECTS = 10
 
 /**
  * Validate URL for security issues.
@@ -125,8 +138,61 @@ function parseGenericData(
 }
 
 /**
+ * Follow redirects manually to capture final URL even if destination fails.
+ * Returns { finalUrl, response } or { finalUrl, error }.
+ */
+async function followRedirects(
+  url: string,
+  fetchFn: FetchFn,
+  headers: Record<string, string>,
+  timeout: number
+): Promise<
+  | { finalUrl: string; response: RedirectResponse; error?: undefined }
+  | { finalUrl: string; error: string }
+> {
+  let currentUrl = url
+  let redirectCount = 0
+
+  while (redirectCount < MAX_REDIRECTS) {
+    try {
+      const rawResponse = await fetchFn(currentUrl, {
+        signal: AbortSignal.timeout(timeout),
+        headers,
+        redirect: 'manual' // Don't auto-follow - we handle it
+      })
+      const response = rawResponse as unknown as RedirectResponse
+
+      // Check for redirect status codes
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.headers.get('location')
+        if (!location) {
+          // Redirect without location - treat as error
+          return {
+            finalUrl: currentUrl,
+            error: `Redirect ${response.status} without Location header`
+          }
+        }
+        // Resolve relative URLs
+        currentUrl = new URL(location, currentUrl).href
+        redirectCount++
+        continue
+      }
+
+      // Not a redirect - return the response
+      return { finalUrl: currentUrl, response }
+    } catch (e) {
+      // Network error trying to reach currentUrl
+      const message = e instanceof Error ? e.message : String(e)
+      return { finalUrl: currentUrl, error: message }
+    }
+  }
+
+  return { finalUrl: currentUrl, error: 'Too many redirects' }
+}
+
+/**
  * Scrape metadata from any URL using OG tags and JSON-LD.
- * Follows up to 3 redirects.
+ * Manually follows redirects to capture final URL even if destination fails.
  */
 export async function scrapeGeneric(
   url: string,
@@ -145,38 +211,58 @@ export async function scrapeGeneric(
     }
   }
 
-  try {
-    // Fetch follows redirects automatically (up to browser limit ~20)
-    const rawResponse = await fetchFn(url, {
-      signal: AbortSignal.timeout(timeout),
-      headers: createHtmlFetchHeaders(userAgent)
-    })
-    const response = rawResponse as unknown as FullResponse
+  const headers = createHtmlFetchHeaders(userAgent)
+  const result = await followRedirects(url, fetchFn, headers, timeout)
 
-    // Handle errors
-    if (!response.ok) {
-      const status = response.status
-      if (status === 404) {
-        return { ok: false, error: { type: 'not_found', message: 'Page not found', url } }
-      }
-      if (status === 403 || status === 429) {
-        return {
-          ok: false,
-          error: { type: 'blocked', message: `Blocked (${status})`, url }
-        }
-      }
-      return { ok: false, error: { type: 'network', message: `HTTP ${status}`, url } }
+  // Determine finalUrl for error responses (only if different from original)
+  const finalUrl = result.finalUrl !== url ? result.finalUrl : undefined
+
+  // Network error during redirect chain
+  if ('error' in result && result.error) {
+    return {
+      ok: false,
+      error: finalUrl
+        ? { type: 'network', message: result.error, url, finalUrl }
+        : { type: 'network', message: result.error, url }
     }
-
-    const html = await response.text()
-
-    // Extract embedded data
-    const jsonLd = extractJsonLd(html)
-    const og = extractOpenGraph(html)
-
-    const metadata = parseGenericData(jsonLd, og, url)
-    return wrapParseResult(metadata, url)
-  } catch (error) {
-    return networkError(error, url)
   }
+
+  // Type narrowing: if we get here, result has 'response'
+  const response = (result as { finalUrl: string; response: RedirectResponse }).response
+
+  // Handle HTTP errors
+  if (!response.ok) {
+    const status = response.status
+    if (status === 404) {
+      return {
+        ok: false,
+        error: finalUrl
+          ? { type: 'not_found', message: 'Page not found', url, finalUrl }
+          : { type: 'not_found', message: 'Page not found', url }
+      }
+    }
+    if (status === 403 || status === 429) {
+      return {
+        ok: false,
+        error: finalUrl
+          ? { type: 'blocked', message: `Blocked (${status})`, url, finalUrl }
+          : { type: 'blocked', message: `Blocked (${status})`, url }
+      }
+    }
+    return {
+      ok: false,
+      error: finalUrl
+        ? { type: 'network', message: `HTTP ${status}`, url, finalUrl }
+        : { type: 'network', message: `HTTP ${status}`, url }
+    }
+  }
+
+  const html = await response.text()
+
+  // Extract embedded data
+  const jsonLd = extractJsonLd(html)
+  const og = extractOpenGraph(html)
+
+  const metadata = parseGenericData(jsonLd, og, result.finalUrl)
+  return wrapParseResult(metadata, url)
 }

@@ -70,6 +70,8 @@ interface ScrapeError {
     readonly type: 'network' | 'parse' | 'blocked' | 'not_found' | 'unsupported'
     readonly message: string
     readonly url: string
+    /** Final URL after redirects (if different from url). Valuable for shortened URLs. */
+    readonly finalUrl?: string
   }
 }
 

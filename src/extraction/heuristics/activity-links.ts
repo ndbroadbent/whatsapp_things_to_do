@@ -359,6 +359,7 @@ const PLATFORM_CONFIDENCE: Record<SocialPlatform, number> = {
   booking: 0.9,
   tripadvisor: 0.85,
   eventbrite: 0.85,
+  reddit: 0.5,
   instagram: 0.5,
   tiktok: 0.5,
   youtube: 0.4,

@@ -35,5 +35,20 @@ describe('Generic Scraper Integration', () => {
       expect(result.metadata.thumbnailUrl).toContain('kalimaresort.com')
       expect(result.metadata.categories).toContain('kalimaresort.com')
     })
+
+    it('returns finalUrl when shortened URL redirects to unreachable domain', async () => {
+      // tinyurl redirects to fake domain - scraping fails but we get the final URL
+      // The path /blog/go-hiking-at-yellowstone-tips contains valuable info
+      const url = 'https://tinyurl.com/a6vzxrj4'
+      const result = await scrapeGeneric(url, { fetch: recorder.fetch })
+
+      expect(result.ok).toBe(false)
+      if (result.ok) throw new Error('Expected failure')
+
+      expect(result.error.url).toBe(url)
+      expect(result.error.finalUrl).toBe(
+        'https://fakesiteexample.com/blog/go-hiking-at-yellowstone-tips'
+      )
+    })
   })
 })

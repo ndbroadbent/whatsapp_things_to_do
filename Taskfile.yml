@@ -34,6 +34,7 @@ tasks:
       - task: check-embeddings
       - task: knip
       - task: test
+      - task: test:e2e
 
   lint:
     desc: Run Biome linter (check only)

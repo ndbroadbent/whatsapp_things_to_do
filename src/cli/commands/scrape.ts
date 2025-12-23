@@ -41,19 +41,26 @@ function formatScrapeResults(
     if (!url) continue
 
     const meta = metadataMap.get(url)
-    const domain = new URL(url).hostname.replace('www.', '')
     const truncatedUrl = truncate(url, 60)
+    const hasContent = meta && (meta.title || meta.description)
+    const hasRedirect = meta?.canonicalUrl && meta.canonicalUrl !== url
 
-    if (meta) {
-      const title = meta.title ? truncate(meta.title, 60) : '(no title)'
-      logger.log(`${i + 1}. ${title}`)
-      logger.log(`   ${truncatedUrl}`)
+    logger.log(`${i + 1}. ${truncatedUrl}`)
+
+    // Show redirect URL if different from original
+    if (hasRedirect) {
+      logger.log(`   → ${truncate(meta.canonicalUrl, 60)}`)
+    }
+
+    if (hasContent) {
+      if (meta.title) {
+        logger.log(`   Title: ${truncate(meta.title, 60)}`)
+      }
       if (meta.description) {
-        logger.log(`   ${truncate(meta.description, 80)}`)
+        logger.log(`   Description: ${truncate(meta.description, 70)}`)
       }
     } else {
-      logger.log(`${i + 1}. ${domain} (failed)`)
-      logger.log(`   ${truncatedUrl}`)
+      logger.log(`   (failed)`)
     }
     logger.log('')
   }

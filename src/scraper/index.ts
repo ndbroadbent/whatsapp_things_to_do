@@ -13,10 +13,12 @@ import type { SocialPlatform } from '../types'
 import { scrapeAirbnb } from './airbnb'
 import { scrapeEventbrite } from './eventbrite'
 import { scrapeGeneric } from './generic'
+import { scrapeReddit } from './reddit'
 import { scrapeTikTok } from './tiktok'
 import type { ScrapedMetadata, ScrapeOutcome, ScraperConfig } from './types'
 import { scrapeYouTube } from './youtube'
 
+export { extractRedditPostId, isRedditUrl, scrapeReddit } from './reddit'
 export { extractTikTokVideoId, resolveTikTokUrl, scrapeTikTok } from './tiktok'
 export type { ScrapedMetadata, ScrapeOutcome, ScraperConfig } from './types'
 export { buildYouTubeUrl, extractYouTubeVideoId, scrapeYouTube } from './youtube'
@@ -90,6 +92,9 @@ export function detectPlatform(url: string): SocialPlatform {
   if (matchesDomain(lower, 'eventbrite.com', 'eventbrite.co.nz', 'eventbrite.co.uk')) {
     return 'eventbrite'
   }
+  if (matchesDomain(lower, 'reddit.com', 'redd.it')) {
+    return 'reddit'
+  }
 
   return 'other'
 }
@@ -130,6 +135,9 @@ export async function scrapeUrl(url: string, config: ScraperConfig = {}): Promis
 
     case 'eventbrite':
       return scrapeEventbrite(url, config)
+
+    case 'reddit':
+      return scrapeReddit(url, config)
 
     // Google Maps URLs are handled by geocoder, not scraper
     case 'google_maps':

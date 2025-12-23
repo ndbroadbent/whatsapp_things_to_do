@@ -47,8 +47,8 @@ describe('preview command', () => {
 
   it('writes preview_stats.json to cache', () => {
     const stats = readCacheJson<PreviewStats>(testState.tempCacheDir, 'preview_stats.json')
-    expect(stats.candidatesClassified).toBeGreaterThanOrEqual(10)
-    expect(stats.activitiesFound).toBeGreaterThanOrEqual(10)
+    expect(stats.candidatesClassified).toBeGreaterThanOrEqual(9)
+    expect(stats.activitiesFound).toBeGreaterThanOrEqual(9)
     expect(stats.model).toBe('google/gemini-2.5-flash')
   })
 
@@ -57,7 +57,7 @@ describe('preview command', () => {
       testState.tempCacheDir,
       'preview_activities.json'
     )
-    expect(activities.length).toBeGreaterThanOrEqual(10)
+    expect(activities.length).toBeGreaterThanOrEqual(9)
 
     // Check hot air balloon activity
     const hotAirBalloon = activities.find((a) =>

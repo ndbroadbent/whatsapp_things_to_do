@@ -75,6 +75,7 @@ export type SocialPlatform =
   | 'booking'
   | 'tripadvisor'
   | 'eventbrite'
+  | 'reddit'
   | 'other'
 
 /** Context surrounding an activity link in the chat. */

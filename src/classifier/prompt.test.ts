@@ -391,6 +391,48 @@ Hope this helps!`
       expect(result).toContain('A'.repeat(200))
     })
 
+    it('includes redirect_url when canonicalUrl differs from original URL', () => {
+      const shortUrl = 'https://bit.ly/abc123'
+      const finalUrl = 'https://example.com/some/long/path/to/content'
+      const redirectedMetadata: ScrapedMetadata = {
+        ...metadata,
+        canonicalUrl: finalUrl
+      }
+      const text = `Check out ${shortUrl}`
+      const metadataMap = new Map([[shortUrl, redirectedMetadata]])
+
+      const result = injectMetadataIntoText(text, metadataMap)
+
+      expect(result).toContain(`"redirect_url":"${finalUrl}"`)
+    })
+
+    it('omits redirect_url when canonicalUrl matches original URL', () => {
+      const url = 'https://airbnb.com/rooms/123'
+      const text = `Check out ${url}`
+      const metadataMap = new Map([[url, metadata]]) // canonicalUrl matches
+
+      const result = injectMetadataIntoText(text, metadataMap)
+
+      expect(result).not.toContain('redirect_url')
+    })
+
+    it('truncates redirect_url to 200 chars', () => {
+      const shortUrl = 'https://bit.ly/abc'
+      const longFinalUrl = `https://example.com/${'a'.repeat(250)}`
+      const redirectedMetadata: ScrapedMetadata = {
+        ...metadata,
+        canonicalUrl: longFinalUrl
+      }
+      const text = `Check ${shortUrl}`
+      const metadataMap = new Map([[shortUrl, redirectedMetadata]])
+
+      const result = injectMetadataIntoText(text, metadataMap)
+
+      expect(result).toContain('redirect_url')
+      expect(result).not.toContain(longFinalUrl)
+      expect(result).toContain(longFinalUrl.slice(0, 200))
+    })
+
     it('omits null fields from JSON', () => {
       const minimalMetadata: ScrapedMetadata = {
         canonicalUrl: 'https://example.com',

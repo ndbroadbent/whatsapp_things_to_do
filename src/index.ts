@@ -119,10 +119,13 @@ export type { ScrapedMetadata, ScrapeOutcome, ScraperConfig } from './scraper/in
 export {
   buildYouTubeUrl,
   detectPlatform,
+  extractRedditPostId,
   extractTikTokVideoId,
   extractYouTubeVideoId,
+  isRedditUrl,
   resolveTikTokUrl,
   scrapeActivityLinks,
+  scrapeReddit,
   scrapeTikTok,
   scrapeUrl,
   scrapeUrls,

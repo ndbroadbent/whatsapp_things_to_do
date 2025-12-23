@@ -9,8 +9,10 @@ export const DEFAULT_USER_AGENT =
 
 /**
  * Response interface for Bun type workaround.
+ * Includes `url` to capture the final URL after redirects.
  */
 export interface FullResponse {
+  url: string
   ok: boolean
   status: number
   text(): Promise<string>
