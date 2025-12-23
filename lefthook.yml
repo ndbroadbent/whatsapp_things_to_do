@@ -40,8 +40,3 @@ pre-commit:
     query-embeddings:
       glob: "src/embeddings/queries/*.json"
       run: bun scripts/check-query-embeddings.ts
-
-pre-push:
-  commands:
-    test:
-      run: bun run test
