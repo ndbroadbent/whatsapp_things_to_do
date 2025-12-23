@@ -11,11 +11,24 @@
  * - Caching via ResponseCache interface
  */
 
+import { decode } from 'html-entities'
 import { generateUrlCacheKey } from '../cache/key'
 import type { ResponseCache } from '../cache/types'
 import type { CandidateMessage } from '../types'
 import { scrapeUrl } from './index'
 import type { ScrapedMetadata, ScraperConfig } from './types'
+
+/**
+ * Decode HTML entities in scraped metadata text fields.
+ */
+function decodeMetadata(metadata: ScrapedMetadata): ScrapedMetadata {
+  return {
+    ...metadata,
+    title: metadata.title ? decode(metadata.title) : null,
+    description: metadata.description ? decode(metadata.description) : null,
+    creator: metadata.creator ? decode(metadata.creator) : null
+  }
+}
 
 const DEFAULT_TIMEOUT_MS = 4000
 const DEFAULT_CONCURRENCY = 5
@@ -102,11 +115,12 @@ async function scrapeWithCache(
     const result = await scrapeUrl(url, { ...options, timeout: timeoutMs })
 
     if (result.ok) {
-      // Cache successful result
+      // Decode HTML entities and cache result
+      const decoded = decodeMetadata(result.metadata)
       if (cache) {
-        await cache.set(cacheKey, { data: result.metadata, cachedAt: Date.now() })
+        await cache.set(cacheKey, { data: decoded, cachedAt: Date.now() })
       }
-      return { url, metadata: result.metadata }
+      return { url, metadata: decoded }
     }
 
     // Scrape returned error

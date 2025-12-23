@@ -46,9 +46,10 @@ interface ScrapeOptions {
   readonly verbose?: boolean | undefined
 }
 
-/** Serializable version of metadata map for caching */
-interface CachedMetadata {
+/** Serializable version of scrape results for caching */
+interface CachedScrapeData {
   readonly entries: Array<[string, ScrapedMetadata]>
+  readonly allUrls: readonly string[]
 }
 
 /**
@@ -67,13 +68,13 @@ export async function stepScrape(
   // Check pipeline cache (skip if noCache)
   if (!noCache && pipelineCache.hasStage('scrape_stats')) {
     const stats = pipelineCache.getStage<ScrapeStats>('scrape_stats')
-    const cached = pipelineCache.getStage<CachedMetadata>('scrape_metadata')
+    const cached = pipelineCache.getStage<CachedScrapeData>('scrape_metadata')
     if (stats && cached) {
       if (!options?.quiet) {
         logger.log('\n🔗 Scraping URLs... 📦 cached')
       }
       const metadataMap = new Map(cached.entries)
-      return { metadataMap, urls: [...metadataMap.keys()], fromCache: true, stats }
+      return { metadataMap, urls: cached.allUrls, fromCache: true, stats }
     }
   }
 
@@ -139,7 +140,10 @@ export async function stepScrape(
 
   // Cache results (convert Map to array for JSON serialization)
   pipelineCache.setStage('scrape_stats', stats)
-  pipelineCache.setStage('scrape_metadata', { entries: [...metadataMap.entries()] })
+  pipelineCache.setStage<CachedScrapeData>('scrape_metadata', {
+    entries: [...metadataMap.entries()],
+    allUrls: urls
+  })
 
   if (!options?.quiet) {
     logger.log(`   ✓ ${successCount} scraped, ${failedCount} failed, ${cachedCount} cached`)

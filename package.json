@@ -71,6 +71,7 @@
   "dependencies": {
     "commander": "^14.0.2",
     "exceljs": "^4.4.0",
+    "html-entities": "^2.6.0",
     "js-tiktoken": "^1.0.21",
     "jszip": "^3.10.1",
     "pdfkit": "^0.17.2"

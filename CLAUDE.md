@@ -184,6 +184,69 @@ const result = await scrapeTikTok(url, { fetch: recorder.fetch })
 | CLI PRD | `project/PRD_CLI.md` |
 | Phase 8 TODO | `project/todo/PHASE_8_TODO.md` |
 
+## Cache System
+
+The CLI uses a **two-layer caching system**:
+
+| Layer | Purpose | Location |
+|-------|---------|----------|
+| **Pipeline Cache** | Per-run stage outputs (messages, candidates, classifications) | `~/.cache/chat-to-map/chats/<input>/<datetime>-<hash>/` |
+| **API Cache** | Deduplicate API calls (embeddings, classification, geocoding, scraping) | `~/.cache/chat-to-map/requests/` |
+
+### Cache Location
+
+```bash
+~/.cache/chat-to-map/
+├── chats/                              # Pipeline cache (per-run outputs)
+│   └── WhatsApp_Chat/
+│       └── 2025-01-15T10-30-45-abc123/ # datetime-filehash
+│           ├── chat.txt
+│           ├── messages.json
+│           ├── candidates.heuristics.json
+│           ├── classifications.json
+│           └── ...
+└── requests/                           # API cache (response deduplication)
+    ├── ai/openai/text-embedding-3-large/{hash}.json
+    ├── ai/anthropic/claude-haiku-4-5/{hash}.json
+    ├── geo/google/{hash}.json
+    └── web/https_example_com_{hash}.json
+```
+
+### Configuration
+
+```bash
+# Custom cache directory
+chat-to-map analyze ./chat.zip --cache-dir /tmp/cache
+export CHAT_TO_MAP_CACHE_DIR="/custom/path"
+
+# Skip all caching
+chat-to-map analyze ./chat.zip --no-cache
+```
+
+### Cache Key Generation
+
+Keys are **deterministic SHA256 hashes** with sorted object properties:
+
+```typescript
+import { generateCacheKey, generateUrlCacheKey } from 'src/cache/key'
+
+// Same key regardless of property order
+generateCacheKey({ a: 1, b: 2 }) === generateCacheKey({ b: 2, a: 1 })
+
+// URL cache key includes sanitized URL + hash
+generateUrlCacheKey('https://example.com/path')
+// → 'web/https_example_com_path_abc12345.json'
+```
+
+### No TTL
+
+Both caches store entries **forever**. Manual cleanup:
+
+```bash
+rm -rf ~/.cache/chat-to-map           # Clear all
+rm -rf ~/.cache/chat-to-map/requests  # Clear API cache only
+```
+
 ## What NOT to Do
 
 - ❌ Add IO operations to core library functions
