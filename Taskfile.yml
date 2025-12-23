@@ -32,6 +32,7 @@ tasks:
       - task: duplication
       - task: file-length
       - task: check-embeddings
+      - task: knip
       - task: test
 
   lint:

@@ -81,8 +81,8 @@ describe('Embeddings Module', () => {
     vi.clearAllMocks()
   })
 
-  describe('embedMessages', async () => {
-    const { embedMessages } = await import('./index')
+  describe('messageEmbeddings', async () => {
+    const { messageEmbeddings } = await import('./index')
 
     it('calls OpenAI API with correct parameters', async () => {
       mockFetch.mockResolvedValue({
@@ -92,7 +92,7 @@ describe('Embeddings Module', () => {
 
       const messages = [{ id: 1, content: 'Test message' }]
 
-      await embedMessages(messages, { apiKey: 'test-key' })
+      await messageEmbeddings(messages, { apiKey: 'test-key' })
 
       expect(mockFetch).toHaveBeenCalledWith(
         'https://api.openai.com/v1/embeddings',
@@ -113,7 +113,7 @@ describe('Embeddings Module', () => {
 
       const messages = [{ id: 1, content: 'Test message' }]
 
-      await embedMessages(messages, { apiKey: 'test-key' })
+      await messageEmbeddings(messages, { apiKey: 'test-key' })
 
       const call = mockFetch.mock.calls[0] as [string, { body: string }]
       const body = JSON.parse(call[1].body) as { model: string }
@@ -128,14 +128,14 @@ describe('Embeddings Module', () => {
 
       const messages = [{ id: 1, content: 'Test message' }]
 
-      await embedMessages(messages, { apiKey: 'test-key', model: 'text-embedding-ada-002' })
+      await messageEmbeddings(messages, { apiKey: 'test-key', model: 'text-embedding-ada-002' })
 
       const call = mockFetch.mock.calls[0] as [string, { body: string }]
       const body = JSON.parse(call[1].body) as { model: string }
       expect(body.model).toBe('text-embedding-ada-002')
     })
 
-    it('returns embedded messages on success', async () => {
+    it('streams embedded messages via onBatch callback', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => createEmbeddingResponse(2)
@@ -146,13 +146,18 @@ describe('Embeddings Module', () => {
         { id: 2, content: 'Second message' }
       ]
 
-      const result = await embedMessages(messages, { apiKey: 'test-key' })
+      const batches: Array<{ messageId: number; embedding: Float32Array }[]> = []
+      const result = await messageEmbeddings(messages, { apiKey: 'test-key' }, undefined, {
+        onBatch: (embeddings) => batches.push([...embeddings])
+      })
 
       expect(result.ok).toBe(true)
       if (result.ok) {
-        expect(result.value).toHaveLength(2)
-        expect(result.value[0]?.messageId).toBe(1)
-        expect(result.value[0]?.embedding).toBeInstanceOf(Float32Array)
+        expect(result.value.totalEmbedded).toBe(2)
+        expect(batches).toHaveLength(1)
+        expect(batches[0]).toHaveLength(2)
+        expect(batches[0]?.[0]?.messageId).toBe(1)
+        expect(batches[0]?.[0]?.embedding).toBeInstanceOf(Float32Array)
       }
     })
 
@@ -166,7 +171,7 @@ describe('Embeddings Module', () => {
 
       const messages = [{ id: 1, content: 'Test' }]
 
-      const result = await embedMessages(messages, { apiKey: 'invalid' })
+      const result = await messageEmbeddings(messages, { apiKey: 'invalid' })
 
       expect(result.ok).toBe(false)
       if (!result.ok) {
@@ -179,7 +184,7 @@ describe('Embeddings Module', () => {
 
       const messages = [{ id: 1, content: 'Test' }]
 
-      const result = await embedMessages(messages, { apiKey: 'test-key' })
+      const result = await messageEmbeddings(messages, { apiKey: 'test-key' })
 
       expect(result.ok).toBe(false)
       if (!result.ok) {
@@ -198,7 +203,7 @@ describe('Embeddings Module', () => {
         content: `Message ${i + 1}`
       }))
 
-      await embedMessages(messages, { apiKey: 'test-key', batchSize: 100 })
+      await messageEmbeddings(messages, { apiKey: 'test-key' }, undefined, { batchSize: 100 })
 
       // Should make 3 API calls (100 + 100 + 50)
       expect(mockFetch).toHaveBeenCalledTimes(3)
@@ -215,7 +220,7 @@ describe('Embeddings Module', () => {
         content: `Message ${i + 1}`
       }))
 
-      await embedMessages(messages, { apiKey: 'test-key', batchSize: 5000 })
+      await messageEmbeddings(messages, { apiKey: 'test-key' }, undefined, { batchSize: 5000 })
 
       // Should still batch at max 2048
       const call = mockFetch.mock.calls[0] as [string, { body: string }]

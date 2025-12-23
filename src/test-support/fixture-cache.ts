@@ -17,7 +17,7 @@
  * await cache.load()
  *
  * // Use with any ResponseCache-compatible function
- * const result = await embedMessages(messages, config, cache)
+ * const result = await messageEmbeddings(messages, config, cache)
  *
  * // Save after tests (adds new entries to fixture)
  * await cache.save()

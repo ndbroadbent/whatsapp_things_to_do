@@ -70,6 +70,24 @@ export async function initCommand(
 }
 
 // ============================================================================
+// Embedding Progress Logger
+// ============================================================================
+
+/**
+ * Create a batch progress logger for embedding operations.
+ * Logs every 10th batch or the last batch.
+ */
+export function createEmbeddingProgressLogger(logger: Logger, verb: string) {
+  return (info: { batchIndex: number; totalBatches: number }) => {
+    const batchNum = info.batchIndex + 1
+    if (batchNum % 10 === 0 || batchNum === info.totalBatches) {
+      const percent = Math.floor((batchNum / info.totalBatches) * 100)
+      logger.log(`   ${percent}% ${verb} (${batchNum}/${info.totalBatches} batches)`)
+    }
+  }
+}
+
+// ============================================================================
 // Parse with Logging
 // ============================================================================
 

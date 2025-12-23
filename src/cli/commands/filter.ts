@@ -13,6 +13,7 @@ import type { CLIArgs, ExtractionMethod } from '../args'
 import { formatDate, initCommand, truncate } from '../helpers'
 import type { Logger } from '../logger'
 import type { PipelineContext } from '../steps/context'
+import { stepEmbed } from '../steps/embed'
 
 interface FilterOutput {
   method: ExtractionMethod
@@ -29,28 +30,6 @@ interface FilterStats {
 }
 
 const EMBEDDING_COST_PER_MILLION_TOKENS = 0.13
-
-function createEmbeddingCallbacks(logger: Logger) {
-  return {
-    onBatchComplete: (info: {
-      phase: string
-      batchIndex: number
-      totalBatches: number
-      itemsInBatch: number
-      cacheHit: boolean
-      durationMs: number
-    }) => {
-      if (info.phase === 'messages' && !info.cacheHit) {
-        const batchNum = info.batchIndex + 1
-        // Log every 10th batch or the last batch
-        if (batchNum % 10 === 0 || batchNum === info.totalBatches) {
-          const percent = Math.floor((batchNum / info.totalBatches) * 100)
-          logger.log(`   ${percent}% embedded (${batchNum}/${info.totalBatches} batches)`)
-        }
-      }
-    }
-  }
-}
 
 function estimateEmbeddingCost(messages: readonly ParsedMessage[], logger: Logger): void {
   const messagesToEmbed = messages.filter((m) => m.content.length > 10)
@@ -70,7 +49,7 @@ function estimateEmbeddingCost(messages: readonly ParsedMessage[], logger: Logge
   logger.log(`   Estimated cost: $${costDollars.toFixed(4)}`)
 }
 
-function formatCandidatesText(output: FilterOutput, logger: Logger): void {
+function formatCandidatesText(output: FilterOutput, logger: Logger, showAll: boolean): void {
   const { method, stats, candidates } = output
 
   logger.log(`\n📊 Extraction Results (method: ${method})`)
@@ -89,10 +68,14 @@ function formatCandidatesText(output: FilterOutput, logger: Logger): void {
     logger.log(`   Embeddings: ${stats.embeddingsMatches}`)
   }
 
-  logger.log('\n📋 Candidates (sorted by confidence):')
+  const displayCount = showAll ? candidates.length : Math.min(10, candidates.length)
+  const header = showAll
+    ? `\n📋 All ${candidates.length} Candidates:`
+    : `\n📋 Top ${displayCount} Candidates:`
+  logger.log(header)
   logger.log('')
 
-  for (let i = 0; i < candidates.length; i++) {
+  for (let i = 0; i < displayCount; i++) {
     const c = candidates[i]
     if (!c) continue
 
@@ -108,6 +91,10 @@ function formatCandidatesText(output: FilterOutput, logger: Logger): void {
     logger.log(`   ${c.sender} • ${formatDate(c.timestamp)}`)
     logger.log(`   ${sourceLabel}`)
     logger.log('')
+  }
+
+  if (!showAll && candidates.length > 10) {
+    logger.log(`   ... and ${candidates.length - 10} more (use --all to show all)`)
   }
 }
 
@@ -169,25 +156,24 @@ async function runEmbeddings(
 ): Promise<{ candidates: readonly CandidateMessage[]; fromCache: boolean }> {
   const { pipelineCache, apiCache } = ctx
 
-  // Check cache
-  if (pipelineCache.hasStage('candidates.embeddings')) {
-    const cached = pipelineCache.getStage<CandidateMessage[]>('candidates.embeddings') ?? []
-    logger.log('\n🔍 Embeddings extraction... 📦 cached')
-    return { candidates: cached, fromCache: true }
-  }
-
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) {
     throw new Error('OPENAI_API_KEY required for embeddings extraction')
   }
 
+  // Run embed step (will use cache if available)
+  await stepEmbed(ctx, messages)
+
+  // Check cache for candidates
+  if (pipelineCache.hasStage('candidates.embeddings')) {
+    const cached = pipelineCache.getStage<CandidateMessage[]>('candidates.embeddings') ?? []
+    logger.log('\n🔍 Extracting candidates (embeddings)... 📦 cached')
+    return { candidates: cached, fromCache: true }
+  }
+
+  // Extract candidates
   logger.log('\n🔍 Extracting candidates (embeddings)...')
-  const result = await extractCandidatesByEmbeddings(
-    messages,
-    { apiKey, ...createEmbeddingCallbacks(logger) },
-    undefined,
-    apiCache
-  )
+  const result = await extractCandidatesByEmbeddings(messages, { apiKey }, undefined, apiCache)
 
   if (!result.ok) {
     throw new Error(`Embeddings extraction failed: ${result.error.message}`)
@@ -309,6 +295,6 @@ export async function cmdFilter(args: CLIArgs, logger: Logger): Promise<void> {
       logger.success(`\n✓ Saved ${output.stats.totalCandidates} candidates to ${args.jsonOutput}`)
     }
   } else {
-    formatCandidatesText(output, logger)
+    formatCandidatesText(output, logger, args.showAll)
   }
 }

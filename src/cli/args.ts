@@ -33,6 +33,7 @@ export interface CLIArgs {
   scrapeTimeout: number
   noCache: boolean
   cacheDir: string | undefined
+  showAll: boolean
 }
 
 const DEFAULT_BASE_DIR = './chat-to-map'
@@ -46,10 +47,10 @@ Supported formats (auto-detected):
   • iMessage (via imessage-exporter)
 
 Examples:
-  $ chat-to-map validate "WhatsApp Chat.zip"
-  $ chat-to-map validate ./imessage-export/
-  $ chat-to-map analyze "WhatsApp Chat.zip" -c "New Zealand"
-  $ chat-to-map analyze ./imessage-export/ -c "United States"
+  $ chat-to-map parse "WhatsApp Chat.zip"
+  $ chat-to-map scan ./imessage-export/
+  $ chat-to-map analyze "WhatsApp Chat.zip"
+  $ chat-to-map analyze ./imessage-export/
 
 For iMessage, use imessage-exporter (https://github.com/ReagentX/imessage-exporter)
 to export your chat, then point chat-to-map at the output directory.`
@@ -118,7 +119,7 @@ function createProgram(): Command {
   // ============ EMBED (embed all messages) ============
   program
     .command('embed')
-    .description('Embed all messages using OpenAI embeddings (~$0.001/1000 msgs)')
+    .description('Embed all messages for semantic search using OpenAI API (~$0.001/1000 msgs)')
     .argument('<input>', 'Chat export (.zip, directory, or .txt file)')
     .option('-m, --max-messages <num>', 'Max messages to process (for testing)')
     .option('--dry-run', 'Show cost estimate without API calls')
@@ -126,12 +127,13 @@ function createProgram(): Command {
   // ============ FILTER (heuristics + embeddings extraction) ============
   program
     .command('filter')
-    .description('Filter messages into candidates (heuristics, embeddings, or both)')
+    .description('Filter messages into candidates (heuristics and semantic search via embeddings)')
     .argument('<input>', 'Chat export (.zip, directory, or .txt file)')
     .option('--method <method>', 'Extraction method: heuristics, embeddings, both', 'both')
     .option('--json [file]', 'Output as JSON (to file if specified, otherwise stdout)')
     .option('--min-confidence <num>', 'Minimum confidence threshold', '0.5')
     .option('-m, --max-messages <num>', 'Max messages to process (for testing)')
+    .option('-a, --all', 'Show all candidates (default: top 10)')
     .option('--dry-run', 'Show cost estimate without API calls')
 
   // ============ SCRAPE (scrape URLs for metadata) ============
@@ -223,7 +225,8 @@ function buildCLIArgs(commandName: string, input: string, opts: Record<string, u
     scrapeConcurrency: Number.parseInt(String(opts.concurrency ?? '5'), 10),
     scrapeTimeout: Number.parseInt(String(opts.timeout ?? '4000'), 10),
     noCache: opts.cache === false,
-    cacheDir: typeof opts.cacheDir === 'string' ? opts.cacheDir : undefined
+    cacheDir: typeof opts.cacheDir === 'string' ? opts.cacheDir : undefined,
+    showAll: opts.all === true
   }
 }
 

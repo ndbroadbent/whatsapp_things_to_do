@@ -64,7 +64,6 @@ export {
   cosineSimilarity,
   DEFAULT_ACTIVITY_QUERIES,
   EXCLUSION_PATTERNS,
-  embedMessages,
   embedQueries,
   extractActivityLinks,
   extractCandidates,

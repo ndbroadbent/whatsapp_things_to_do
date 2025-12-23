@@ -148,103 +148,127 @@ async function embedBatch(
   }
 }
 
-interface BatchTask {
+/**
+ * Batch progress info passed to callbacks.
+ */
+interface EmbeddingBatchInfo {
   batchIndex: number
-  batch: readonly { id: number; content: string }[]
-  texts: readonly string[]
+  totalBatches: number
+  itemsInBatch: number
+  totalItems: number
+  cacheHit: boolean
+  durationMs: number
 }
 
 /**
- * Embed messages for semantic search.
+ * Callback for each batch of embeddings.
+ */
+type EmbeddingBatchCallback = (
+  embeddings: readonly EmbeddedMessage[],
+  info: EmbeddingBatchInfo
+) => void
+
+/**
+ * Options for messageEmbeddings.
+ */
+interface MessageEmbeddingsOptions {
+  /** Called with each batch of embeddings as they become available */
+  onBatch?: EmbeddingBatchCallback
+  /** Batch size for API calls (default 100, max 2048) */
+  batchSize?: number
+  /** Max concurrent API calls (default 10) */
+  concurrency?: number
+}
+
+/**
+ * Stream message embeddings batch by batch.
+ *
+ * Embeddings are cached to the API cache. Each batch is passed to the onBatch
+ * callback as soon as it's ready - nothing is accumulated in memory.
  *
  * @param messages Messages to embed (id and content required)
  * @param config OpenAI API configuration
  * @param cache Optional response cache to prevent duplicate API calls
- * @returns Array of embedded messages
+ * @param options Streaming options including onBatch callback
+ * @returns Success/failure result (embeddings are delivered via callback)
  */
-export async function embedMessages(
+export async function messageEmbeddings(
   messages: readonly { id: number; content: string }[],
   config: EmbeddingConfig,
-  cache?: ResponseCache
-): Promise<Result<EmbeddedMessage[]>> {
-  const batchSize = Math.min(config.batchSize ?? DEFAULT_BATCH_SIZE, MAX_OPENAI_BATCH_SIZE)
-  const concurrency = config.concurrency ?? DEFAULT_CONCURRENCY
+  cache?: ResponseCache,
+  options?: MessageEmbeddingsOptions
+): Promise<Result<{ totalEmbedded: number; cachedBatches: number }>> {
+  const batchSize = Math.min(options?.batchSize ?? DEFAULT_BATCH_SIZE, MAX_OPENAI_BATCH_SIZE)
+  const concurrency = options?.concurrency ?? DEFAULT_CONCURRENCY
   const totalBatches = Math.ceil(messages.length / batchSize)
 
-  // Build all batch tasks
-  const tasks: BatchTask[] = []
-  for (let i = 0; i < messages.length; i += batchSize) {
-    const batchIndex = Math.floor(i / batchSize)
-    const batch = messages.slice(i, i + batchSize)
-    tasks.push({
-      batchIndex,
-      batch,
-      texts: batch.map((m) => m.content)
-    })
-  }
-
-  // Results array indexed by batchIndex
-  const batchResults: (EmbeddedMessage[] | null)[] = new Array(tasks.length).fill(null)
+  let totalEmbedded = 0
+  let cachedBatches = 0
   let firstError: Result<never> | null = null
 
   // Process batches with concurrency limit
-  const processBatch = async (task: BatchTask): Promise<void> => {
-    if (firstError) return // Stop if we already hit an error
+  for (let i = 0; i < messages.length && !firstError; i += batchSize * concurrency) {
+    const chunkTasks: Promise<void>[] = []
 
-    const progressInfo = {
-      phase: 'messages' as const,
-      batchIndex: task.batchIndex,
-      totalBatches,
-      itemsInBatch: task.batch.length,
-      totalItems: messages.length,
-      cacheHit: false
+    for (let j = 0; j < concurrency && i + j * batchSize < messages.length; j++) {
+      const batchStart = i + j * batchSize
+      const batchIndex = Math.floor(batchStart / batchSize)
+      const batch = messages.slice(batchStart, batchStart + batchSize)
+      const texts = batch.map((m) => m.content)
+
+      chunkTasks.push(
+        (async () => {
+          if (firstError) return
+
+          const startTime = Date.now()
+          const embedResult = await embedBatch(texts, config, cache)
+
+          if (!embedResult.ok) {
+            firstError = embedResult
+            return
+          }
+
+          const info: EmbeddingBatchInfo = {
+            batchIndex,
+            totalBatches,
+            itemsInBatch: batch.length,
+            totalItems: messages.length,
+            cacheHit: embedResult.value.cacheHit,
+            durationMs: Date.now() - startTime
+          }
+
+          if (embedResult.value.cacheHit) {
+            cachedBatches++
+          }
+
+          // Build embeddings for this batch
+          const batchEmbeddings: EmbeddedMessage[] = []
+          for (let k = 0; k < batch.length; k++) {
+            const msg = batch[k]
+            const embedding = embedResult.value.embeddings[k]
+            if (msg && embedding) {
+              batchEmbeddings.push({
+                messageId: msg.id,
+                content: msg.content,
+                embedding
+              })
+            }
+          }
+
+          totalEmbedded += batchEmbeddings.length
+
+          // Deliver to callback (if provided)
+          options?.onBatch?.(batchEmbeddings, info)
+        })()
+      )
     }
 
-    config.onBatchStart?.(progressInfo)
-
-    const startTime = Date.now()
-    const embedResult = await embedBatch(task.texts, config, cache)
-
-    if (!embedResult.ok) {
-      firstError = embedResult
-      return
-    }
-
-    config.onBatchComplete?.({
-      ...progressInfo,
-      cacheHit: embedResult.value.cacheHit,
-      durationMs: Date.now() - startTime
-    })
-
-    const batchEmbeddings: EmbeddedMessage[] = []
-    for (let j = 0; j < task.batch.length; j++) {
-      const msg = task.batch[j]
-      const embedding = embedResult.value.embeddings[j]
-      if (msg && embedding) {
-        batchEmbeddings.push({
-          messageId: msg.id,
-          content: msg.content,
-          embedding
-        })
-      }
-    }
-    batchResults[task.batchIndex] = batchEmbeddings
+    await Promise.all(chunkTasks)
   }
 
-  // Process in chunks of `concurrency` size
-  for (let i = 0; i < tasks.length; i += concurrency) {
-    const chunk = tasks.slice(i, i + concurrency)
-    await Promise.all(chunk.map(processBatch))
-    if (firstError) return firstError
-  }
+  if (firstError) return firstError
 
-  // Flatten results in order
-  const results: EmbeddedMessage[] = []
-  for (const batch of batchResults) {
-    if (batch) results.push(...batch)
-  }
-
-  return { ok: true, value: results }
+  return { ok: true, value: { totalEmbedded, cachedBatches } }
 }
 
 /**
@@ -358,29 +382,33 @@ export async function extractCandidatesByEmbeddings(
   messages: readonly ParsedMessage[],
   embeddingConfig: EmbeddingConfig,
   searchConfig?: SemanticSearchConfig,
-  cache?: ResponseCache
+  cache?: ResponseCache,
+  options?: MessageEmbeddingsOptions
 ): Promise<Result<CandidateMessage[]>> {
   // Filter messages with content
   const messagesToEmbed = messages
     .filter((m) => m.content.length > 10) // Skip very short messages
     .map((m) => ({ id: m.id, content: m.content }))
 
-  // Embed all messages
-  const messageEmbeddingsResult = await embedMessages(messagesToEmbed, embeddingConfig, cache)
-  if (!messageEmbeddingsResult.ok) {
-    return messageEmbeddingsResult
+  // Embed all messages, accumulating results for semantic search
+  const allEmbeddings: EmbeddedMessage[] = []
+  const result = await messageEmbeddings(messagesToEmbed, embeddingConfig, cache, {
+    ...options,
+    onBatch: (embeddings, info) => {
+      allEmbeddings.push(...embeddings)
+      options?.onBatch?.(embeddings, info)
+    }
+  })
+
+  if (!result.ok) {
+    return result
   }
 
   // Use pre-computed query embeddings (generated by scripts/generate-query-embeddings.ts)
   const queryEmbeddings = getDefaultQueryEmbeddings()
 
   // Find semantic candidates
-  const candidates = findSemanticCandidates(
-    messageEmbeddingsResult.value,
-    queryEmbeddings,
-    messages,
-    searchConfig
-  )
+  const candidates = findSemanticCandidates(allEmbeddings, queryEmbeddings, messages, searchConfig)
 
   return { ok: true, value: candidates }
 }

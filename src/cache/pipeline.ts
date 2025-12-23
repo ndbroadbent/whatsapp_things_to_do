@@ -33,7 +33,6 @@ export type PipelineStage =
   | 'preview_stats'
   | 'preview_activities'
   | 'embed_stats'
-  | 'embeddings'
   | 'candidates.heuristics'
   | 'candidates.embeddings'
   | 'candidates.all'

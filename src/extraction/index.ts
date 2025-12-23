@@ -31,7 +31,6 @@ export {
   AGREEMENT_QUERIES,
   cosineSimilarity,
   DEFAULT_ACTIVITY_QUERIES,
-  embedMessages,
   embedQueries,
   extractCandidatesByEmbeddings,
   findSemanticCandidates,

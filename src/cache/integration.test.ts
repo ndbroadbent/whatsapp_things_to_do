@@ -268,11 +268,11 @@ describe('Cache Integration', () => {
     })
   })
 
-  describe('embedMessages cache integration', () => {
+  describe('messageEmbeddings cache integration', () => {
     const messages = [{ id: 1, content: 'Test message for embedding that is long enough' }]
 
     it('calls API on cache miss', async () => {
-      const { embedMessages } = await import('../extraction/embeddings/index')
+      const { messageEmbeddings } = await import('../extraction/embeddings/index')
 
       // Mock successful API response
       mockFetch.mockResolvedValueOnce({
@@ -283,14 +283,14 @@ describe('Cache Integration', () => {
         })
       })
 
-      const result = await embedMessages(messages, { apiKey: 'test-key' }, cache)
+      const result = await messageEmbeddings(messages, { apiKey: 'test-key' }, cache)
 
       expect(result.ok).toBe(true)
       expect(mockFetch).toHaveBeenCalledTimes(1)
     })
 
     it('skips API call on cache hit', async () => {
-      const { embedMessages } = await import('../extraction/embeddings/index')
+      const { messageEmbeddings } = await import('../extraction/embeddings/index')
 
       // Mock successful API response
       mockFetch.mockResolvedValueOnce({
@@ -302,11 +302,11 @@ describe('Cache Integration', () => {
       })
 
       // First call - should hit API
-      await embedMessages(messages, { apiKey: 'test-key' }, cache)
+      await messageEmbeddings(messages, { apiKey: 'test-key' }, cache)
       expect(mockFetch).toHaveBeenCalledTimes(1)
 
       // Second call - should use cache
-      await embedMessages(messages, { apiKey: 'test-key' }, cache)
+      await messageEmbeddings(messages, { apiKey: 'test-key' }, cache)
       expect(mockFetch).toHaveBeenCalledTimes(1)
     })
   })
