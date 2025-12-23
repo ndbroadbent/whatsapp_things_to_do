@@ -123,7 +123,6 @@ describe('scrapeTikTok', () => {
 
     expect(result.ok).toBe(true)
     if (result.ok) {
-      expect(result.metadata.platform).toBe('tiktok')
       expect(result.metadata.title).toBe('Shostakovich: Waltz No. 2')
       expect(result.metadata.description).toContain('Shostakovich')
       expect(result.metadata.hashtags).toContain('classicalmusic')

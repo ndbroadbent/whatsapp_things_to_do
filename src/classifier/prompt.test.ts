@@ -329,7 +329,6 @@ Hope this helps!`
 
   describe('injectMetadataIntoText', () => {
     const metadata: ScrapedMetadata = {
-      platform: 'airbnb',
       canonicalUrl: 'https://airbnb.com/rooms/123',
       contentId: '123',
       title: 'Cozy Cabin',
@@ -355,14 +354,8 @@ Hope this helps!`
     it('handles multiple URLs', () => {
       const text = 'See https://a.com and https://b.com'
       const metadataMap = new Map<string, ScrapedMetadata>([
-        [
-          'https://a.com',
-          { ...metadata, platform: 'other', canonicalUrl: 'https://a.com', title: 'Site A' }
-        ],
-        [
-          'https://b.com',
-          { ...metadata, platform: 'other', canonicalUrl: 'https://b.com', title: 'Site B' }
-        ]
+        ['https://a.com', { ...metadata, canonicalUrl: 'https://a.com', title: 'Site A' }],
+        ['https://b.com', { ...metadata, canonicalUrl: 'https://b.com', title: 'Site B' }]
       ])
 
       const result = injectMetadataIntoText(text, metadataMap)
@@ -400,7 +393,6 @@ Hope this helps!`
 
     it('omits null fields from JSON', () => {
       const minimalMetadata: ScrapedMetadata = {
-        platform: 'other',
         canonicalUrl: 'https://example.com',
         contentId: null,
         title: 'Test',
@@ -426,7 +418,6 @@ Hope this helps!`
 
   describe('buildClassificationPrompt with URL metadata', () => {
     const metadata: ScrapedMetadata = {
-      platform: 'youtube',
       canonicalUrl: 'https://youtube.com/watch?v=abc',
       contentId: 'abc',
       title: 'Cool Video',

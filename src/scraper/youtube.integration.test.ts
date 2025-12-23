@@ -31,7 +31,6 @@ describe('YouTube Scraper Integration', () => {
 
       expect(result.ok).toBe(true)
       if (result.ok) {
-        expect(result.metadata.platform).toBe('youtube')
         expect(result.metadata.contentId).toBe('oQ-Vc_xQrZk')
         expect(result.metadata.canonicalUrl).toBe('https://www.youtube.com/watch?v=oQ-Vc_xQrZk')
         expect(result.metadata.title).toBeTruthy()

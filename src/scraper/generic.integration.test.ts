@@ -29,7 +29,6 @@ describe('Generic Scraper Integration', () => {
       expect(result.ok).toBe(true)
       if (!result.ok) throw new Error('Expected success')
 
-      expect(result.metadata.platform).toBe('other')
       expect(result.metadata.title).toBe('Kalima Resort & Spa - 5-Star Resort in Phuket')
       expect(result.metadata.description).toContain('Kalima Resort')
       expect(result.metadata.description).toContain('Phuket')

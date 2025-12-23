@@ -111,7 +111,6 @@ function parseGenericData(
   if (!title && !description) return null
 
   return {
-    platform: 'other',
     canonicalUrl,
     contentId: null,
     title,

@@ -58,7 +58,6 @@ function parseAirbnbData(
   if (!title && !description) return null
 
   return {
-    platform: 'airbnb',
     canonicalUrl,
     contentId: listingId,
     title,

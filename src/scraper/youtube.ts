@@ -194,7 +194,6 @@ function parseYouTubeData(
   const categories = category ? [category] : []
 
   return {
-    platform: 'youtube',
     canonicalUrl,
     contentId: videoId,
     title,

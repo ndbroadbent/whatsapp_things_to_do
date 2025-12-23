@@ -32,7 +32,6 @@ describe('Eventbrite Scraper Integration', () => {
       expect(result.ok).toBe(true)
       if (!result.ok) throw new Error('Expected success')
 
-      expect(result.metadata.platform).toBe('eventbrite')
       expect(result.metadata.contentId).toBe('189496869237')
       expect(result.metadata.canonicalUrl).toBe(url)
       expect(result.metadata.title).toBe('Come As You Are -  A Night Of Acoustic Nirvana')

@@ -92,7 +92,6 @@ describe('scrapeEventbrite', () => {
 
       expect(result.ok).toBe(true)
       if (result.ok) {
-        expect(result.metadata.platform).toBe('eventbrite')
         expect(result.metadata.contentId).toBe('123456789012')
         expect(result.metadata.title).toBe('Auckland Food & Wine Festival 2024')
         expect(result.metadata.description).toContain('food festival')

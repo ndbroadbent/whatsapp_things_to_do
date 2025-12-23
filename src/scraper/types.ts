@@ -1,10 +1,8 @@
 /**
  * Scraper Types
  *
- * Types for social media metadata scraping.
+ * Types for URL metadata scraping.
  */
-
-import type { SocialPlatform } from '../types'
 
 /**
  * Fetch function type for dependency injection.
@@ -28,11 +26,9 @@ export interface ScraperConfig {
 }
 
 /**
- * Metadata scraped from a social media URL.
+ * Metadata scraped from a URL.
  */
 export interface ScrapedMetadata {
-  /** The platform this was scraped from */
-  readonly platform: SocialPlatform
   /** Canonical URL after resolving redirects */
   readonly canonicalUrl: string
   /** Video/post ID extracted from URL */

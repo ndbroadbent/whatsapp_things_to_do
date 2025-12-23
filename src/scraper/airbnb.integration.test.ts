@@ -29,7 +29,6 @@ describe('Airbnb Scraper Integration', () => {
       expect(result.ok).toBe(true)
       if (!result.ok) throw new Error('Expected success')
 
-      expect(result.metadata.platform).toBe('airbnb')
       expect(result.metadata.contentId).toBe('29688831')
       expect(result.metadata.title).toContain('Queenstown')
       expect(result.metadata.title).toContain('4.99')

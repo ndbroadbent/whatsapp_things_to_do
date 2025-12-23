@@ -109,7 +109,6 @@ function parseEventbriteData(
   if (!title && !description) return null
 
   return {
-    platform: 'eventbrite',
     canonicalUrl,
     contentId: eventId,
     title,

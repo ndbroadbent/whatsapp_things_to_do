@@ -248,7 +248,6 @@ function parseTikTokData(
   const title = firstContentDesc ?? description.split('\n')[0]?.slice(0, 100) ?? null
 
   return {
-    platform: 'tiktok',
     canonicalUrl,
     contentId: videoId,
     title,

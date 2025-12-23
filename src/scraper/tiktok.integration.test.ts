@@ -41,7 +41,6 @@ describe('TikTok Scraper Integration', () => {
 
       expect(result.ok).toBe(true)
       if (result.ok) {
-        expect(result.metadata.platform).toBe('tiktok')
         expect(result.metadata.contentId).toBe('7455066896669461782')
 
         const allText = [
