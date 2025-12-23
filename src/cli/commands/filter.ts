@@ -6,15 +6,13 @@
  */
 
 import { writeFile } from 'node:fs/promises'
-import { basename } from 'node:path'
 import { countTokens } from '../../classifier/tokenizer'
-import { extractCandidatesByEmbeddings, extractCandidatesByHeuristics, VERSION } from '../../index'
+import { extractCandidatesByEmbeddings, extractCandidatesByHeuristics } from '../../index'
 import type { CandidateMessage, ParsedMessage } from '../../types'
 import type { CLIArgs, ExtractionMethod } from '../args'
-import { formatDate, truncate } from '../helpers'
+import { formatDate, initCommand, truncate } from '../helpers'
 import type { Logger } from '../logger'
-import { initContext, type PipelineContext } from '../steps/context'
-import { stepParse } from '../steps/parse'
+import type { PipelineContext } from '../steps/context'
 
 interface FilterOutput {
   method: ExtractionMethod
@@ -231,21 +229,7 @@ function mergeCandidates(
 }
 
 export async function cmdFilter(args: CLIArgs, logger: Logger): Promise<void> {
-  if (!args.input) {
-    throw new Error('No input file specified')
-  }
-
-  logger.log(`\nChatToMap Filter v${VERSION}`)
-  logger.log(`\n📁 ${basename(args.input)}`)
-
-  // Create pipeline context
-  const ctx = await initContext(args.input, logger, {
-    cacheDir: args.cacheDir,
-    noCache: args.noCache
-  })
-
-  // Parse messages
-  const parseResult = stepParse(ctx, { maxMessages: args.maxMessages })
+  const { ctx, parseResult } = await initCommand('Filter', args, logger)
 
   // Dry run: show cost estimate and exit
   if (args.dryRun && (args.method === 'embeddings' || args.method === 'both')) {

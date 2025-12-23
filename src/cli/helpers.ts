@@ -4,10 +4,14 @@
  * Shared utilities for CLI commands.
  */
 
-import { parseChatWithStats } from '../index'
+import { basename } from 'node:path'
+import { parseChatWithStats, VERSION } from '../index'
 import { type ActivityCategory, CATEGORY_EMOJI, type ParsedMessage } from '../types'
+import type { CLIArgs } from './args'
 import { readInputFile } from './io'
 import type { Logger } from './logger'
+import { initContext, type PipelineContext } from './steps/context'
+import { type ParseResult, stepParse } from './steps/parse'
 
 // ============================================================================
 // Category Display
@@ -29,6 +33,40 @@ export function formatDate(date: Date | string): string {
 export function truncate(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text
   return `${text.slice(0, maxLength - 3)}...`
+}
+
+// ============================================================================
+// Command Initialization
+// ============================================================================
+
+interface CommandInitResult {
+  ctx: PipelineContext
+  parseResult: ParseResult
+}
+
+/**
+ * Initialize a command: validate input, log header, create context, parse messages.
+ */
+export async function initCommand(
+  commandName: string,
+  args: CLIArgs,
+  logger: Logger
+): Promise<CommandInitResult> {
+  if (!args.input) {
+    throw new Error('No input file specified')
+  }
+
+  logger.log(`\nChatToMap ${commandName} v${VERSION}`)
+  logger.log(`\n📁 ${basename(args.input)}`)
+
+  const ctx = await initContext(args.input, logger, {
+    cacheDir: args.cacheDir,
+    noCache: args.noCache
+  })
+
+  const parseResult = stepParse(ctx, { maxMessages: args.maxMessages })
+
+  return { ctx, parseResult }
 }
 
 // ============================================================================

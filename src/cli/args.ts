@@ -115,6 +115,14 @@ function createProgram(): Command {
     .option('-m, --max-messages <num>', 'Max messages to process (for testing)')
     .option('--dry-run', 'Show stats without API calls')
 
+  // ============ EMBED (embed all messages) ============
+  program
+    .command('embed')
+    .description('Embed all messages using OpenAI embeddings (~$0.001/1000 msgs)')
+    .argument('<input>', 'Chat export (.zip, directory, or .txt file)')
+    .option('-m, --max-messages <num>', 'Max messages to process (for testing)')
+    .option('--dry-run', 'Show cost estimate without API calls')
+
   // ============ FILTER (heuristics + embeddings extraction) ============
   program
     .command('filter')

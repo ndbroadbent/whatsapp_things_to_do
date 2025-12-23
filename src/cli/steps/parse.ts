@@ -11,7 +11,7 @@ import type { PipelineContext } from './context'
 /**
  * Result of the parse step.
  */
-interface ParseResult {
+export interface ParseResult {
   /** Parsed messages */
   readonly messages: readonly ParsedMessage[]
   /** Detected chat source (whatsapp or imessage) */

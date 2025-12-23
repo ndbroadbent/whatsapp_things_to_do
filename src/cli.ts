@@ -10,6 +10,7 @@
 
 import { parseCliArgs } from './cli/args'
 import { cmdAnalyze } from './cli/commands/analyze'
+import { cmdEmbed } from './cli/commands/embed'
 import { cmdFetchImages } from './cli/commands/fetch-images'
 import { cmdFilter } from './cli/commands/filter'
 import { cmdList } from './cli/commands/list'
@@ -39,6 +40,10 @@ async function main(): Promise<void> {
 
       case 'preview':
         await cmdPreview(args, logger)
+        break
+
+      case 'embed':
+        await cmdEmbed(args, logger)
         break
 
       case 'filter':
