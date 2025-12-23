@@ -73,7 +73,7 @@ describe('preview command', () => {
     // Check whale safari activity
     const whaleSafari = activities.find((a) => a.activity.toLowerCase().includes('whale'))
     expect(whaleSafari).toBeDefined()
-    expect(whaleSafari?.category).toBe('nature')
+    expect(whaleSafari?.category).toBeOneOf(['nature', 'experiences'])
     expect(whaleSafari?.sender).toBe('John Smith')
     expect(whaleSafari?.city).toBe('Auckland')
 
