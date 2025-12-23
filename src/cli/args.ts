@@ -67,7 +67,7 @@ function createProgram(): Command {
   program
     .command('analyze')
     .description(
-      'Run the complete pipeline (parse → candidates → scrape → classify → geocode → export)'
+      'Run the complete pipeline (parse → filter → scrape → classify → geocode → fetch-images → export)'
     )
     .argument('<input>', 'Chat export (.zip, directory, or .txt file)')
     .requiredOption('-c, --home-country <name>', 'Your home country for location disambiguation')
@@ -149,6 +149,16 @@ function createProgram(): Command {
     .argument('<input>', 'Classified activities JSON file')
     .option('-c, --home-country <name>', 'Your home country for location disambiguation')
     .option('-o, --output <file>', 'Save geocoded activities to JSON file')
+
+  // ============ FETCH-IMAGES ============
+  program
+    .command('fetch-images')
+    .description('Fetch images for geocoded activities')
+    .argument('<input>', 'Geocoded activities JSON file')
+    .option('-o, --output <file>', 'Save activities with images to JSON file')
+    .option('--skip-pixabay', 'Skip Pixabay image search')
+    .option('--skip-wikipedia', 'Skip Wikipedia image lookup')
+    .option('--skip-google-places', 'Skip Google Places photos')
 
   // ============ EXPORT ============
   program

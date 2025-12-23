@@ -10,6 +10,7 @@
 
 import { parseCliArgs } from './cli/args'
 import { cmdAnalyze } from './cli/commands/analyze'
+import { cmdFetchImages } from './cli/commands/fetch-images'
 import { cmdFilter } from './cli/commands/filter'
 import { cmdList } from './cli/commands/list'
 import { cmdParse } from './cli/commands/parse'
@@ -46,6 +47,10 @@ async function main(): Promise<void> {
 
       case 'scrape':
         await cmdScrape(args, logger)
+        break
+
+      case 'fetch-images':
+        await cmdFetchImages(args, logger)
         break
 
       case 'list':
