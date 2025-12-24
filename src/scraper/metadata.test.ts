@@ -40,7 +40,11 @@ describe('extractUrlsFromText', () => {
 })
 
 describe('extractUrlsFromCandidates', () => {
-  const makeCandidate = (content: string, context?: string): CandidateMessage => ({
+  const makeCandidate = (
+    content: string,
+    contextBefore: string[] = [],
+    contextAfter: string[] = []
+  ): CandidateMessage => ({
     messageId: 1,
     content,
     sender: 'Alice',
@@ -48,23 +52,29 @@ describe('extractUrlsFromCandidates', () => {
     source: { type: 'regex', pattern: 'test' },
     confidence: 0.8,
     candidateType: 'suggestion',
-    context
+    contextBefore,
+    contextAfter
   })
 
-  it('extracts URLs from candidate context', () => {
-    const candidates = [makeCandidate('hi', 'Check https://example.com')]
+  it('extracts URLs from context before', () => {
+    const candidates = [makeCandidate('hi', ['Check https://example.com'])]
     expect(extractUrlsFromCandidates(candidates)).toEqual(['https://example.com'])
   })
 
-  it('falls back to content if no context', () => {
+  it('extracts URLs from context after', () => {
+    const candidates = [makeCandidate('hi', [], ['See https://example.com'])]
+    expect(extractUrlsFromCandidates(candidates)).toEqual(['https://example.com'])
+  })
+
+  it('extracts URLs from content', () => {
     const candidates = [makeCandidate('Visit https://example.com')]
     expect(extractUrlsFromCandidates(candidates)).toEqual(['https://example.com'])
   })
 
   it('deduplicates across candidates', () => {
     const candidates = [
-      makeCandidate('hi', 'Check https://a.com'),
-      makeCandidate('hi', 'Also https://a.com and https://b.com')
+      makeCandidate('hi', ['Check https://a.com']),
+      makeCandidate('hi', ['Also https://a.com and https://b.com'])
     ]
     expect(extractUrlsFromCandidates(candidates)).toEqual(['https://a.com', 'https://b.com'])
   })

@@ -18,6 +18,7 @@ import type {
   Result,
   SemanticSearchConfig
 } from '../../types'
+import { getMessageContext } from '../context-window'
 import { findTopK } from './cosine-similarity'
 import activityTypes from './queries/activity-types.json' with { type: 'json' }
 import agreementQueries from './queries/agreement.json' with { type: 'json' }
@@ -297,10 +298,15 @@ export function findSemanticCandidates(
   const minSimilarity = config?.minSimilarity ?? DEFAULT_MIN_SIMILARITY
   const queries = config?.queries ?? DEFAULT_ACTIVITY_QUERIES
 
-  // Build a map from messageId to message for quick lookup
+  // Build maps from messageId to message and index for quick lookup
   const messageMap = new Map<number, ParsedMessage>()
-  for (const msg of messages) {
-    messageMap.set(msg.id, msg)
+  const indexMap = new Map<number, number>()
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i]
+    if (msg) {
+      messageMap.set(msg.id, msg)
+      indexMap.set(msg.id, i)
+    }
   }
 
   // Build candidates for each query embedding and merge
@@ -332,7 +338,8 @@ export function findSemanticCandidates(
 
   for (const [messageId, { similarity, query }] of candidateMap) {
     const msg = messageMap.get(messageId)
-    if (!msg) continue
+    const index = indexMap.get(messageId)
+    if (!msg || index === undefined) continue
 
     const source: CandidateSource = {
       type: 'semantic',
@@ -340,6 +347,8 @@ export function findSemanticCandidates(
       query,
       queryType: getQueryType(query)
     }
+
+    const ctx = getMessageContext(messages, index)
 
     candidates.push({
       messageId,
@@ -349,6 +358,8 @@ export function findSemanticCandidates(
       source,
       confidence: similarity,
       candidateType: getQueryType(query),
+      contextBefore: ctx.before,
+      contextAfter: ctx.after,
       urls: msg.urls
     })
   }

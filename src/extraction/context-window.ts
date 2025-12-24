@@ -29,15 +29,11 @@ export const MIN_CONTEXT_MESSAGES = 2
 export const MAX_MESSAGE_CHARS = 280
 export const TRUNCATION_MARKER = ' [truncated to 280 chars]'
 
-interface MessageContext {
-  /** Formatted context string before target */
-  readonly before: string
-  /** Formatted context string after target */
-  readonly after: string
-  /** Number of messages included before target (2-20+) */
-  readonly beforeMessageCount: number
-  /** Number of messages included after target (2-20+) */
-  readonly afterMessageCount: number
+export interface MessageContext {
+  /** Formatted context messages before target */
+  readonly before: readonly string[]
+  /** Formatted context messages after target */
+  readonly after: readonly string[]
   /** First message ID in context window (before target) */
   readonly firstMessageId: number
   /** Last message ID in context window (after target) */
@@ -72,15 +68,9 @@ export function getMessageContext(
 ): MessageContext {
   const targetMsg = messages[index]
   if (!targetMsg) {
-    return {
-      before: '',
-      after: '',
-      beforeMessageCount: 0,
-      afterMessageCount: 0,
-      firstMessageId: -1,
-      lastMessageId: -1,
-      targetMessageId: -1
-    }
+    throw new Error(
+      `Cannot get context: message at index ${index} not found (messages.length=${messages.length})`
+    )
   }
 
   const beforeMessages: string[] = []
@@ -125,26 +115,12 @@ export function getMessageContext(
   }
 
   return {
-    before: beforeMessages.join('\n'),
-    after: afterMessages.join('\n'),
-    beforeMessageCount: beforeMessages.length,
-    afterMessageCount: afterMessages.length,
+    before: beforeMessages,
+    after: afterMessages,
     firstMessageId,
     lastMessageId,
     targetMessageId: targetMsg.id
   }
-}
-
-/**
- * Build full context string: before + >>> target + after
- */
-export function buildContextString(msg: ParsedMessage, ctx: MessageContext): string {
-  const iso = msg.timestamp.toISOString().slice(0, 16)
-  const parts: string[] = []
-  if (ctx.before) parts.push(ctx.before)
-  parts.push(`>>> [${iso}] ${msg.sender}: ${msg.content}`)
-  if (ctx.after) parts.push(ctx.after)
-  return parts.join('\n')
 }
 
 /**

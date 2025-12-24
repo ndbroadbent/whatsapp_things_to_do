@@ -34,7 +34,8 @@ function createCandidate(
     timestamp: new Date('2025-01-15T10:00:00Z'),
     confidence: 0.8,
     candidateType,
-    context: '',
+    contextBefore: [],
+    contextAfter: [],
     source:
       source === 'heuristics'
         ? { type: 'regex', pattern: 'test' }

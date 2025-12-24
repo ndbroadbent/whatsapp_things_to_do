@@ -95,4 +95,20 @@ describe('filter command', () => {
     expect(stdout).toContain('Embedding Cost Estimate')
     expect(stdout).not.toContain('Extraction Results')
   })
+
+  it('all candidates have context (regression test)', () => {
+    const candidates = readCacheJson<Candidate[]>(testState.tempCacheDir, 'candidates.all.json')
+
+    // Every candidate must have contextBefore and contextAfter arrays
+    for (const candidate of candidates) {
+      expect(candidate.contextBefore).toBeDefined()
+      expect(candidate.contextAfter).toBeDefined()
+      expect(Array.isArray(candidate.contextBefore)).toBe(true)
+      expect(Array.isArray(candidate.contextAfter)).toBe(true)
+
+      // At least one should have content (unless at very start/end of chat)
+      const hasContext = candidate.contextBefore.length > 0 || candidate.contextAfter.length > 0
+      expect(hasContext).toBe(true)
+    }
+  })
 })

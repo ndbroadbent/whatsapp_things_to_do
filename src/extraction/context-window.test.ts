@@ -44,13 +44,9 @@ describe('truncateMessage', () => {
 })
 
 describe('getMessageContext', () => {
-  it('returns empty context for invalid index', () => {
+  it('throws for invalid index', () => {
     const messages = [createMessage(1, 'Hello')]
-    const ctx = getMessageContext(messages, 10)
-    expect(ctx.before).toBe('')
-    expect(ctx.after).toBe('')
-    expect(ctx.beforeMessageCount).toBe(0)
-    expect(ctx.afterMessageCount).toBe(0)
+    expect(() => getMessageContext(messages, 10)).toThrow(/not found/)
   })
 
   it('returns at least MIN_CONTEXT_MESSAGES before and after', () => {
@@ -62,8 +58,8 @@ describe('getMessageContext', () => {
       createMessage(5, 'Fifth')
     ]
     const ctx = getMessageContext(messages, 2)
-    expect(ctx.beforeMessageCount).toBeGreaterThanOrEqual(MIN_CONTEXT_MESSAGES)
-    expect(ctx.afterMessageCount).toBeGreaterThanOrEqual(MIN_CONTEXT_MESSAGES)
+    expect(ctx.before.length).toBeGreaterThanOrEqual(MIN_CONTEXT_MESSAGES)
+    expect(ctx.after.length).toBeGreaterThanOrEqual(MIN_CONTEXT_MESSAGES)
   })
 
   it('expands context to reach MIN_CONTEXT_CHARS', () => {
@@ -81,8 +77,8 @@ describe('getMessageContext', () => {
     ]
     const ctx = getMessageContext(messages, 4)
     // Should get more than 2 messages to reach 280 chars
-    expect(ctx.beforeMessageCount).toBeGreaterThan(2)
-    expect(ctx.afterMessageCount).toBeGreaterThan(2)
+    expect(ctx.before.length).toBeGreaterThan(2)
+    expect(ctx.after.length).toBeGreaterThan(2)
   })
 
   it('stops expanding when both minimums are met', () => {
@@ -99,8 +95,8 @@ describe('getMessageContext', () => {
     ]
     const ctx = getMessageContext(messages, 3)
     // With 200-char messages, 2 messages = 400+ chars, so should stop at 2
-    expect(ctx.beforeMessageCount).toBe(2)
-    expect(ctx.afterMessageCount).toBe(2)
+    expect(ctx.before.length).toBe(2)
+    expect(ctx.after.length).toBe(2)
   })
 
   it('tracks first and last message IDs correctly', () => {
@@ -126,8 +122,8 @@ describe('getMessageContext', () => {
       createMessage(3, 'Third')
     ]
     const ctx = getMessageContext(messages, 0)
-    expect(ctx.beforeMessageCount).toBe(0)
-    expect(ctx.afterMessageCount).toBeGreaterThanOrEqual(2)
+    expect(ctx.before.length).toBe(0)
+    expect(ctx.after.length).toBeGreaterThanOrEqual(2)
     expect(ctx.firstMessageId).toBe(1) // No messages before, so first = target
   })
 
@@ -138,8 +134,8 @@ describe('getMessageContext', () => {
       createMessage(3, 'Target')
     ]
     const ctx = getMessageContext(messages, 2)
-    expect(ctx.beforeMessageCount).toBeGreaterThanOrEqual(2)
-    expect(ctx.afterMessageCount).toBe(0)
+    expect(ctx.before.length).toBeGreaterThanOrEqual(2)
+    expect(ctx.after.length).toBe(0)
     expect(ctx.lastMessageId).toBe(3) // No messages after, so last = target
   })
 })
@@ -147,10 +143,8 @@ describe('getMessageContext', () => {
 describe('isInContextWindow', () => {
   it('returns true for message ID within range', () => {
     const ctx = {
-      before: '',
-      after: '',
-      beforeMessageCount: 3,
-      afterMessageCount: 3,
+      before: [],
+      after: [],
       firstMessageId: 10,
       lastMessageId: 50,
       targetMessageId: 30
@@ -161,10 +155,8 @@ describe('isInContextWindow', () => {
 
   it('returns false for message ID outside range', () => {
     const ctx = {
-      before: '',
-      after: '',
-      beforeMessageCount: 3,
-      afterMessageCount: 3,
+      before: [],
+      after: [],
       firstMessageId: 10,
       lastMessageId: 50,
       targetMessageId: 30
@@ -175,10 +167,8 @@ describe('isInContextWindow', () => {
 
   it('returns false for target message ID itself', () => {
     const ctx = {
-      before: '',
-      after: '',
-      beforeMessageCount: 3,
-      afterMessageCount: 3,
+      before: [],
+      after: [],
       firstMessageId: 10,
       lastMessageId: 50,
       targetMessageId: 30
@@ -188,10 +178,8 @@ describe('isInContextWindow', () => {
 
   it('returns true for boundary message IDs', () => {
     const ctx = {
-      before: '',
-      after: '',
-      beforeMessageCount: 3,
-      afterMessageCount: 3,
+      before: [],
+      after: [],
       firstMessageId: 10,
       lastMessageId: 50,
       targetMessageId: 30

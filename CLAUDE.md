@@ -75,15 +75,16 @@ This runs: typecheck, lint, check-ignores, duplication, file-length, test.
 Commands build on each other. Each command runs earlier steps if not cached.
 
 ```
-parse     → Parse messages from chat export
-scan      → Heuristic candidate extraction (quick, free)
-embed     → Embed messages for semantic search (~$0.001/1000 msgs)
-filter    → scan + embed + semantic search + merge → candidates.all
-scrape    → Get URL metadata for candidates
-preview   → Quick AI classification on scan results only (~$0.01)
-classify  → filter → scrape → AI classify (full pipeline)
-geocode   → classify → geocode
-analyze   → Full pipeline with export (not yet tested)
+parse            → Parse messages from chat export
+scan             → Heuristic candidate extraction (quick, free)
+embed            → Embed messages for semantic search (~$0.001/1000 msgs)
+filter           → scan + embed + semantic search + merge → candidates.all
+scrape-urls      → Get URL metadata for candidates
+preview          → Quick AI classification on scan results only (~$0.01)
+classify         → filter → scrape-urls → AI classify (full pipeline)
+geocode          → classify → geocode locations
+fetch-image-urls → geocode → fetch images from various sources
+analyze          → Full pipeline with export (not yet tested)
 ```
 
 **Key points:**
@@ -105,8 +106,11 @@ Run with `bun run cli <command>` or after build `chat-to-map <command>`.
 | `scan <input>` | Heuristic extraction (free) | `-n <num>` (default: 10) |
 | `embed <input>` | Embed for semantic search | `--dry-run` |
 | `filter <input>` | Heuristics + embeddings | `--method`, `--json [file]`, `-a` |
+| `scrape-urls <input>` | Scrape URL metadata | `--dry-run`, `--json [file]` |
+| `preview <input>` | Quick AI preview (scan only) | `-c <country>`, `--dry-run` |
 | `classify <input>` | AI classification | `-c <country>`, `--json [file]`, `-a` |
 | `geocode <input>` | Google Maps geocoding | `-c <country>`, `--json [file]`, `-a` |
+| `fetch-image-urls <input>` | Fetch images for activities | `--no-image-cdn`, `--skip-pixabay`, `-a` |
 
 **Common options (all commands):**
 - `--no-cache` - Skip cache, regenerate results
@@ -122,6 +126,7 @@ bun run cli scan ./chat.txt -n 50           # Show 50 heuristic candidates
 bun run cli filter ./chat.txt --all         # Show ALL candidates
 bun run cli classify ./chat.txt --json out.json -c "New Zealand"
 bun run cli geocode ./chat.txt -a           # Show all geocoded activities
+bun run cli fetch-image-urls ./chat.txt --no-image-cdn --all  # Fetch images from APIs
 ```
 
 ## Commands

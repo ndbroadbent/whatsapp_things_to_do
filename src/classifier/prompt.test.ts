@@ -4,7 +4,7 @@ import type { CandidateMessage, QueryType } from '../types'
 import {
   buildClassificationPrompt,
   type ClassificationContext,
-  injectMetadataIntoText,
+  injectUrlMetadataIntoText,
   parseClassificationResponse
 } from './prompt'
 
@@ -16,7 +16,8 @@ const TEST_CONTEXT: ClassificationContext = {
 function createCandidate(
   id: number,
   content: string,
-  context = '',
+  contextBefore: string[] = [],
+  contextAfter: string[] = [],
   candidateType: QueryType = 'suggestion'
 ): CandidateMessage {
   return {
@@ -27,7 +28,8 @@ function createCandidate(
     source: { type: 'regex', pattern: 'test' },
     confidence: 0.8,
     candidateType,
-    context
+    contextBefore,
+    contextAfter
   }
 }
 
@@ -59,7 +61,7 @@ describe('Classifier Prompt', () => {
 
     it('includes context when provided', () => {
       const candidates = [
-        createCandidate(1, 'We should go there', 'Previous: I found a great place')
+        createCandidate(1, 'We should go there', ['Previous: I found a great place'])
       ]
 
       const prompt = buildClassificationPrompt(candidates, TEST_CONTEXT)
@@ -131,7 +133,7 @@ describe('Classifier Prompt', () => {
     })
 
     it('tags agreement candidates with [AGREE]', () => {
-      const candidates = [createCandidate(1, 'Sounds great!', '', 'agreement')]
+      const candidates = [createCandidate(1, 'Sounds great!', [], [], 'agreement')]
 
       const prompt = buildClassificationPrompt(candidates, TEST_CONTEXT)
 
@@ -139,7 +141,7 @@ describe('Classifier Prompt', () => {
     })
 
     it('does not tag suggestion candidates', () => {
-      const candidates = [createCandidate(1, 'We should try that restaurant', '', 'suggestion')]
+      const candidates = [createCandidate(1, 'We should try that restaurant', [], [], 'suggestion')]
 
       const prompt = buildClassificationPrompt(candidates, TEST_CONTEXT)
 
@@ -150,9 +152,9 @@ describe('Classifier Prompt', () => {
 
     it('handles mixed suggestion and agreement candidates', () => {
       const candidates = [
-        createCandidate(1, 'Lets go to that cafe', '', 'suggestion'),
-        createCandidate(2, 'Sounds fun!', '', 'agreement'),
-        createCandidate(3, 'Check out this hike', '', 'suggestion')
+        createCandidate(1, 'Lets go to that cafe', [], [], 'suggestion'),
+        createCandidate(2, 'Sounds fun!', [], [], 'agreement'),
+        createCandidate(3, 'Check out this hike', [], [], 'suggestion')
       ]
 
       const prompt = buildClassificationPrompt(candidates, TEST_CONTEXT)
@@ -163,7 +165,7 @@ describe('Classifier Prompt', () => {
     })
 
     it('includes instructions for handling agreement candidates', () => {
-      const candidates = [createCandidate(1, 'Test', '', 'agreement')]
+      const candidates = [createCandidate(1, 'Test', [], [], 'agreement')]
 
       const prompt = buildClassificationPrompt(candidates, TEST_CONTEXT)
 
@@ -327,7 +329,7 @@ Hope this helps!`
     })
   })
 
-  describe('injectMetadataIntoText', () => {
+  describe('injectUrlMetadataIntoText', () => {
     const metadata: ScrapedMetadata = {
       canonicalUrl: 'https://airbnb.com/rooms/123',
       contentId: '123',
@@ -344,7 +346,7 @@ Hope this helps!`
       const text = 'Check out https://airbnb.com/rooms/123 for our trip'
       const metadataMap = new Map([['https://airbnb.com/rooms/123', metadata]])
 
-      const result = injectMetadataIntoText(text, metadataMap)
+      const result = injectUrlMetadataIntoText(text, metadataMap)
 
       expect(result).toContain('https://airbnb.com/rooms/123')
       expect(result).toContain('[URL_META:')
@@ -358,7 +360,7 @@ Hope this helps!`
         ['https://b.com', { ...metadata, canonicalUrl: 'https://b.com', title: 'Site B' }]
       ])
 
-      const result = injectMetadataIntoText(text, metadataMap)
+      const result = injectUrlMetadataIntoText(text, metadataMap)
 
       expect(result).toContain('"title":"Site A"')
       expect(result).toContain('"title":"Site B"')
@@ -366,14 +368,14 @@ Hope this helps!`
 
     it('skips URLs without metadata', () => {
       const text = 'See https://unknown.com'
-      const result = injectMetadataIntoText(text, new Map())
+      const result = injectUrlMetadataIntoText(text, new Map())
 
       expect(result).toBe(text)
     })
 
     it('returns original text if no URLs', () => {
       const text = 'No links here'
-      const result = injectMetadataIntoText(text, new Map())
+      const result = injectUrlMetadataIntoText(text, new Map())
 
       expect(result).toBe(text)
     })
@@ -384,7 +386,7 @@ Hope this helps!`
       const text = 'Check https://airbnb.com/rooms/123'
       const metadataMap = new Map([['https://airbnb.com/rooms/123', metadataWithLongDesc]])
 
-      const result = injectMetadataIntoText(text, metadataMap)
+      const result = injectUrlMetadataIntoText(text, metadataMap)
 
       // Description should be truncated to 200 chars
       expect(result).not.toContain('A'.repeat(300))
@@ -401,7 +403,7 @@ Hope this helps!`
       const text = `Check out ${shortUrl}`
       const metadataMap = new Map([[shortUrl, redirectedMetadata]])
 
-      const result = injectMetadataIntoText(text, metadataMap)
+      const result = injectUrlMetadataIntoText(text, metadataMap)
 
       expect(result).toContain(`"redirect_url":"${finalUrl}"`)
     })
@@ -411,7 +413,7 @@ Hope this helps!`
       const text = `Check out ${url}`
       const metadataMap = new Map([[url, metadata]]) // canonicalUrl matches
 
-      const result = injectMetadataIntoText(text, metadataMap)
+      const result = injectUrlMetadataIntoText(text, metadataMap)
 
       expect(result).not.toContain('redirect_url')
     })
@@ -426,7 +428,7 @@ Hope this helps!`
       const text = `Check ${shortUrl}`
       const metadataMap = new Map([[shortUrl, redirectedMetadata]])
 
-      const result = injectMetadataIntoText(text, metadataMap)
+      const result = injectUrlMetadataIntoText(text, metadataMap)
 
       expect(result).toContain('redirect_url')
       expect(result).not.toContain(longFinalUrl)
@@ -452,7 +454,7 @@ Hope this helps!`
       const text = `Check out this blog post: ${shortUrl}`
       const metadataMap = new Map([[shortUrl, minimalMetadata]])
 
-      const result = injectMetadataIntoText(text, metadataMap)
+      const result = injectUrlMetadataIntoText(text, metadataMap)
 
       expect(result).toContain(`"redirect_url":"${finalUrl}"`)
     })
@@ -472,7 +474,7 @@ Hope this helps!`
       const text = 'Check https://example.com'
       const metadataMap = new Map([['https://example.com', minimalMetadata]])
 
-      const result = injectMetadataIntoText(text, metadataMap)
+      const result = injectUrlMetadataIntoText(text, metadataMap)
 
       expect(result).toContain('"title":"Test"')
       expect(result).not.toContain('"description"')
@@ -496,7 +498,7 @@ Hope this helps!`
     }
 
     it('enriches candidate contexts with URL metadata', () => {
-      const candidates = [createCandidate(1, 'test', 'Watch https://youtube.com/watch?v=abc')]
+      const candidates = [createCandidate(1, 'test', ['Watch https://youtube.com/watch?v=abc'])]
       const metadataMap = new Map([['https://youtube.com/watch?v=abc', metadata]])
       const contextWithMetadata: ClassificationContext = {
         ...TEST_CONTEXT,

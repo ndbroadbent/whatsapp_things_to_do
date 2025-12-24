@@ -46,13 +46,26 @@ export function extractUrlsFromText(text: string): string[] {
 
 /**
  * Extract all unique URLs from an array of candidates.
+ * Looks in the candidate content and surrounding context.
  */
 export function extractUrlsFromCandidates(candidates: readonly CandidateMessage[]): string[] {
   const urls = new Set<string>()
   for (const candidate of candidates) {
-    const text = candidate.context ?? candidate.content
-    for (const url of extractUrlsFromText(text)) {
+    // Check the target message content
+    for (const url of extractUrlsFromText(candidate.content)) {
       urls.add(url)
+    }
+    // Check context before
+    for (const line of candidate.contextBefore) {
+      for (const url of extractUrlsFromText(line)) {
+        urls.add(url)
+      }
+    }
+    // Check context after
+    for (const line of candidate.contextAfter) {
+      for (const url of extractUrlsFromText(line)) {
+        urls.add(url)
+      }
     }
   }
   return [...urls]

@@ -25,6 +25,8 @@ export function createCandidate(
     source: { type: 'regex', pattern: 'test_pattern' },
     confidence: 0.8,
     candidateType: 'suggestion',
+    contextBefore: [],
+    contextAfter: [],
     ...overrides
   }
 }

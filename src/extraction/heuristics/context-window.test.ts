@@ -37,10 +37,11 @@ describe('Context Window', () => {
     const result = await extractCandidatesByHeuristics(messages)
 
     const visitCandidate = result.candidates.find((c) => c.content.includes('visit her'))
-    expect(visitCandidate).toBeDefined()
+    if (!visitCandidate) throw new Error('visitCandidate not found')
 
     // With 280 char minimum, we should reach "Sarah" (4 messages back)
-    expect(visitCandidate?.context).toContain('Sarah')
+    const allContext = [...visitCandidate.contextBefore, ...visitCandidate.contextAfter].join('\n')
+    expect(allContext).toContain('Sarah')
   })
 
   it('should include at least 2 messages before and after', async () => {
@@ -48,17 +49,10 @@ describe('Context Window', () => {
     const result = await extractCandidatesByHeuristics(messages)
 
     const visitCandidate = result.candidates.find((c) => c.content.includes('visit her'))
-    expect(visitCandidate).toBeDefined()
+    if (!visitCandidate) throw new Error('visitCandidate not found')
 
-    const context = visitCandidate?.context ?? ''
-    const [before, after] = context.split('>>>')
-
-    // Count messages (lines with "Sender: content" format)
-    const beforeMessages = before?.split('\n').filter((l) => l.includes(': ')).length ?? 0
-    const afterMessages = after?.split('\n').filter((l) => l.includes(': ')).length ?? 0
-
-    expect(beforeMessages).toBeGreaterThanOrEqual(2)
-    expect(afterMessages).toBeGreaterThanOrEqual(2)
+    expect(visitCandidate.contextBefore.length).toBeGreaterThanOrEqual(2)
+    expect(visitCandidate.contextAfter.length).toBeGreaterThanOrEqual(2)
   })
 
   it('should truncate long messages with marker', async () => {
@@ -67,15 +61,15 @@ describe('Context Window', () => {
     const result = await extractCandidatesByHeuristics(messages)
 
     const candidate = result.candidates.find((c) => c.content.includes('try that place'))
-    expect(candidate).toBeDefined()
+    if (!candidate) throw new Error('candidate not found')
 
-    const context = candidate?.context ?? ''
+    const allContext = [...candidate.contextBefore, ...candidate.contextAfter].join('\n')
 
     // Long message about The Golden Fork should be truncated
-    expect(context).toContain('[truncated to 280 chars]')
-    expect(context).toContain('Golden Fork')
+    expect(allContext).toContain('[truncated to 280 chars]')
+    expect(allContext).toContain('Golden Fork')
     // Should not contain text beyond 280 chars (the end of the message)
-    expect(context).not.toContain('with friends and family')
+    expect(allContext).not.toContain('with friends and family')
   })
 
   it('should get at least 280 chars of context before', async () => {
@@ -84,10 +78,9 @@ describe('Context Window', () => {
     const result = await extractCandidatesByHeuristics(messages)
 
     const candidate = result.candidates.find((c) => c.content.includes('try that place'))
-    expect(candidate).toBeDefined()
+    if (!candidate) throw new Error('candidate not found')
 
-    const context = candidate?.context ?? ''
-    const beforeContext = context.split('>>>')[0] ?? ''
+    const beforeContext = candidate.contextBefore.join('\n')
 
     // Should have at least 280 chars before (excluding newlines for calculation)
     const beforeChars = beforeContext.replace(/\n/g, '').length

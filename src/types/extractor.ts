@@ -28,7 +28,10 @@ export interface CandidateMessage {
   readonly confidence: number
   /** Whether this is a suggestion (proposing activity) or agreement (positive response). */
   readonly candidateType: QueryType
-  readonly context?: string | undefined
+  /** Messages before the target (for classifier context). */
+  readonly contextBefore: readonly string[]
+  /** Messages after the target (for classifier context). */
+  readonly contextAfter: readonly string[]
   readonly urls?: readonly string[] | undefined
 }
 

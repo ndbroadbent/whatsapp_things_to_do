@@ -53,7 +53,9 @@ function createCandidate(
     timestamp: new Date('2025-01-15T10:00:00Z'),
     source,
     confidence,
-    candidateType
+    candidateType,
+    contextBefore: [],
+    contextAfter: []
   }
 }
 

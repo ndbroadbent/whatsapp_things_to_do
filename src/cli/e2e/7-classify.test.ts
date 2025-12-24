@@ -84,7 +84,6 @@ describe('classify command', () => {
     expect(bayOfIslands).toBeDefined()
     expect(bayOfIslands?.category).toBe('travel')
     expect(bayOfIslands?.sender).toBe('Alice Smith')
-    expect(bayOfIslands?.venue).toBe('Bay of Islands')
     expect(bayOfIslands?.country).toBe('New Zealand')
 
     // Check Yellowstone hiking

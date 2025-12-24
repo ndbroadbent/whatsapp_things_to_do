@@ -206,9 +206,11 @@ describe('Candidate Extractor', () => {
         ]
 
         const result = extractCandidatesByHeuristics(messages)
+        const candidate = result.candidates[0]
+        if (!candidate) throw new Error('candidate not found')
 
-        expect(result.candidates[0]?.context).toContain('Previous message')
-        expect(result.candidates[0]?.context).toContain('Next message')
+        expect(candidate.contextBefore.some((m) => m.includes('Previous'))).toBe(true)
+        expect(candidate.contextAfter.some((m) => m.includes('Next'))).toBe(true)
       })
     })
 

@@ -33,7 +33,7 @@ function formatMetadataJson(metadata: ScrapedMetadata, originalUrl: string): str
  * Inject metadata JSON after each URL in text.
  * Returns the enriched text with metadata on lines after URLs.
  */
-export function injectMetadataIntoText(
+export function injectUrlMetadataIntoText(
   text: string,
   metadataMap: Map<string, ScrapedMetadata>
 ): string {
@@ -60,25 +60,37 @@ export function injectMetadataIntoText(
 }
 
 /**
- * Format context for display. Context already includes target marked with >>>.
+ * Format candidate with surrounding context for the classifier prompt.
+ * Format: context before, then >>> target message, then context after.
  * Optionally enriches URLs with scraped metadata.
  */
-function formatContext(
+function formatCandidateWithContext(
   candidate: CandidateMessage,
   metadataMap?: Map<string, ScrapedMetadata>
 ): string {
-  let context = candidate.context
-  if (!context) {
-    // Fallback if no context
-    context = `>>> ${candidate.sender}: ${candidate.content}`
+  const parts: string[] = []
+
+  // Context before the target message
+  if (candidate.contextBefore.length > 0) {
+    parts.push(candidate.contextBefore.join('\n'))
   }
 
-  // Enrich with URL metadata if provided
+  // The target message (marked with >>>)
+  parts.push(`>>> ${candidate.sender}: ${candidate.content}`)
+
+  // Context after the target message
+  if (candidate.contextAfter.length > 0) {
+    parts.push(candidate.contextAfter.join('\n'))
+  }
+
+  let result = parts.join('\n')
+
+  // Enrich URLs with scraped metadata
   if (metadataMap && metadataMap.size > 0) {
-    context = injectMetadataIntoText(context, metadataMap)
+    result = injectUrlMetadataIntoText(result, metadataMap)
   }
 
-  return context
+  return result
 }
 
 /**
@@ -120,13 +132,13 @@ export function buildClassificationPrompt(
 
   const messagesText = candidates
     .map((candidate) => {
-      const ctx = formatContext(candidate, context.urlMetadata)
+      const formatted = formatCandidateWithContext(candidate, context.urlMetadata)
       const timestamp = formatTimestamp(candidate.timestamp)
       const typeTag = candidate.candidateType === 'agreement' ? ' [AGREE]' : ''
       return `
 ---
 ID: ${candidate.messageId}${typeTag} | ${timestamp}
-${ctx}
+${formatted}
 ---`
     })
     .join('\n')
@@ -191,18 +203,18 @@ Return JSON array with ONLY activities worth saving. Skip non-activities entirel
     "obj": "<normalized object: movie, restaurant>",
     "obj_orig": "<original object word>",
     "venue": "<place/business name - extract from URL_META title if available>",
-    "city": "<city if mentioned>",
-    "region": "<state/province if mentioned>",
-    "country": "<country if mentioned>"
+    "city": "<city>",
+    "region": "<state/province>",
+    "country": "<country>"
   }
 ]
 \`\`\`
 
+LOCATION: Fill city/region/country if explicitly mentioned or obvious from context. For ambiguous names (e.g., "Omaha"), assume the user's home country. Venue must be a specific place and not a general region.
+
 CATEGORIES: ${VALID_CATEGORIES.join(', ')}
 
 NORMALIZATION: tramping→hike, cycling→bike, film→movie. But keep distinct: cafe≠restaurant, bar≠restaurant.
-
-LOCATION: Only fill city/region/country if explicitly mentioned. For ambiguous names (e.g., "Omaha"), assume user's home country.
 
 EXAMPLES:
 - "Go tramping in Queenstown" → act:"hike", city:"Queenstown", gen:false

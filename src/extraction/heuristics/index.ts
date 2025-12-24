@@ -13,7 +13,7 @@ import type {
   ParsedMessage,
   QueryType
 } from '../../types'
-import { buildContextString, deduplicateAgreements, getMessageContext } from '../context-window'
+import { deduplicateAgreements, getMessageContext, type MessageContext } from '../context-window'
 import { HIGH_SIGNAL_KEYWORDS } from './activity-links'
 import {
   ACTIVITY_KEYWORDS,
@@ -83,7 +83,8 @@ interface RegexMatch {
   patternName: string
   candidateType: QueryType
   urls: readonly string[] | undefined
-  context: string
+  contextBefore: readonly string[]
+  contextAfter: readonly string[]
 }
 
 function applyActivityBoost(baseConfidence: number, content: string): number {
@@ -98,7 +99,7 @@ function createRegexMatch(
   confidence: number,
   patternName: string,
   candidateType: QueryType,
-  context: string
+  ctx: MessageContext
 ): RegexMatch {
   return {
     messageId: msg.id,
@@ -109,20 +110,21 @@ function createRegexMatch(
     patternName,
     candidateType,
     urls: msg.urls,
-    context
+    contextBefore: ctx.before,
+    contextAfter: ctx.after
   }
 }
 
 function checkBuiltInPatterns(
   msg: ParsedMessage,
-  context: string,
+  ctx: MessageContext,
   minConfidence: number
 ): RegexMatch | null {
   for (const pattern of ACTIVITY_PATTERNS) {
     if (pattern.pattern.test(msg.content)) {
       const confidence = applyActivityBoost(pattern.confidence, msg.content)
       if (confidence >= minConfidence) {
-        return createRegexMatch(msg, confidence, pattern.name, pattern.candidateType, context)
+        return createRegexMatch(msg, confidence, pattern.name, pattern.candidateType, ctx)
       }
       break
     }
@@ -133,7 +135,7 @@ function checkBuiltInPatterns(
 function checkAdditionalPatterns(
   msg: ParsedMessage,
   patterns: readonly RegExp[],
-  context: string,
+  ctx: MessageContext,
   minConfidence: number
 ): RegexMatch | null {
   for (const pattern of patterns) {
@@ -141,7 +143,7 @@ function checkAdditionalPatterns(
       const confidence = applyActivityBoost(0.7, msg.content)
       if (confidence >= minConfidence) {
         // Custom patterns are assumed to be suggestions
-        return createRegexMatch(msg, confidence, `custom:${pattern.source}`, 'suggestion', context)
+        return createRegexMatch(msg, confidence, `custom:${pattern.source}`, 'suggestion', ctx)
       }
       break
     }
@@ -166,15 +168,14 @@ function findRegexMatches(
     if (shouldExclude(msg.content, options?.additionalExclusions)) continue
 
     const ctx = getMessageContext(messages, i)
-    const context = buildContextString(msg, ctx)
 
-    const builtInMatch = checkBuiltInPatterns(msg, context, minConfidence)
+    const builtInMatch = checkBuiltInPatterns(msg, ctx, minConfidence)
     if (builtInMatch) {
       matches.push(builtInMatch)
       continue
     }
 
-    const customMatch = checkAdditionalPatterns(msg, additionalPatterns, context, minConfidence)
+    const customMatch = checkAdditionalPatterns(msg, additionalPatterns, ctx, minConfidence)
     if (customMatch) {
       matches.push(customMatch)
     }
@@ -192,7 +193,8 @@ interface UrlMatch {
   urlType: string
   candidateType: QueryType
   urls: readonly string[]
-  context: string
+  contextBefore: readonly string[]
+  contextAfter: readonly string[]
 }
 
 interface BestUrl {
@@ -269,7 +271,8 @@ function findUrlMatches(
         urlType: best.type,
         candidateType: 'suggestion', // Sharing a URL = suggesting
         urls: msg.urls,
-        context: buildContextString(msg, ctx)
+        contextBefore: ctx.before,
+        contextAfter: ctx.after
       })
     }
   }
@@ -285,7 +288,8 @@ interface BaseMatch {
   confidence: number
   candidateType: QueryType
   urls: readonly string[] | undefined
-  context: string
+  contextBefore: readonly string[]
+  contextAfter: readonly string[]
 }
 
 /**
@@ -304,7 +308,8 @@ function upsertCandidate(
     source,
     confidence: match.confidence,
     candidateType: match.candidateType,
-    context: match.context,
+    contextBefore: match.contextBefore,
+    contextAfter: match.contextAfter,
     urls: match.urls
   }
 

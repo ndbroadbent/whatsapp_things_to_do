@@ -75,7 +75,7 @@ export async function fetchImageForActivity(
     !config.skipGooglePlaces &&
     config.googlePlacesApiKey
   ) {
-    const result = await fetchGooglePlacesPhoto(activity.placeId, config.googlePlacesApiKey)
+    const result = await fetchGooglePlacesPhoto(activity.placeId, config.googlePlacesApiKey, cache)
     if (result) return result
   }
 

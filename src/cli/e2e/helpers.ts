@@ -141,17 +141,19 @@ function parseArgs(args: string): string[] {
  * Build environment for CLI subprocess.
  *
  * When cache fixture exists and UPDATE_E2E_CACHE is not set:
- * - Strip all API keys
- * - Set E2E_CACHE_LOCKED=true to block HTTP requests
+ * - Set all API keys to fake values (so code paths that check for keys still run)
+ * - Set E2E_CACHE_LOCKED=true to block uncached HTTP requests
+ *
+ * This ensures cached responses are used, while the HTTP guard catches any cache misses.
  */
 function buildCliEnv(): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...process.env, NO_COLOR: '1' }
 
   // If fixture exists and we're NOT updating, lock down the environment
   if (testState.hasFixture && !testState.allowCacheUpdates) {
-    // Strip all API keys
+    // Set fake API keys so code paths still execute (cache will provide responses)
     for (const key of API_KEY_ENV_VARS) {
-      delete env[key]
+      env[key] = 'e2e-test-fake-key'
     }
     // Signal to HTTP layer to block uncached requests
     env.E2E_CACHE_LOCKED = 'true'
@@ -250,6 +252,8 @@ export interface Candidate {
   sender: string
   confidence: number
   candidateType: string
+  contextBefore: string[]
+  contextAfter: string[]
 }
 
 /**
