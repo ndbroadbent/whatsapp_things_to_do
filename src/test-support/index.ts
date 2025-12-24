@@ -43,11 +43,16 @@ export function createActivity(
 ): ClassifiedActivity {
   const { messageId, activity, activityId: providedId, ...rest } = overrides
 
+  const funScore = (rest as Partial<ClassifiedActivity>).funScore ?? 0.7
+  const interestingScore = (rest as Partial<ClassifiedActivity>).interestingScore ?? 0.5
+  const score = (rest as Partial<ClassifiedActivity>).score ?? interestingScore * 2 + funScore
+
   const base = {
     messageId,
     activity,
-    funScore: 0.7,
-    interestingScore: 0.5,
+    funScore,
+    interestingScore,
+    score,
     category: 'other' as ActivityCategory,
     confidence: 0.9,
     originalMessage: activity,

@@ -60,11 +60,16 @@ function toClassifiedActivity(
   const capitalizedTitle = title.charAt(0).toUpperCase() + title.slice(1)
 
   // Build activity without ID first
+  const funScore = response.fun
+  const interestingScore = response.int
+  const score = interestingScore * 2 + funScore
+
   const activity = {
     messageId: candidate.messageId,
     activity: capitalizedTitle,
-    funScore: response.fun,
-    interestingScore: response.int,
+    funScore,
+    interestingScore,
+    score,
     category: normalizeCategory(response.cat),
     confidence: response.conf,
     originalMessage: candidate.content,
@@ -233,17 +238,12 @@ export function filterActivities(suggestions: readonly ClassifiedActivity[]): Cl
 }
 
 /**
- * Sort activities by score (interesting prioritized over fun).
- * Score = interestingScore * 2 + funScore
+ * Sort activities by score (highest first).
  */
 export function sortActivitiesByScore(
   activities: readonly ClassifiedActivity[]
 ): ClassifiedActivity[] {
-  return [...activities].sort((a, b) => {
-    const scoreA = a.interestingScore * 2 + a.funScore
-    const scoreB = b.interestingScore * 2 + b.funScore
-    return scoreB - scoreA
-  })
+  return [...activities].sort((a, b) => b.score - a.score)
 }
 
 /**

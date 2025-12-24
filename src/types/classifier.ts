@@ -21,6 +21,8 @@ export interface ClassifiedActivity {
   readonly funScore: number
   /** How interesting/unique is this activity? 0=common/mundane, 1=rare/novel */
   readonly interestingScore: number
+  /** Combined score derived from interestingScore and funScore */
+  readonly score: number
   readonly category: ActivityCategory
   readonly confidence: number
   readonly originalMessage: string

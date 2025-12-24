@@ -26,6 +26,7 @@ interface MapPoint {
   activityId: string
   location: string
   date: string
+  score: number
   url: string | null
   color: string
   imagePath: string | null
@@ -105,6 +106,7 @@ function toMapPoints(
       activityId: s.activityId,
       location: formatLocation(s) ?? '',
       date: s.timestamp.toISOString().split('T')[0] ?? '',
+      score: s.score,
       url: extractUrl(s.originalMessage),
       color,
       imagePath: config.imagePaths?.get(s.activityId) ?? null,
@@ -153,40 +155,6 @@ function generateMarkersJS(points: readonly MapPoint[]): string {
       `
     })
     .join('\n')
-}
-
-/**
- * Generate activity list HTML for modal.
- */
-function generateActivityListHTML(points: readonly MapPoint[]): string {
-  return points
-    .map((p) => {
-      const senderName = p.sender.split(' ')[0] ?? p.sender
-      const mapsUrl = p.placeId
-        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.activity)}&query_place_id=${p.placeId}`
-        : null
-      const thumbnail = p.imagePath
-        ? `<img src="${escapeJS(p.imagePath)}" class="activity-thumb" alt="" />`
-        : '<div class="activity-thumb-placeholder"></div>'
-
-      return `
-        <div class="activity-row">
-          ${thumbnail}
-          <div class="activity-content">
-            <div class="activity-title">${escapeJS(p.activity)}</div>
-            <div class="activity-meta">
-              ${p.location ? `<span class="activity-location">${escapeJS(p.location)}</span> · ` : ''}
-              ${escapeJS(senderName)} · ${p.date}
-            </div>
-            <div class="activity-links">
-              ${mapsUrl ? `<a href="${escapeJS(mapsUrl)}" target="_blank">Google Maps</a>` : ''}
-              ${p.url ? `<a href="${escapeJS(p.url)}" target="_blank">Source</a>` : ''}
-            </div>
-          </div>
-        </div>
-      `
-    })
-    .join('')
 }
 
 /**
@@ -369,8 +337,10 @@ export function exportToMapHTML(
     .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:2000; justify-content:center; align-items:center; }
     .modal-overlay.open { display:flex; }
     .modal { background:#fff; border-radius:12px; width:90%; max-width:700px; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 20px 50px rgba(0,0,0,0.3); }
-    .modal-header { padding:20px 24px; border-bottom:1px solid #e5e7eb; display:flex; justify-content:space-between; align-items:center; }
-    .modal-header h2 { margin:0; font-size:20px; font-weight:600; }
+    .modal-header { padding:20px 24px; border-bottom:1px solid #e5e7eb; display:flex; justify-content:space-between; align-items:center; gap:16px; }
+    .modal-header h2 { margin:0; font-size:20px; font-weight:600; flex:1; }
+    .sort-control { display:flex; align-items:center; gap:8px; font-size:14px; color:#6b7280; }
+    .sort-control select { padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; font-size:14px; background:#fff; cursor:pointer; }
     .modal-close { background:none; border:none; font-size:24px; cursor:pointer; color:#6b7280; padding:4px 8px; }
     .modal-close:hover { color:#111; }
     .modal-body { padding:16px 24px; overflow-y:auto; flex:1; }
@@ -409,11 +379,17 @@ export function exportToMapHTML(
     <div class="modal" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h2>Activity List</h2>
+        <div class="sort-control">
+          <label for="sortSelect">Sort by:</label>
+          <select id="sortSelect" onchange="sortActivities(this.value)">
+            <option value="score">Most Interesting</option>
+            <option value="oldest">Oldest</option>
+            <option value="newest">Newest</option>
+          </select>
+        </div>
         <button class="modal-close" onclick="closeModal()">&times;</button>
       </div>
-      <div class="modal-body">
-        ${generateActivityListHTML(points)}
-      </div>
+      <div class="modal-body" id="activityListBody"></div>
     </div>
   </div>
 
@@ -445,10 +421,44 @@ export function exportToMapHTML(
       map.fitBounds(markersLayer.getBounds(), { padding: [50, 50] });
     }
 
+    // Activity data for sorting
+    var activities = ${JSON.stringify(
+      points.map((p) => ({
+        id: p.activityId,
+        activity: p.activity,
+        sender: p.sender.split(' ')[0] ?? p.sender,
+        location: p.location,
+        date: p.date,
+        score: p.score,
+        imagePath: p.imagePath,
+        placeId: p.placeId,
+        url: p.url
+      }))
+    )};
+
+    function renderActivityList(sorted) {
+      var html = sorted.map(function(a) {
+        var mapsUrl = a.placeId ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(a.activity) + '&query_place_id=' + a.placeId : null;
+        var thumb = a.imagePath ? '<img src="' + a.imagePath + '" class="activity-thumb" alt="" />' : '<div class="activity-thumb-placeholder"></div>';
+        var links = (mapsUrl ? '<a href="' + mapsUrl + '" target="_blank">Google Maps</a>' : '') + (a.url ? '<a href="' + a.url + '" target="_blank">Source</a>' : '');
+        return '<div class="activity-row">' + thumb + '<div class="activity-content"><div class="activity-title">' + a.activity + '</div><div class="activity-meta">' + (a.location ? '<span class="activity-location">' + a.location + '</span> · ' : '') + a.sender + ' · ' + a.date + '</div><div class="activity-links">' + links + '</div></div></div>';
+      }).join('');
+      document.getElementById('activityListBody').innerHTML = html;
+    }
+
+    function sortActivities(sortBy) {
+      var sorted = activities.slice();
+      if (sortBy === 'score') sorted.sort(function(a, b) { return b.score - a.score; });
+      else if (sortBy === 'oldest') sorted.sort(function(a, b) { return a.date.localeCompare(b.date); });
+      else if (sortBy === 'newest') sorted.sort(function(a, b) { return b.date.localeCompare(a.date); });
+      renderActivityList(sorted);
+    }
+
     // Modal functions
     function openModal() {
       document.getElementById('activityModal').classList.add('open');
       document.body.style.overflow = 'hidden';
+      sortActivities(document.getElementById('sortSelect').value);
     }
     function closeModal(e) {
       if (!e || e.target === e.currentTarget) {
