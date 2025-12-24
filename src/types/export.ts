@@ -21,6 +21,8 @@ export interface PDFConfig {
   readonly includeMap?: boolean
   readonly filterByCategory?: readonly ActivityCategory[]
   readonly filterByRegion?: string
+  /** Thumbnails keyed by activity ID (JPEG buffers, 225px square at 300 DPI) */
+  readonly thumbnails?: Map<string, Buffer> | undefined
 }
 
 export interface ExportMetadata {

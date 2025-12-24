@@ -187,17 +187,13 @@ function createProgram(): Command {
     .option('-n, --max-results <num>', 'Max results to display', '10')
     .option('-a, --all', 'Show all activities with images')
 
-  // ============ EXPORT ============
+  // ============ FETCH-IMAGES ============
   program
-    .command('export')
-    .description('Generate output files from geocoded activities')
-    .argument('<input>', 'Geocoded activities JSON file')
-    .option('-o, --output-dir <dir>', 'Output directory', DEFAULT_OUTPUT_DIR)
-    .option(
-      '-f, --format <formats>',
-      'Output formats: csv,excel,json,map,pdf',
-      'csv,excel,json,map,pdf'
-    )
+    .command('fetch-images')
+    .description('Download and resize images to thumbnails for PDF export')
+    .argument('<input>', 'Chat export file or directory')
+    .option('-n, --max-results <num>', 'Max results to display', '10')
+    .option('-a, --all', 'Show all thumbnails')
 
   // ============ LIST ============
   program.command('list').description('Show previously processed chats')

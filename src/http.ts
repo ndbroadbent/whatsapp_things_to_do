@@ -68,6 +68,7 @@ export interface HttpResponse {
   }
   text(): Promise<string>
   json(): Promise<unknown>
+  arrayBuffer(): Promise<ArrayBuffer>
 }
 
 /**

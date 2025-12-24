@@ -22,7 +22,8 @@ function createMockResponse(
       get: (name: string) => headers[name.toLowerCase()] ?? null
     },
     text: async () => body,
-    json: async () => JSON.parse(body)
+    json: async () => JSON.parse(body),
+    arrayBuffer: async () => new TextEncoder().encode(body).buffer as ArrayBuffer
   }
 }
 

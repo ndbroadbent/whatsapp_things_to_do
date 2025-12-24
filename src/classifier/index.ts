@@ -55,10 +55,14 @@ function toClassifiedActivity(
   response: ParsedClassification,
   candidate: CandidateMessage
 ): ClassifiedActivity {
+  // Capitalize first letter of title
+  const title = response.title ?? candidate.content.slice(0, 100)
+  const capitalizedTitle = title.charAt(0).toUpperCase() + title.slice(1)
+
   // Build activity without ID first
   const activity = {
     messageId: candidate.messageId,
-    activity: response.title ?? candidate.content.slice(0, 100),
+    activity: capitalizedTitle,
     funScore: response.fun,
     interestingScore: response.int,
     category: normalizeCategory(response.cat),

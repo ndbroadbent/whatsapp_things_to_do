@@ -15,6 +15,31 @@ The library is stateless and side-effect-free (except for API calls to external 
 - **CLI** - Spawns its own parallel workers locally
 - **Cloudflare Workers** - ARE the parallelization units in the SaaS
 
+### CLI Worker Pool Convention
+
+**All CLI parallelism uses `runWorkerPool` from `src/cli/worker-pool.ts`.**
+
+```typescript
+import { runWorkerPool } from '../worker-pool'
+
+const { successes, errors } = await runWorkerPool(
+  items,
+  async (item, index) => processItem(item),
+  {
+    concurrency: 5,
+    onProgress: ({ completed, total }) => logger.log(`${completed}/${total}`)
+  }
+)
+```
+
+This ensures consistent:
+- Concurrency control (default 5 workers)
+- Progress reporting
+- Error handling
+- Result ordering
+
+**Never use manual Promise.all loops for parallel work in CLI steps.**
+
 ## Key Files
 
 | File | Purpose |

@@ -13,6 +13,7 @@ import { cmdAnalyze } from './cli/commands/analyze'
 import { cmdClassify } from './cli/commands/classify'
 import { cmdEmbed } from './cli/commands/embed'
 import { cmdFetchImageUrls } from './cli/commands/fetch-image-urls'
+import { cmdFetchImages } from './cli/commands/fetch-images'
 import { cmdFilter } from './cli/commands/filter'
 import { cmdGeocode } from './cli/commands/geocode'
 import { cmdList } from './cli/commands/list'
@@ -66,6 +67,10 @@ async function main(): Promise<void> {
 
       case 'fetch-image-urls':
         await cmdFetchImageUrls(args, logger)
+        break
+
+      case 'fetch-images':
+        await cmdFetchImages(args, logger)
         break
 
       case 'list':

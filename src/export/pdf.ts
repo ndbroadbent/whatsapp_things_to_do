@@ -51,6 +51,10 @@ function groupByCategory(
   return groups
 }
 
+/** Thumbnail size in PDF points (0.5" at 72 DPI) */
+const THUMBNAIL_WIDTH = 36
+const THUMBNAIL_HEIGHT = 36
+
 /**
  * Category display names.
  */
@@ -81,6 +85,101 @@ const CATEGORY_NAMES: Record<ActivityCategory, string> = {
 }
 
 /**
+ * Render a single activity item with optional thumbnail.
+ */
+function renderActivityItem(
+  doc: PDFKit.PDFDocument,
+  item: GeocodedActivity,
+  thumbnail: Buffer | undefined
+): void {
+  const startY = doc.y
+  const textX = thumbnail ? 50 + THUMBNAIL_WIDTH + 8 : 50
+  const textWidth = 500 - (thumbnail ? THUMBNAIL_WIDTH + 8 : 0)
+
+  // Build details string
+  const details: string[] = []
+  const location = formatLocation(item)
+  if (location) {
+    details.push(`Location: ${location}`)
+  }
+  details.push(`From: ${item.sender.split(' ')[0]} on ${formatDate(item.timestamp)}`)
+  const detailsText = details.join(' | ')
+
+  // Calculate text height for vertical centering
+  const titleHeight = doc
+    .fontSize(10)
+    .font('Helvetica-Bold')
+    .heightOfString(item.activity.slice(0, 80), { width: textWidth })
+  const detailsHeight = doc
+    .fontSize(9)
+    .font('Helvetica')
+    .heightOfString(detailsText, { width: textWidth })
+  const totalTextHeight = titleHeight + detailsHeight
+  // Center text vertically with thumbnail, nudged down slightly
+  const offset = (THUMBNAIL_HEIGHT - totalTextHeight) / 2 + 2
+  const textY = thumbnail ? startY + offset : startY
+
+  // Render thumbnail if available
+  if (thumbnail) {
+    doc.image(thumbnail, 50, startY, {
+      width: THUMBNAIL_WIDTH,
+      height: THUMBNAIL_HEIGHT
+    })
+  }
+
+  // Render activity text (capitalize first letter)
+  const activityTitle = item.activity.charAt(0).toUpperCase() + item.activity.slice(1)
+  doc
+    .fontSize(10)
+    .font('Helvetica-Bold')
+    .fillColor('#000000')
+    .text(activityTitle.slice(0, 80), textX, textY, { width: textWidth })
+
+  doc
+    .fontSize(9)
+    .font('Helvetica')
+    .fillColor('#666666')
+    .text(detailsText, textX, doc.y, { width: textWidth })
+
+  // Move past thumbnail if it's taller than text
+  if (thumbnail && doc.y < startY + THUMBNAIL_HEIGHT + 4) {
+    doc.y = startY + THUMBNAIL_HEIGHT + 4
+  }
+
+  doc.moveDown(0.5)
+}
+
+/**
+ * Render PDF header with title, subtitle, and summary stats.
+ */
+function renderHeader(
+  doc: PDFKit.PDFDocument,
+  config: PDFConfig,
+  stats: { total: number; geocoded: number; senders: number }
+): void {
+  // Title
+  doc
+    .fontSize(24)
+    .font('Helvetica-Bold')
+    .text(config.title ?? 'Things To Do', { align: 'center' })
+
+  if (config.subtitle) {
+    doc.moveDown(0.5).fontSize(14).font('Helvetica').text(config.subtitle, { align: 'center' })
+  }
+
+  // Summary stats
+  doc.moveDown(1)
+  doc.fontSize(12).font('Helvetica-Bold').text('Summary')
+  doc
+    .fontSize(10)
+    .font('Helvetica')
+    .text(`Total activities: ${stats.total}`)
+    .text(`With map locations: ${stats.geocoded}`)
+    .text(`Contributors: ${stats.senders}`)
+    .text(`Generated: ${new Date().toLocaleDateString()}`)
+}
+
+/**
  * Export activities to PDF format.
  *
  * @param activities Geocoded activities to export
@@ -104,11 +203,11 @@ export async function exportToPDF(
   const grouped = groupByCategory(filtered)
 
   // Count statistics
-  const totalActivities = filtered.length
-  const geocodedCount = filtered.filter(
-    (a) => a.latitude !== undefined && a.longitude !== undefined
-  ).length
-  const uniqueSenders = new Set(filtered.map((a) => a.sender)).size
+  const stats = {
+    total: filtered.length,
+    geocoded: filtered.filter((a) => a.latitude !== undefined && a.longitude !== undefined).length,
+    senders: new Set(filtered.map((a) => a.sender)).size
+  }
 
   // Create PDF document
   const doc = new PDF({
@@ -123,14 +222,12 @@ export async function exportToPDF(
 
   // Collect chunks in a buffer
   const chunks: Uint8Array[] = []
-
   doc.on('data', (chunk: Buffer) => {
     chunks.push(new Uint8Array(chunk))
   })
 
   const docFinished = new Promise<Uint8Array>((resolve) => {
     doc.on('end', () => {
-      // Combine all chunks
       const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0)
       const result = new Uint8Array(totalLength)
       let offset = 0
@@ -142,77 +239,34 @@ export async function exportToPDF(
     })
   })
 
-  // Title
-  doc
-    .fontSize(24)
-    .font('Helvetica-Bold')
-    .text(config.title ?? 'Things To Do', {
-      align: 'center'
-    })
+  // Render header
+  renderHeader(doc, config, stats)
 
-  if (config.subtitle) {
-    doc.moveDown(0.5).fontSize(14).font('Helvetica').text(config.subtitle, {
-      align: 'center'
-    })
-  }
-
-  // Summary stats
-  doc.moveDown(1)
-  doc.fontSize(12).font('Helvetica-Bold').text('Summary')
-  doc
-    .fontSize(10)
-    .font('Helvetica')
-    .text(`Total activities: ${totalActivities}`)
-    .text(`With map locations: ${geocodedCount}`)
-    .text(`Contributors: ${uniqueSenders}`)
-    .text(`Generated: ${new Date().toLocaleDateString()}`)
-
-  // Categories - use VALID_CATEGORIES order
+  // Render categories
   const categoryOrder: ActivityCategory[] = [...VALID_CATEGORIES]
 
   for (const category of categoryOrder) {
     const items = grouped.get(category)
     if (!items || items.length === 0) continue
 
-    // Add page break if needed
-    if (doc.y > 700) {
-      doc.addPage()
-    }
+    if (doc.y > 700) doc.addPage()
 
     doc.moveDown(1.5)
     doc.fontSize(14).font('Helvetica-Bold').text(`${CATEGORY_NAMES[category]} (${items.length})`)
     doc.moveDown(0.5)
 
-    // Sort by confidence descending
     const sortedItems = [...items].sort((a, b) => b.confidence - a.confidence)
 
     for (const item of sortedItems) {
-      // Add page break if needed
-      if (doc.y > 720) {
-        doc.addPage()
-      }
+      const hasThumbnail = config.thumbnails?.has(item.activityId)
+      const rowHeight = hasThumbnail ? Math.max(THUMBNAIL_HEIGHT + 8, 40) : 40
+      if (doc.y > 750 - rowHeight) doc.addPage()
 
-      doc.fontSize(10).font('Helvetica-Bold').text(item.activity.slice(0, 80))
-
-      const details: string[] = []
-      const location = formatLocation(item)
-      if (location) {
-        details.push(`Location: ${location}`)
-      }
-      details.push(`From: ${item.sender.split(' ')[0]} on ${formatDate(item.timestamp)}`)
-
-      if (item.latitude !== undefined && item.longitude !== undefined) {
-        details.push(`Coordinates: ${item.latitude.toFixed(4)}, ${item.longitude.toFixed(4)}`)
-      }
-
-      doc.fontSize(9).font('Helvetica').fillColor('#666666').text(details.join(' | '))
-
-      doc.moveDown(0.5)
+      const thumbnail = config.thumbnails?.get(item.activityId)
+      renderActivityItem(doc, item, thumbnail)
     }
   }
 
-  // Finalize PDF
   doc.end()
-
   return docFinished
 }

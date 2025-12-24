@@ -136,3 +136,24 @@ export function generateImageCacheKey(source: string, query: string): string {
   const hash = createHash('sha256').update(query.toLowerCase()).digest('hex').slice(0, 8)
   return `images/${source}/${sanitized}-${hash}`
 }
+
+/**
+ * Generate filename for cached image files (originals and thumbnails).
+ * Creates readable filename: first 36 chars of sanitized URL (without protocol) + 8 char hash.
+ *
+ * @example
+ * ```ts
+ * generateImageFilename('https://pixabay.com/photos/mountain-1234/')
+ * // Returns: 'pixabay_com_photos_mountain-1234-a1b2c3d4.jpg'
+ * ```
+ */
+export function generateImageFilename(url: string): string {
+  const sanitized = url
+    .replace(/^https?:\/\//, '') // Remove http:// or https://
+    .replace(/[^a-zA-Z0-9_-]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '')
+    .slice(0, 36)
+  const hash = createHash('sha256').update(url).digest('hex').slice(0, 8)
+  return `${sanitized}-${hash}.jpg`
+}

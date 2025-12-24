@@ -16,6 +16,7 @@ import type {
 import type { CLIArgs } from '../args'
 import type { Logger } from '../logger'
 import type { PipelineContext } from './context'
+import type { ExportFormat } from './export'
 
 /**
  * All pipeline step outputs, keyed by step name.
@@ -29,6 +30,8 @@ interface StepOutputs {
   classify: { activities: readonly ClassifiedActivity[] }
   geocode: { activities: readonly GeocodedActivity[] }
   fetchImageUrls: { images: Map<string, ImageResult | null> }
+  fetchImages: { thumbnails: Map<string, Buffer> }
+  export: { exportedFiles: Map<ExportFormat, string> }
 }
 
 type StepName = keyof StepOutputs
@@ -92,6 +95,10 @@ export class StepRunner {
         return this.runGeocode() as Promise<StepOutputs[K]>
       case 'fetchImageUrls':
         return this.runFetchImageUrls() as Promise<StepOutputs[K]>
+      case 'fetchImages':
+        return this.runFetchImages() as Promise<StepOutputs[K]>
+      case 'export':
+        return this.runExport() as Promise<StepOutputs[K]>
       default:
         throw new Error(`Unknown step: ${step}`)
     }
@@ -189,5 +196,30 @@ export class StepRunner {
       skipGooglePlaces: this.args.skipGooglePlaces
     })
     return { images: result.images }
+  }
+
+  private async runFetchImages(): Promise<StepOutputs['fetchImages']> {
+    // Dependency: fetchImageUrls
+    const { images } = await this.run('fetchImageUrls')
+
+    const { stepFetchImages } = await import('./fetch-images')
+    const result = await stepFetchImages(this.ctx, images)
+    return { thumbnails: result.thumbnails }
+  }
+
+  private async runExport(): Promise<StepOutputs['export']> {
+    // Dependencies: geocode, fetchImages (which depends on fetchImageUrls)
+    const [{ activities }, { thumbnails }] = await Promise.all([
+      this.run('geocode'),
+      this.run('fetchImages')
+    ])
+
+    const { stepExport } = await import('./export')
+    const result = await stepExport(this.ctx, activities, {
+      outputDir: this.args.outputDir,
+      formats: this.args.formats as ExportFormat[],
+      thumbnails
+    })
+    return { exportedFiles: result.exportedFiles }
   }
 }
