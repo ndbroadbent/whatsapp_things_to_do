@@ -25,6 +25,7 @@ export type { ResolvedModel } from './classifier/index'
 export {
   buildClassificationPrompt,
   type ClassificationContext,
+  classifyBatch,
   classifyMessages,
   createSmartBatches,
   filterActivities,
@@ -89,6 +90,7 @@ export {
   countGeocoded,
   filterGeocoded,
   geocodeActivities,
+  geocodeActivity,
   geocodeLocation
 } from './geocoder/index'
 // Images module

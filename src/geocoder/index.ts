@@ -188,8 +188,10 @@ function tryExtractFromUrl(activity: ClassifiedActivity): GeocodeResult | null {
 
 /**
  * Geocode a single activity.
+ *
+ * Exported for CLI worker pool parallelism.
  */
-async function geocodeActivity(
+export async function geocodeActivity(
   activity: ClassifiedActivity,
   config: GeocoderConfig,
   cache?: ResponseCache

@@ -80,8 +80,11 @@ function toClassifiedActivity(
 /**
  * Classify a batch of candidates.
  * Caching is handled by the provider layer (callProviderWithFallbacks).
+ *
+ * This is the core classification function - processes a single batch.
+ * For parallel processing, CLI uses a worker pool that calls this function.
  */
-async function classifyBatch(
+export async function classifyBatch(
   candidates: readonly CandidateMessage[],
   config: ClassifierConfig,
   cache?: ResponseCache
@@ -165,6 +168,7 @@ export async function classifyMessages(
     batches.push([...candidates.slice(i, i + batchSize)])
   }
 
+  // Process batches sequentially (CLI uses worker pool for parallelism)
   for (let i = 0; i < batches.length; i++) {
     const batch = batches[i]
     if (!batch) continue

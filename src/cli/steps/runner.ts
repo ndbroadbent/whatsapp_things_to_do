@@ -130,10 +130,7 @@ export class StepRunner {
     await Promise.all([this.run('scan'), this.run('embed')])
 
     const { stepFilter } = await import('./filter')
-    const result = await stepFilter(this.ctx, {
-      minConfidence: this.args.minConfidence,
-      quiet: true
-    })
+    const result = await stepFilter(this.ctx)
     return { candidates: result.candidates }
   }
 
@@ -143,8 +140,7 @@ export class StepRunner {
 
     const { stepScrape } = await import('./scrape')
     const result = await stepScrape(this.ctx, candidates, {
-      timeout: this.args.scrapeTimeout,
-      quiet: true
+      timeout: this.args.scrapeTimeout
     })
     return { metadataMap: result.metadataMap }
   }
@@ -161,8 +157,7 @@ export class StepRunner {
       homeCountry: this.args.homeCountry,
       timezone: this.args.timezone,
       urlMetadata: metadataMap,
-      batchSize: 30,
-      quiet: true
+      batchSize: 30
     })
     return { activities: result.activities }
   }
@@ -173,8 +168,7 @@ export class StepRunner {
 
     const { stepGeocode } = await import('./geocode')
     const result = await stepGeocode(this.ctx, activities, {
-      homeCountry: this.args.homeCountry,
-      quiet: true
+      homeCountry: this.args.homeCountry
     })
     return { activities: result.activities }
   }

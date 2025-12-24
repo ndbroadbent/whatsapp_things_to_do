@@ -11,16 +11,6 @@ import type { CandidateMessage, ParsedMessage } from '../../types'
 import type { PipelineContext } from './context'
 
 /**
- * Filter step options.
- */
-interface FilterOptions {
-  /** Minimum confidence threshold */
-  readonly minConfidence?: number | undefined
-  /** Skip logging */
-  readonly quiet?: boolean | undefined
-}
-
-/**
  * Result of the filter step.
  */
 interface FilterResult {
@@ -84,24 +74,21 @@ export function mergeAndDeduplicateCandidates(
  * Combines heuristics (from scan) and embeddings (from embed + semantic search).
  * Uses pipeline cache if available.
  */
-export async function stepFilter(
-  ctx: PipelineContext,
-  options?: FilterOptions
-): Promise<FilterResult> {
+export async function stepFilter(ctx: PipelineContext): Promise<FilterResult> {
   const { pipelineCache, apiCache, logger, noCache } = ctx
 
-  // Check cache for merged candidates
-  if (!noCache && pipelineCache.hasStage('candidates.all')) {
+  // Check cache - only valid if filter_stats exists (completion marker)
+  if (!noCache && pipelineCache.hasStage('filter_stats')) {
     const cached = pipelineCache.getStage<CandidateMessage[]>('candidates.all') ?? []
-    if (!options?.quiet) {
-      logger.log('\n🔍 Filtering candidates... 📦 cached')
-    }
+    logger.log('\n🔍 Filtering candidates... 📦 cached')
     return {
       candidates: cached,
       fromCache: true,
       stats: { total: cached.length, heuristics: 0, embeddings: 0 }
     }
   }
+
+  logger.log('\n🔍 Filtering candidates...')
 
   // Get heuristics candidates (from scan step cache)
   const heuristics = pipelineCache.getStage<CandidateMessage[]>('candidates.heuristics') ?? []
@@ -118,9 +105,7 @@ export async function stepFilter(
       // Get messages for semantic search
       const messages = pipelineCache.getStage<ParsedMessage[]>('messages') ?? []
 
-      if (!options?.quiet) {
-        logger.log('\n🔍 Extracting candidates (semantic search)...')
-      }
+      logger.log('\n🔍 Extracting candidates (semantic search)...')
 
       const result = await extractCandidatesByEmbeddings(messages, { apiKey }, undefined, apiCache)
       if (result.ok) {
@@ -144,12 +129,9 @@ export async function stepFilter(
     embeddings: embeddings.length
   })
 
-  if (!options?.quiet) {
-    logger.log(`\n🔍 Filtering candidates...`)
-    logger.log(
-      `   ✓ ${merged.length} candidates (${heuristics.length} heuristics, ${embeddings.length} embeddings)`
-    )
-  }
+  logger.log(
+    `   ✓ ${merged.length} candidates (${heuristics.length} heuristics, ${embeddings.length} embeddings)`
+  )
 
   return {
     candidates: merged,

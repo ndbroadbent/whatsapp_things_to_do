@@ -3,6 +3,9 @@
  *
  * Embed all messages using OpenAI embeddings API.
  * Results are cached in the API cache for later use by filter.
+ *
+ * Note: The core library's messageEmbeddings already has built-in concurrency
+ * (default 10 concurrent API calls). No worker pool needed here.
  */
 
 import { messageEmbeddings } from '../../extraction/embeddings/index'
@@ -17,10 +20,6 @@ interface EmbedResult {
   readonly fromCache: boolean
 }
 
-interface EmbedOptions {
-  readonly quiet?: boolean
-}
-
 /**
  * Run the embed step.
  *
@@ -29,23 +28,18 @@ interface EmbedOptions {
  */
 export async function stepEmbed(
   ctx: PipelineContext,
-  messages: readonly ParsedMessage[],
-  options?: EmbedOptions
+  messages: readonly ParsedMessage[]
 ): Promise<EmbedResult> {
   const { pipelineCache, apiCache, logger } = ctx
 
-  // Check cache
+  // Check cache - embed_stats is the completion marker
   if (pipelineCache.hasStage('embed_stats')) {
     const stats = pipelineCache.getStage<{ totalEmbedded: number }>('embed_stats')
-    if (!options?.quiet) {
-      logger.log('\n🔮 Embedding messages... 📦 cached')
-    }
+    logger.log('\n🔮 Embedding messages... 📦 cached')
     return { totalEmbedded: stats?.totalEmbedded ?? 0, fromCache: true }
   }
 
-  if (!options?.quiet) {
-    logger.log('\n🔮 Embedding messages...')
-  }
+  logger.log('\n🔮 Embedding messages...')
 
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) {

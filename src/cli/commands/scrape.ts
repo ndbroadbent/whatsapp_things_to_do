@@ -95,8 +95,7 @@ export async function cmdScrape(args: CLIArgs, logger: Logger): Promise<void> {
 
   // Run scrape step
   const scrapeResult = await stepScrape(ctx, scanResult.candidates, {
-    timeout: args.scrapeTimeout,
-    verbose: args.verbose
+    timeout: args.scrapeTimeout
   })
 
   logger.log('\n📊 Scrape Results')
