@@ -75,7 +75,8 @@ function toClassifiedActivity(
     venue: response.venue,
     city: response.city,
     region: response.region,
-    country: response.country
+    country: response.country,
+    imageKeywords: response.kw
   }
 
   // Generate deterministic ID from all fields

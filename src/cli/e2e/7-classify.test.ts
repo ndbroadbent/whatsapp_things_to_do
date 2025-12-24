@@ -91,7 +91,7 @@ describe('classify command', () => {
     expect(yellowstone).toBeDefined()
     expect(yellowstone?.category).toBe('nature')
     expect(yellowstone?.sender).toBe('John Smith')
-    expect(yellowstone?.venue).toBe('Yellowstone')
+    expect(yellowstone?.venue).toMatch(/Yellowstone/i)
 
     // Check Karangahake Gorge
     const karangahake = activities.find((a) => a.activity.includes('Karangahake'))

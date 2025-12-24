@@ -79,23 +79,29 @@ export async function fetchPixabayImage(
 /**
  * Build search query from activity fields.
  *
- * Priority: action+object > action+city > city+country > category
+ * Always includes: action/object + location (venue/city/region/country) + imageKeywords
+ *
+ * E.g., "go trip" + "Bay of Islands" + ["coast", "beach", "ocean"]
+ *     → "go trip Bay of Islands coast beach ocean"
  */
 function buildSearchQuery(activity: GeocodedActivity): string | null {
   const parts: string[] = []
 
-  // Try action + object first (e.g., "hiking mountains")
-  if (activity.action && activity.object) {
-    parts.push(activity.action, activity.object)
-  } else if (activity.action && activity.city) {
-    // action + city (e.g., "kayaking queenstown")
-    parts.push(activity.action, activity.city)
-  } else if (activity.city && activity.country) {
-    // city + country (e.g., "auckland new zealand")
-    parts.push(activity.city, activity.country)
-  } else if (activity.action) {
-    parts.push(activity.action)
-  } else if (activity.category && activity.category !== 'other') {
+  // Add action and/or object
+  if (activity.action) parts.push(activity.action)
+  if (activity.object) parts.push(activity.object)
+
+  // Always add location - venue, city, region, or country (first available)
+  const location = activity.venue ?? activity.city ?? activity.region ?? activity.country
+  if (location) parts.push(location)
+
+  // Add AI-generated keywords for disambiguation
+  if (activity.imageKeywords && activity.imageKeywords.length > 0) {
+    parts.push(...activity.imageKeywords)
+  }
+
+  // Fallback to category if nothing else
+  if (parts.length === 0 && activity.category && activity.category !== 'other') {
     parts.push(activity.category)
   }
 

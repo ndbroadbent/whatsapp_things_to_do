@@ -205,10 +205,16 @@ Return JSON array with ONLY activities worth saving. Skip non-activities entirel
     "venue": "<place/business name - extract from URL_META title if available>",
     "city": "<city>",
     "region": "<state/province>",
-    "country": "<country>"
+    "country": "<country>",
+    "kw": ["<keyword1>", "<keyword2>", "<keyword3>"]
   }
 ]
 \`\`\`
+
+KEYWORDS (kw): Include up to 3 keywords for stock photo search. Must be DIFFERENT from act/obj/venue. Include:
+- Location-specific details: "hot air balloon" + Turkey → ["cappadocia", "sunrise", "fairy chimneys"]
+- Disambiguation: "watch play" → ["theatre", "stage", "actors"] (not playground)
+- DO NOT include any generic terms that may dilute the search query. For example, "play paintball" is a much better query WITHOUT generic keywords like "action, game, team" (which return images of football and basketball.) Include no keywords at all if the act/obj/venue are already specific.
 
 LOCATION: Fill city/region/country if explicitly mentioned or obvious from context. For ambiguous names (e.g., "Omaha"), assume the user's home country. Venue must be a specific place and not a general region.
 
@@ -245,6 +251,8 @@ export interface ParsedClassification {
   city: string | null
   region: string | null
   country: string | null
+  /** 3 keywords for stock photo search (different from act/obj/venue) */
+  kw: string[]
 }
 
 function extractJsonFromResponse(response: string): string {
@@ -287,6 +295,11 @@ function parseBoolean(val: unknown, fallback: boolean): boolean {
   return fallback
 }
 
+function parseStringArray(val: unknown): string[] {
+  if (!Array.isArray(val)) return []
+  return val.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+}
+
 function parseItem(obj: Record<string, unknown>): ParsedClassification {
   return {
     msg: parseNumber(obj.msg, 0, false), // msg is an ID, not clamped to 0-1
@@ -304,7 +317,8 @@ function parseItem(obj: Record<string, unknown>): ParsedClassification {
     venue: parseString(obj.venue),
     city: parseString(obj.city),
     region: parseString(obj.region),
-    country: parseString(obj.country)
+    country: parseString(obj.country),
+    kw: parseStringArray(obj.kw)
   }
 }
 

@@ -52,6 +52,12 @@ export interface ClassifiedActivity {
   readonly region: string | null
   /** Country name */
   readonly country: string | null
+  /**
+   * 3 keywords for stock photo search (different from action/object/venue).
+   * Provides disambiguation and location-specific context.
+   * E.g., "hot air balloon" + Turkey → ["cappadocia", "sunrise", "fairy chimneys"]
+   */
+  readonly imageKeywords: readonly string[]
 }
 
 /**

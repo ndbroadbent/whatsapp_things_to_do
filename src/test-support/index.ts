@@ -63,6 +63,7 @@ export function createActivity(
     city: null,
     region: null,
     country: null,
+    imageKeywords: [],
     ...rest
   }
 

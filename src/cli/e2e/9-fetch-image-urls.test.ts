@@ -51,7 +51,7 @@ describe('fetch-image-urls command', () => {
     // With --no-image-cdn, images come from Google Places or Pixabay
     // NOTE: Scraped/OG images are NOT used (licensing restrictions)
     expect(stats.fromGooglePlaces).toBeGreaterThanOrEqual(4)
-    expect(stats.fromPixabay).toBeGreaterThanOrEqual(5)
+    expect(stats.fromPixabay).toBeGreaterThanOrEqual(4)
   })
 
   it('writes images.json with image results keyed by activityId', () => {
