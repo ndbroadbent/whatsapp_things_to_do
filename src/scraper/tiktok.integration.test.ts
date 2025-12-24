@@ -41,36 +41,43 @@ describe('TikTok Scraper Integration', () => {
 
       expect(result.ok).toBe(true)
       if (result.ok) {
+        // Content ID
         expect(result.metadata.contentId).toBe('7455066896669461782')
 
-        const allText = [
-          result.metadata.title ?? '',
-          result.metadata.description ?? '',
-          ...result.metadata.hashtags,
-          ...result.metadata.categories,
-          ...result.metadata.suggestedKeywords
-        ]
-          .join(' ')
-          .toLowerCase()
+        // Title - extracted from video description
+        expect(result.metadata.title).toBe('Shostakovich: Waltz No. 2')
 
-        expect(
-          allText.includes('accordion') ||
-            allText.includes('music') ||
-            allText.includes('instrument') ||
-            allText.includes('waltz')
-        ).toBe(true)
+        // Description includes hashtags
+        expect(result.metadata.description).toContain('Shostakovich')
+        expect(result.metadata.description).toContain('#classicalmusic')
 
-        expect(result.metadata.creator).toBeTruthy()
+        // Creator username
+        expect(result.metadata.creator).toBe('sergey.sadovoy.ffm')
+
+        // Categories from TikTok's diversificationLabels
+        expect(result.metadata.categories).toContain('Singing & Instruments')
+        expect(result.metadata.categories).toContain('Talents')
+
+        // Suggested keywords
+        expect(result.metadata.suggestedKeywords).toContain('Classical Music')
+        expect(result.metadata.suggestedKeywords).toContain('Accordion')
+
+        // Thumbnail URL
+        expect(result.metadata.thumbnailUrl).toContain('tiktokcdn')
       }
     })
 
-    it('extracts hashtags from video', async () => {
+    it('extracts hashtags from video description', async () => {
       const url = 'https://vt.tiktok.com/ZS6myoDYu/'
       const result = await scrapeTikTok(url, { fetch: recorder.fetch })
 
       expect(result.ok).toBe(true)
       if (result.ok) {
-        expect(result.metadata.hashtags.length).toBeGreaterThan(0)
+        expect(result.metadata.hashtags).toContain('classicalmusic')
+        expect(result.metadata.hashtags).toContain('accordion')
+        expect(result.metadata.hashtags).toContain('bach')
+        expect(result.metadata.hashtags).toContain('mozart')
+        expect(result.metadata.hashtags.length).toBeGreaterThanOrEqual(10)
       }
     })
   })
