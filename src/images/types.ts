@@ -8,6 +8,7 @@
  * Sources for activity images, in priority order.
  */
 export type ImageSource =
+  | 'cdn' // ChatToMap CDN default image
   | 'scraped' // OG image from scraped URL
   | 'google_places' // Google Places Photos API
   | 'wikipedia' // Wikipedia/Wikimedia Commons
@@ -43,6 +44,9 @@ export interface ImageResult {
  * Configuration for image fetching.
  */
 export interface ImageFetchConfig {
+  /** Skip CDN default images (--no-image-cdn) */
+  readonly skipCdn?: boolean | undefined
+
   /** Skip Pixabay image search */
   readonly skipPixabay?: boolean | undefined
 

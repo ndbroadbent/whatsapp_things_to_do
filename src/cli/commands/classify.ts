@@ -6,28 +6,79 @@
  */
 
 import { writeFile } from 'node:fs/promises'
-import { formatLocation } from '../../types'
+import { type ClassifiedActivity, formatLocation } from '../../types'
 import type { CLIArgs } from '../args'
 import { formatActivityHeader, initCommandContext } from '../helpers'
 import type { Logger } from '../logger'
 import { stepClassify } from '../steps/classify'
 import { StepRunner } from '../steps/runner'
 
-interface ClassifyOutput {
+export interface ClassifyOutputActivity {
+  activity: string
+  category: string
+  sender: string
+  timestamp: string
+  action: string | null
+  actionOriginal: string | null
+  object: string | null
+  objectOriginal: string | null
+  venue: string | null
+  city: string | null
+  region: string | null
+  country: string | null
+  isGeneric: boolean
+  isCompound: boolean
+  interestingScore: number
+  funScore: number
+}
+
+export interface ClassifyOutput {
   candidatesClassified: number
   activitiesFound: number
   model: string
   provider: string
-  activities: Array<{
-    activity: string
-    category: string
-    sender: string
-    timestamp: string
-    city: string | null
-    country: string | null
-    interestingScore: number
-    funScore: number
-  }>
+  activities: ClassifyOutputActivity[]
+}
+
+/**
+ * Convert a ClassifiedActivity to the JSON output format.
+ */
+export function toOutputActivity(a: ClassifiedActivity): ClassifyOutputActivity {
+  return {
+    activity: a.activity,
+    category: a.category,
+    sender: a.sender,
+    timestamp: a.timestamp instanceof Date ? a.timestamp.toISOString() : String(a.timestamp),
+    action: a.action,
+    actionOriginal: a.actionOriginal,
+    object: a.object,
+    objectOriginal: a.objectOriginal,
+    venue: a.venue,
+    city: a.city,
+    region: a.region,
+    country: a.country,
+    isGeneric: a.isGeneric,
+    isCompound: a.isCompound,
+    interestingScore: a.interestingScore,
+    funScore: a.funScore
+  }
+}
+
+/**
+ * Build the full ClassifyOutput from classification results.
+ * Extracted for testability.
+ */
+export function buildClassifyOutput(
+  stats: { candidatesClassified: number; activitiesFound: number; model: string; provider: string },
+  activities: readonly ClassifiedActivity[]
+): ClassifyOutput {
+  return {
+    candidatesClassified: stats.candidatesClassified,
+    activitiesFound: stats.activitiesFound,
+    model: stats.model,
+    provider: stats.provider,
+    activities: activities.map(toOutputActivity)
+  }
 }
 
 export async function cmdClassify(args: CLIArgs, logger: Logger): Promise<void> {
@@ -76,22 +127,7 @@ export async function cmdClassify(args: CLIArgs, logger: Logger): Promise<void> 
     )
   }
 
-  const output: ClassifyOutput = {
-    candidatesClassified: classifyResult.stats.candidatesClassified,
-    activitiesFound: classifyResult.stats.activitiesFound,
-    model: classifyResult.stats.model,
-    provider: classifyResult.stats.provider,
-    activities: classifyResult.activities.map((a) => ({
-      activity: a.activity,
-      category: a.category,
-      sender: a.sender,
-      timestamp: a.timestamp instanceof Date ? a.timestamp.toISOString() : String(a.timestamp),
-      city: a.city,
-      country: a.country,
-      interestingScore: a.interestingScore,
-      funScore: a.funScore
-    }))
-  }
+  const output = buildClassifyOutput(classifyResult.stats, classifyResult.activities)
 
   if (args.jsonOutput) {
     const json = JSON.stringify(output, null, 2)
@@ -107,7 +143,7 @@ export async function cmdClassify(args: CLIArgs, logger: Logger): Promise<void> 
 }
 
 function displayActivities(
-  activities: readonly import('../../types').ClassifiedActivity[],
+  activities: readonly ClassifiedActivity[],
   logger: Logger,
   showAll: boolean,
   maxResults: number

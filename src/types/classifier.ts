@@ -9,6 +9,7 @@ export type { ActivityCategory } from '../categories'
 export { CATEGORY_EMOJI, VALID_CATEGORIES } from '../categories'
 
 import type { ActivityCategory } from '../categories'
+import type { ScrapedMetadata } from '../scraper/types'
 
 export interface ClassifiedActivity {
   readonly messageId: number
@@ -115,7 +116,7 @@ export interface ClassifierConfig {
   /** Called after each batch completes. Use for progress logging. */
   readonly onBatchComplete?: (info: BatchCompleteInfo) => void
   /** URL metadata to enrich prompts with scraped page info (title, description, redirect URLs) */
-  readonly urlMetadata?: Map<string, import('../scraper/types').ScrapedMetadata> | undefined
+  readonly urlMetadata?: Map<string, ScrapedMetadata> | undefined
 }
 
 /** A single message that mentioned an activity/location. */

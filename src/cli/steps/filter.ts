@@ -6,7 +6,7 @@
  */
 
 import { extractCandidatesByEmbeddings } from '../../extraction/index'
-import type { CandidateMessage } from '../../types'
+import type { CandidateMessage, ParsedMessage } from '../../types'
 import type { PipelineContext } from './context'
 
 /**
@@ -102,8 +102,7 @@ export async function stepFilter(
       embeddings = pipelineCache.getStage<CandidateMessage[]>('candidates.embeddings') ?? []
     } else {
       // Get messages for semantic search
-      const messages =
-        pipelineCache.getStage<import('../../types').ParsedMessage[]>('messages') ?? []
+      const messages = pipelineCache.getStage<ParsedMessage[]>('messages') ?? []
 
       if (!options?.quiet) {
         logger.log('\n🔍 Extracting candidates (semantic search)...')

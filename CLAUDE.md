@@ -287,6 +287,7 @@ rm -rf ~/.cache/chat-to-map/requests  # Clear API cache only
 - ❌ Use `biome-ignore` comments
 - ❌ Skip `task ci` before completing work
 - ❌ Forget to update project/TODO.md
+- ❌ Use inline imports like `import('../../types').SomeType` - add proper imports at the top of the file
 
 ## Dependencies
 
