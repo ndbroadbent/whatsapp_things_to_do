@@ -1,4 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  createActivity as createTestActivity,
+  createGeocodedActivity as createTestGeo
+} from '../test-support'
 import type { ClassifiedActivity, GeocodedActivity } from '../types'
 
 // Mock httpFetch before importing - explicitly re-export other functions
@@ -75,28 +79,16 @@ function createActivity(
   city?: string,
   originalMessage?: string
 ): ClassifiedActivity {
-  return {
+  return createTestActivity({
     messageId: id,
-
     activity,
-    funScore: 0.7,
-    interestingScore: 0.5,
     category: 'food',
     confidence: 0.9,
     originalMessage: originalMessage ?? activity,
     sender: 'Test User',
     timestamp: new Date('2025-01-15T10:30:00Z'),
-    isGeneric: true,
-    isCompound: false,
-    action: null,
-    actionOriginal: null,
-    object: null,
-    objectOriginal: null,
-    venue: null,
-    city: city ?? null,
-    region: null,
-    country: null
-  }
+    city: city ?? null
+  })
 }
 
 describe('Geocoder Module', () => {
@@ -362,9 +354,9 @@ describe('Geocoder Module', () => {
 
     it('counts activities with coordinates', () => {
       const activities: GeocodedActivity[] = [
-        { ...createActivity(1, 'With coords'), latitude: 41.9, longitude: 12.5 },
-        { ...createActivity(2, 'Without coords') },
-        { ...createActivity(3, 'With coords'), latitude: 48.8, longitude: 2.3 }
+        createTestGeo({ messageId: 1, activity: 'With coords', latitude: 41.9, longitude: 12.5 }),
+        createTestGeo({ messageId: 2, activity: 'Without coords' }),
+        createTestGeo({ messageId: 3, activity: 'With coords', latitude: 48.8, longitude: 2.3 })
       ]
 
       const count = countGeocoded(activities)
@@ -382,9 +374,9 @@ describe('Geocoder Module', () => {
 
     it('filters to only geocoded activities', () => {
       const activities: GeocodedActivity[] = [
-        { ...createActivity(1, 'With coords'), latitude: 41.9, longitude: 12.5 },
-        { ...createActivity(2, 'Without coords') },
-        { ...createActivity(3, 'With coords'), latitude: 48.8, longitude: 2.3 }
+        createTestGeo({ messageId: 1, activity: 'With coords', latitude: 41.9, longitude: 12.5 }),
+        createTestGeo({ messageId: 2, activity: 'Without coords' }),
+        createTestGeo({ messageId: 3, activity: 'With coords', latitude: 48.8, longitude: 2.3 })
       ]
 
       const filtered = filterGeocoded(activities)
@@ -401,8 +393,8 @@ describe('Geocoder Module', () => {
 
     it('calculates center point of geocoded activities', () => {
       const activities: GeocodedActivity[] = [
-        { ...createActivity(1, 'A'), latitude: 40, longitude: 10 },
-        { ...createActivity(2, 'B'), latitude: 42, longitude: 12 }
+        createTestGeo({ messageId: 1, activity: 'A', latitude: 40, longitude: 10 }),
+        createTestGeo({ messageId: 2, activity: 'B', latitude: 42, longitude: 12 })
       ]
 
       const center = calculateCenter(activities)
@@ -418,8 +410,8 @@ describe('Geocoder Module', () => {
 
     it('returns null when no activities are geocoded', () => {
       const activities: GeocodedActivity[] = [
-        { ...createActivity(1, 'A') },
-        { ...createActivity(2, 'B') }
+        createTestGeo({ messageId: 1, activity: 'A' }),
+        createTestGeo({ messageId: 2, activity: 'B' })
       ]
 
       expect(calculateCenter(activities)).toBeNull()
@@ -427,7 +419,7 @@ describe('Geocoder Module', () => {
 
     it('handles single geocoded activity', () => {
       const activities: GeocodedActivity[] = [
-        { ...createActivity(1, 'A'), latitude: 41.9, longitude: 12.5 }
+        createTestGeo({ messageId: 1, activity: 'A', latitude: 41.9, longitude: 12.5 })
       ]
 
       const center = calculateCenter(activities)

@@ -10,7 +10,8 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import type { ActivityCategory, ClassifiedActivity } from '../types/classifier'
+import { createActivity as createTestActivity } from '../test-support'
+import type { ClassifiedActivity } from '../types/classifier'
 import { clusterActivities } from './index'
 
 /**
@@ -21,29 +22,12 @@ function createActivity(
   activity: string,
   overrides: Partial<ClassifiedActivity> = {}
 ): ClassifiedActivity {
-  return {
+  return createTestActivity({
     messageId: Math.floor(Math.random() * 10000),
-
     activity,
-    funScore: 0.7,
-    interestingScore: 0.5,
-    category: 'other' as ActivityCategory,
-    confidence: 0.9,
     originalMessage: `We should ${activity.toLowerCase()}`,
-    sender: 'Test User',
-    timestamp: new Date(),
-    isGeneric: true,
-    isCompound: false,
-    action: null,
-    actionOriginal: null,
-    object: null,
-    objectOriginal: null,
-    venue: null,
-    city: null,
-    region: null,
-    country: null,
     ...overrides
-  }
+  })
 }
 
 describe('clusterActivities', () => {
@@ -361,29 +345,15 @@ describe('clusterActivities', () => {
       activity: string,
       overrides: Partial<ClassifiedActivity> = {}
     ): ClassifiedActivity {
-      return {
+      return createTestActivity({
         messageId: id,
-
         activity,
-        funScore: 0.7,
-        interestingScore: 0.5,
-        category: 'other' as ActivityCategory,
-        confidence: 0.9,
+        category: 'other',
         originalMessage: `We should ${activity.toLowerCase()}`,
         sender: 'Test User',
         timestamp: new Date('2025-01-15T10:00:00Z'),
-        isGeneric: true,
-        isCompound: false,
-        action: null,
-        actionOriginal: null,
-        object: null,
-        objectOriginal: null,
-        venue: null,
-        city: null,
-        region: null,
-        country: null,
         ...overrides
-      }
+      })
     }
 
     it('single cluster output structure', () => {
@@ -420,6 +390,7 @@ describe('clusterActivities', () => {
                   "action": "hike",
                   "actionOriginal": "hiking",
                   "activity": "Go hiking",
+                  "activityId": "ef8c0cbfafb96d44",
                   "category": "other",
                   "city": null,
                   "confidence": 0.9,
@@ -441,6 +412,7 @@ describe('clusterActivities', () => {
                   "action": "hike",
                   "actionOriginal": "tramping",
                   "activity": "Go tramping",
+                  "activityId": "fbbd40c0c6e15d08",
                   "category": "other",
                   "city": null,
                   "confidence": 0.9,
@@ -464,6 +436,7 @@ describe('clusterActivities', () => {
                 "action": "hike",
                 "actionOriginal": "hiking",
                 "activity": "Go hiking",
+                "activityId": "ef8c0cbfafb96d44",
                 "category": "other",
                 "city": null,
                 "confidence": 0.9,
@@ -522,7 +495,7 @@ describe('clusterActivities', () => {
           city: 'Auckland',
           timestamp: new Date('2025-02-01T10:00:00Z'),
           sender: 'Charlie',
-          category: 'food' as ActivityCategory
+          category: 'food'
         })
       ]
 
@@ -544,6 +517,7 @@ describe('clusterActivities', () => {
                   "action": "hike",
                   "actionOriginal": null,
                   "activity": "Go hiking",
+                  "activityId": "3e75aa7ee3cd8576",
                   "category": "other",
                   "city": "Queenstown",
                   "confidence": 0.95,
@@ -565,6 +539,7 @@ describe('clusterActivities', () => {
                   "action": "hike",
                   "actionOriginal": null,
                   "activity": "Tramping trip",
+                  "activityId": "6b9f7c9fb1aa63cf",
                   "category": "other",
                   "city": "Queenstown",
                   "confidence": 0.85,
@@ -586,6 +561,7 @@ describe('clusterActivities', () => {
                   "action": "hike",
                   "actionOriginal": null,
                   "activity": "Hike the mountains",
+                  "activityId": "c7394b64919705d7",
                   "category": "other",
                   "city": "Queenstown",
                   "confidence": 0.9,
@@ -609,6 +585,7 @@ describe('clusterActivities', () => {
                 "action": "hike",
                 "actionOriginal": null,
                 "activity": "Go hiking",
+                "activityId": "3e75aa7ee3cd8576",
                 "category": "other",
                 "city": "Queenstown",
                 "confidence": 0.95,
@@ -639,6 +616,7 @@ describe('clusterActivities', () => {
                   "action": "eat",
                   "actionOriginal": null,
                   "activity": "Try Kazuya",
+                  "activityId": "dc3f91fc5513a381",
                   "category": "food",
                   "city": "Auckland",
                   "confidence": 0.9,
@@ -662,6 +640,7 @@ describe('clusterActivities', () => {
                 "action": "eat",
                 "actionOriginal": null,
                 "activity": "Try Kazuya",
+                "activityId": "dc3f91fc5513a381",
                 "category": "food",
                 "city": "Auckland",
                 "confidence": 0.9,
@@ -735,6 +714,7 @@ describe('clusterActivities', () => {
                   "action": "hike",
                   "actionOriginal": null,
                   "activity": "Go hiking",
+                  "activityId": "cfcf22ee58d73ce2",
                   "category": "other",
                   "city": null,
                   "confidence": 0.9,
@@ -756,6 +736,7 @@ describe('clusterActivities', () => {
                   "action": "hike",
                   "actionOriginal": null,
                   "activity": "Tramping",
+                  "activityId": "bb065ef5924a1cd2",
                   "category": "other",
                   "city": null,
                   "confidence": 0.9,
@@ -779,6 +760,7 @@ describe('clusterActivities', () => {
                 "action": "hike",
                 "actionOriginal": null,
                 "activity": "Go hiking",
+                "activityId": "cfcf22ee58d73ce2",
                 "category": "other",
                 "city": null,
                 "confidence": 0.9,
@@ -810,6 +792,7 @@ describe('clusterActivities', () => {
                   "action": "travel",
                   "actionOriginal": null,
                   "activity": "Trip to Iceland and see aurora",
+                  "activityId": "fedd222e97021ed3",
                   "category": "other",
                   "city": null,
                   "confidence": 0.9,
@@ -831,6 +814,7 @@ describe('clusterActivities', () => {
                   "action": "travel",
                   "actionOriginal": null,
                   "activity": "Trip to Iceland and see aurora",
+                  "activityId": "07b6ac9686adb3f9",
                   "category": "other",
                   "city": null,
                   "confidence": 0.9,
@@ -854,6 +838,7 @@ describe('clusterActivities', () => {
                 "action": "travel",
                 "actionOriginal": null,
                 "activity": "Trip to Iceland and see aurora",
+                "activityId": "fedd222e97021ed3",
                 "category": "other",
                 "city": null,
                 "confidence": 0.9,

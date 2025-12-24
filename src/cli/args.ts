@@ -71,7 +71,7 @@ function createProgram(): Command {
   program
     .command('analyze')
     .description(
-      'Run the complete pipeline (parse → filter → scrape → classify → geocode → fetch-images → export)'
+      'Run the complete pipeline (parse → filter → scrape-urls → classify → geocode → fetch-image-urls → export)'
     )
     .argument('<input>', 'Chat export (.zip, directory, or .txt file)')
     .option('-c, --home-country <name>', 'Your home country (auto-detected from IP if not set)')
@@ -136,9 +136,9 @@ function createProgram(): Command {
     .option('-a, --all', 'Show all candidates (default: top 10)')
     .option('--dry-run', 'Show cost estimate without API calls')
 
-  // ============ SCRAPE (scrape URLs for metadata) ============
+  // ============ SCRAPE-URLS (scrape URLs for metadata) ============
   program
-    .command('scrape')
+    .command('scrape-urls')
     .description('Scrape URLs from candidates and cache metadata')
     .argument('<input>', 'Chat export file (.txt or .zip) or candidates JSON file')
     .option('--json [file]', 'Output as JSON (to file if specified, otherwise stdout)')
@@ -174,10 +174,10 @@ function createProgram(): Command {
     .option('-a, --all', 'Show all geocoded activities (default: top 10)')
     .option('--dry-run', 'Show stats without API calls')
 
-  // ============ FETCH-IMAGES ============
+  // ============ FETCH-IMAGE-URLS ============
   program
-    .command('fetch-images')
-    .description('Fetch images for geocoded activities')
+    .command('fetch-image-urls')
+    .description('Fetch image URLs for geocoded activities')
     .argument('<input>', 'Chat export file or directory')
     .option('--json [file]', 'Output as JSON (to file if specified, otherwise stdout)')
     .option('--no-image-cdn', 'Skip CDN default images (fetch all from APIs)')

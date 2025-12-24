@@ -1,5 +1,5 @@
 /**
- * Scrape Command
+ * Scrape URLs Command
  *
  * Scrape URLs from candidates and display metadata.
  * Caches results to pipeline cache for subsequent steps.
@@ -12,7 +12,7 @@ import type { CLIArgs } from '../args'
 import { initCommand, truncate } from '../helpers'
 import type { Logger } from '../logger'
 import { stepScan } from '../steps/scan'
-import { stepScrape } from '../steps/scrape'
+import { stepScrapeUrls } from '../steps/scrape-urls'
 
 interface ScrapeOutput {
   urlCount: number
@@ -72,7 +72,7 @@ function formatScrapeResults(
   }
 }
 
-export async function cmdScrape(args: CLIArgs, logger: Logger): Promise<void> {
+export async function cmdScrapeUrls(args: CLIArgs, logger: Logger): Promise<void> {
   const { ctx } = await initCommand('Scrape', args, logger)
 
   // Get candidates from scan step
@@ -94,7 +94,7 @@ export async function cmdScrape(args: CLIArgs, logger: Logger): Promise<void> {
   }
 
   // Run scrape step
-  const scrapeResult = await stepScrape(ctx, scanResult.candidates, {
+  const scrapeResult = await stepScrapeUrls(ctx, scanResult.candidates, {
     timeout: args.scrapeTimeout
   })
 

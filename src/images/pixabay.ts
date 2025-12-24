@@ -66,7 +66,7 @@ export async function fetchPixabayImage(
       return null
     }
 
-    const result = parsePixabayHit(hit)
+    const result = parsePixabayHit(hit, query)
     await cacheResult(cache, cacheKey, result)
 
     return result
@@ -121,7 +121,7 @@ interface PixabayResponse {
   readonly hits: readonly PixabayHit[]
 }
 
-function parsePixabayHit(hit: PixabayHit): ImageResult {
+function parsePixabayHit(hit: PixabayHit, query: string): ImageResult {
   return {
     // Use webformatURL (640px) - largeImageURL requires download
     url: hit.webformatURL,
@@ -131,6 +131,7 @@ function parsePixabayHit(hit: PixabayHit): ImageResult {
     attribution: {
       name: `Pixabay: ${hit.user}`,
       url: hit.pageURL
-    }
+    },
+    query
   }
 }

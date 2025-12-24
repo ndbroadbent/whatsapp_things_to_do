@@ -38,6 +38,9 @@ export interface ImageResult {
         readonly url: string
       }
     | undefined
+
+  /** Search query used (for Pixabay debugging) */
+  readonly query?: string | undefined
 }
 
 /** Scraped metadata for a URL (subset of fields needed for images) */

@@ -12,14 +12,14 @@ import { parseCliArgs } from './cli/args'
 import { cmdAnalyze } from './cli/commands/analyze'
 import { cmdClassify } from './cli/commands/classify'
 import { cmdEmbed } from './cli/commands/embed'
-import { cmdFetchImages } from './cli/commands/fetch-images'
+import { cmdFetchImageUrls } from './cli/commands/fetch-image-urls'
 import { cmdFilter } from './cli/commands/filter'
 import { cmdGeocode } from './cli/commands/geocode'
 import { cmdList } from './cli/commands/list'
 import { cmdParse } from './cli/commands/parse'
 import { cmdPreview } from './cli/commands/preview'
 import { cmdScan } from './cli/commands/scan'
-import { cmdScrape } from './cli/commands/scrape'
+import { cmdScrapeUrls } from './cli/commands/scrape-urls'
 import { createLogger } from './cli/logger'
 
 async function main(): Promise<void> {
@@ -52,8 +52,8 @@ async function main(): Promise<void> {
         await cmdFilter(args, logger)
         break
 
-      case 'scrape':
-        await cmdScrape(args, logger)
+      case 'scrape-urls':
+        await cmdScrapeUrls(args, logger)
         break
 
       case 'classify':
@@ -64,8 +64,8 @@ async function main(): Promise<void> {
         await cmdGeocode(args, logger)
         break
 
-      case 'fetch-images':
-        await cmdFetchImages(args, logger)
+      case 'fetch-image-urls':
+        await cmdFetchImageUrls(args, logger)
         break
 
       case 'list':

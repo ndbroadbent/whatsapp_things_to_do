@@ -33,6 +33,7 @@ export {
 } from './prompt'
 
 import { VALID_CATEGORIES } from '../categories'
+import { generateActivityId } from '../types/activity-id'
 
 const DEFAULT_BATCH_SIZE = 10
 
@@ -54,7 +55,8 @@ function toClassifiedActivity(
   response: ParsedClassification,
   candidate: CandidateMessage
 ): ClassifiedActivity {
-  return {
+  // Build activity without ID first
+  const activity = {
     messageId: candidate.messageId,
     activity: response.title ?? candidate.content.slice(0, 100),
     funScore: response.fun,
@@ -75,6 +77,11 @@ function toClassifiedActivity(
     region: response.region,
     country: response.country
   }
+
+  // Generate deterministic ID from all fields
+  const activityId = generateActivityId(activity)
+
+  return { activityId, ...activity }
 }
 
 /**

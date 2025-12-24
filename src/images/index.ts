@@ -91,7 +91,9 @@ export async function fetchImageForActivity(
 /**
  * Fetch images for multiple activities.
  *
- * Returns a map of messageId → ImageResult (or null if no image found).
+ * Returns a map of activityId → ImageResult (or null if no image found).
+ * Uses activityId (not messageId) because compound activities can create
+ * multiple activities from a single message.
  */
 export async function fetchImagesForActivities(
   activities: readonly GeocodedActivity[],
@@ -100,8 +102,8 @@ export async function fetchImagesForActivities(
   options?: {
     onProgress?: (current: number, total: number) => void
   }
-): Promise<Map<number, ImageResult | null>> {
-  const results = new Map<number, ImageResult | null>()
+): Promise<Map<string, ImageResult | null>> {
+  const results = new Map<string, ImageResult | null>()
   const total = activities.length
 
   for (let i = 0; i < activities.length; i++) {
@@ -109,7 +111,7 @@ export async function fetchImagesForActivities(
     if (!activity) continue
 
     const result = await fetchImageForActivity(activity, config, cache)
-    results.set(activity.messageId, result)
+    results.set(activity.activityId, result)
 
     options?.onProgress?.(i + 1, total)
   }

@@ -25,10 +25,10 @@ interface StepOutputs {
   scan: { candidates: readonly CandidateMessage[] }
   embed: { embedded: boolean }
   filter: { candidates: readonly CandidateMessage[] }
-  scrape: { metadataMap: Map<string, ScrapedMetadata> }
+  scrapeUrls: { metadataMap: Map<string, ScrapedMetadata> }
   classify: { activities: readonly ClassifiedActivity[] }
   geocode: { activities: readonly GeocodedActivity[] }
-  fetchImages: { images: Map<number, ImageResult | null> }
+  fetchImageUrls: { images: Map<string, ImageResult | null> }
 }
 
 type StepName = keyof StepOutputs
@@ -84,14 +84,14 @@ export class StepRunner {
         return this.runEmbed() as Promise<StepOutputs[K]>
       case 'filter':
         return this.runFilter() as Promise<StepOutputs[K]>
-      case 'scrape':
-        return this.runScrape() as Promise<StepOutputs[K]>
+      case 'scrapeUrls':
+        return this.runScrapeUrls() as Promise<StepOutputs[K]>
       case 'classify':
         return this.runClassify() as Promise<StepOutputs[K]>
       case 'geocode':
         return this.runGeocode() as Promise<StepOutputs[K]>
-      case 'fetchImages':
-        return this.runFetchImages() as Promise<StepOutputs[K]>
+      case 'fetchImageUrls':
+        return this.runFetchImageUrls() as Promise<StepOutputs[K]>
       default:
         throw new Error(`Unknown step: ${step}`)
     }
@@ -138,22 +138,22 @@ export class StepRunner {
     return { candidates: result.candidates }
   }
 
-  private async runScrape(): Promise<StepOutputs['scrape']> {
+  private async runScrapeUrls(): Promise<StepOutputs['scrapeUrls']> {
     // Dependency: filter
     const { candidates } = await this.run('filter')
 
-    const { stepScrape } = await import('./scrape')
-    const result = await stepScrape(this.ctx, candidates, {
+    const { stepScrapeUrls } = await import('./scrape-urls')
+    const result = await stepScrapeUrls(this.ctx, candidates, {
       timeout: this.args.scrapeTimeout
     })
     return { metadataMap: result.metadataMap }
   }
 
   private async runClassify(): Promise<StepOutputs['classify']> {
-    // Dependencies: filter, scrape
+    // Dependencies: filter, scrapeUrls
     const [{ candidates }, { metadataMap }] = await Promise.all([
       this.run('filter'),
-      this.run('scrape')
+      this.run('scrapeUrls')
     ])
 
     const { stepClassify } = await import('./classify')
@@ -177,12 +177,12 @@ export class StepRunner {
     return { activities: result.activities }
   }
 
-  private async runFetchImages(): Promise<StepOutputs['fetchImages']> {
+  private async runFetchImageUrls(): Promise<StepOutputs['fetchImageUrls']> {
     // Dependency: geocode
     const { activities } = await this.run('geocode')
 
-    const { stepFetchImages } = await import('./fetch-images')
-    const result = await stepFetchImages(this.ctx, activities, {
+    const { stepFetchImageUrls } = await import('./fetch-image-urls')
+    const result = await stepFetchImageUrls(this.ctx, activities, {
       skipCdn: this.args.skipCdn,
       skipPixabay: this.args.skipPixabay,
       skipWikipedia: this.args.skipWikipedia,

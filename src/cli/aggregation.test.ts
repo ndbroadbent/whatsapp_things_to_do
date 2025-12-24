@@ -1,4 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import {
+  createActivity as createTestActivity,
+  createGeocodedActivity as createTestGeo
+} from '../test-support'
 import type { ClassifiedActivity, GeocodedActivity } from '../types'
 import {
   aggregateActivities,
@@ -14,28 +18,15 @@ function createActivity(
   timestamp?: Date,
   sender = 'User'
 ): ClassifiedActivity {
-  return {
+  return createTestActivity({
     messageId: id,
-
     activity,
-    funScore: 0.7,
-    interestingScore: 0.5,
     category: 'food',
-    confidence: 0.9,
     originalMessage: `Let's do ${activity}`,
     sender,
     timestamp: timestamp ?? new Date('2025-01-15T10:00:00Z'),
-    isGeneric: true,
-    isCompound: false,
-    action: null,
-    actionOriginal: null,
-    object: null,
-    objectOriginal: null,
-    venue: null,
-    city: city ?? null,
-    region: null,
-    country: null
-  }
+    city: city ?? null
+  })
 }
 
 function createGeocodedActivity(
@@ -46,11 +37,16 @@ function createGeocodedActivity(
   lng?: number,
   timestamp?: Date
 ): GeocodedActivity {
-  return {
-    ...createActivity(id, activity, city, timestamp),
+  return createTestGeo({
+    messageId: id,
+    activity,
+    category: 'food',
+    originalMessage: `Let's do ${activity}`,
+    timestamp: timestamp ?? new Date('2025-01-15T10:00:00Z'),
+    city: city ?? null,
     latitude: lat,
     longitude: lng
-  }
+  })
 }
 
 describe('Aggregation Module', () => {

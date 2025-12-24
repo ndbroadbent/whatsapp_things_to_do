@@ -1,7 +1,7 @@
 /**
- * Fetch Images Step
+ * Fetch Image URLs Step
  *
- * Fetches images for geocoded activities from various sources.
+ * Fetches image URLs for geocoded activities from various sources.
  * Uses worker pool for parallel image fetching.
  * Writes fetch_images_stats.json as completion marker.
  */
@@ -38,8 +38,8 @@ interface FetchImagesStats {
  * Result of the fetch images step.
  */
 interface FetchImagesResult {
-  /** Map of messageId to image result */
-  readonly images: Map<number, ImageResult | null>
+  /** Map of activityId to image result */
+  readonly images: Map<string, ImageResult | null>
   /** Whether result was from cache */
   readonly fromCache: boolean
   /** Stats */
@@ -68,7 +68,7 @@ interface FetchImagesOptions {
 
 /** Serializable version of image results for caching */
 interface CachedImageData {
-  readonly entries: Array<[number, ImageResult | null]>
+  readonly entries: Array<[string, ImageResult | null]>
 }
 
 /**
@@ -91,7 +91,7 @@ function countSource(result: ImageResult): keyof Omit<FetchImagesStats, 'activit
 /**
  * Calculate stats from image results.
  */
-function calculateStats(images: Map<number, ImageResult | null>): FetchImagesStats {
+function calculateStats(images: Map<string, ImageResult | null>): FetchImagesStats {
   const stats = {
     activitiesProcessed: images.size,
     imagesFound: 0,
@@ -135,7 +135,7 @@ function logStats(stats: FetchImagesStats, logger: PipelineContext['logger']): v
  * Checks pipeline cache first, fetches fresh if needed.
  * Uses API cache for individual image results.
  */
-export async function stepFetchImages(
+export async function stepFetchImageUrls(
   ctx: PipelineContext,
   activities: readonly GeocodedActivity[],
   options?: FetchImagesOptions
@@ -215,7 +215,7 @@ export async function stepFetchImages(
     activities,
     async (activity) => {
       const result = await fetchImageForActivity(activity, config, apiCache)
-      return { messageId: activity.messageId, result }
+      return { activityId: activity.activityId, result }
     },
     {
       concurrency,
@@ -229,9 +229,9 @@ export async function stepFetchImages(
   )
 
   // Collect results
-  const images = new Map<number, ImageResult | null>()
-  for (const { messageId, result } of poolResult.successes) {
-    images.set(messageId, result)
+  const images = new Map<string, ImageResult | null>()
+  for (const { activityId, result } of poolResult.successes) {
+    images.set(activityId, result)
   }
 
   const stats = calculateStats(images)

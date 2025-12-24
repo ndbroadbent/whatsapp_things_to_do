@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { CandidateMessage, ClassifiedActivity } from '../types'
+import { createActivity as createTestActivity } from '../test-support'
+import type { CandidateMessage } from '../types'
 
 // Base config with required fields for all tests
 const BASE_CONFIG = {
@@ -597,32 +598,12 @@ describe('Classifier Module', () => {
   describe('filterActivities', async () => {
     const { filterActivities } = await import('./index')
 
-    function createActivity(): ClassifiedActivity {
-      return {
-        messageId: 1,
-        activity: 'Test',
-        funScore: 0.7,
-        interestingScore: 0.5,
-        category: 'food',
-        confidence: 0.9,
-        originalMessage: 'Test',
-        sender: 'User',
-        timestamp: new Date(),
-        isGeneric: true,
-        isCompound: false,
-        action: null,
-        actionOriginal: null,
-        object: null,
-        objectOriginal: null,
-        venue: null,
-        city: null,
-        region: null,
-        country: null
-      }
-    }
-
     it('returns all activities (no filtering)', () => {
-      const suggestions = [createActivity(), createActivity(), createActivity()]
+      const suggestions = [
+        createTestActivity({ messageId: 1, activity: 'Test 1' }),
+        createTestActivity({ messageId: 2, activity: 'Test 2' }),
+        createTestActivity({ messageId: 3, activity: 'Test 3' })
+      ]
 
       const filtered = filterActivities(suggestions)
 
@@ -633,36 +614,12 @@ describe('Classifier Module', () => {
   describe('groupByCategory', async () => {
     const { groupByCategory } = await import('./index')
 
-    function createActivity(category: string): ClassifiedActivity {
-      return {
-        messageId: 1,
-        activity: 'Test',
-        funScore: 0.7,
-        interestingScore: 0.5,
-        category: category as ClassifiedActivity['category'],
-        confidence: 0.9,
-        originalMessage: 'Test',
-        sender: 'User',
-        timestamp: new Date(),
-        isGeneric: true,
-        isCompound: false,
-        action: null,
-        actionOriginal: null,
-        object: null,
-        objectOriginal: null,
-        venue: null,
-        city: null,
-        region: null,
-        country: null
-      }
-    }
-
     it('groups suggestions by category', () => {
       const suggestions = [
-        createActivity('food'),
-        createActivity('nature'),
-        createActivity('food'),
-        createActivity('entertainment')
+        createTestActivity({ messageId: 1, activity: 'Food 1', category: 'food' }),
+        createTestActivity({ messageId: 2, activity: 'Nature 1', category: 'nature' }),
+        createTestActivity({ messageId: 3, activity: 'Food 2', category: 'food' }),
+        createTestActivity({ messageId: 4, activity: 'Entertainment 1', category: 'entertainment' })
       ]
 
       const groups = groupByCategory(suggestions)

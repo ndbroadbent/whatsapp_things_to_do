@@ -4,6 +4,7 @@
 
 import { describe, expect, it } from 'vitest'
 import type { CachedResponse, ResponseCache } from '../cache/types'
+import { createGeocodedActivity } from '../test-support'
 import type { GeocodedActivity } from '../types/geocoder'
 import { fetchImageForActivity, fetchImagesForActivities } from './index'
 import type { ImageFetchConfig } from './types'
@@ -22,7 +23,7 @@ function createMockCache(): ResponseCache {
 }
 
 function createMockActivity(overrides: Partial<GeocodedActivity> = {}): GeocodedActivity {
-  return {
+  return createGeocodedActivity({
     messageId: 1,
     activity: 'Visit the coffee shop',
     timestamp: new Date('2024-01-15T10:30:00Z'),
@@ -30,20 +31,8 @@ function createMockActivity(overrides: Partial<GeocodedActivity> = {}): Geocoded
     originalMessage: 'We should check out this restaurant!',
     confidence: 0.8,
     category: 'food',
-    funScore: 0.8,
-    interestingScore: 0.7,
-    isGeneric: false,
-    isCompound: false,
-    action: null,
-    actionOriginal: null,
-    object: null,
-    objectOriginal: null,
-    venue: null,
-    city: null,
-    region: null,
-    country: null,
     ...overrides
-  }
+  })
 }
 
 describe('Images Module', () => {
@@ -138,11 +127,10 @@ describe('Images Module', () => {
   describe('fetchImagesForActivities', () => {
     it('returns a map with null values when no sources available', async () => {
       const cache = createMockCache()
-      const activities = [
-        createMockActivity({ messageId: 1, category: 'food' }),
-        createMockActivity({ messageId: 2, category: 'nature' }),
-        createMockActivity({ messageId: 3, category: 'food' })
-      ]
+      const activity1 = createMockActivity({ messageId: 1, category: 'food' })
+      const activity2 = createMockActivity({ messageId: 2, category: 'nature' })
+      const activity3 = createMockActivity({ messageId: 3, category: 'food' })
+      const activities = [activity1, activity2, activity3]
       const config: ImageFetchConfig = {
         skipGooglePlaces: true,
         skipWikipedia: true,
@@ -152,9 +140,9 @@ describe('Images Module', () => {
       const results = await fetchImagesForActivities(activities, config, cache)
 
       expect(results.size).toBe(3)
-      expect(results.get(1)).toBeNull()
-      expect(results.get(2)).toBeNull()
-      expect(results.get(3)).toBeNull()
+      expect(results.get(activity1.activityId)).toBeNull()
+      expect(results.get(activity2.activityId)).toBeNull()
+      expect(results.get(activity3.activityId)).toBeNull()
     })
 
     it('calls onProgress callback', async () => {

@@ -7,10 +7,10 @@
 
 export { stepClassify } from './classify'
 export { initContext } from './context'
-export { stepFetchImages } from './fetch-images'
+export { stepFetchImageUrls } from './fetch-image-urls'
 export { stepFilter } from './filter'
 export { stepGeocode } from './geocode'
 export { stepParse } from './parse'
 export { StepRunner } from './runner'
 export { stepScan } from './scan'
-export { stepScrape } from './scrape'
+export { stepScrapeUrls } from './scrape-urls'

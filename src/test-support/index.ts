@@ -5,6 +5,7 @@
  */
 
 import type { ActivityCategory, CandidateMessage, ClassifiedActivity } from '../types'
+import { generateActivityId } from '../types/activity-id'
 import type { GeocodedActivity } from '../types/geocoder'
 
 export { FixtureCache } from './fixture-cache'
@@ -38,12 +39,16 @@ export function createActivity(
     activity: string
   }
 ): ClassifiedActivity {
-  return {
+  const { messageId, activity, activityId: providedId, ...rest } = overrides
+
+  const base = {
+    messageId,
+    activity,
     funScore: 0.7,
     interestingScore: 0.5,
     category: 'other' as ActivityCategory,
     confidence: 0.9,
-    originalMessage: overrides.activity,
+    originalMessage: activity,
     sender: 'Test User',
     timestamp: new Date('2025-01-01'),
     isGeneric: true,
@@ -56,8 +61,13 @@ export function createActivity(
     city: null,
     region: null,
     country: null,
-    ...overrides
+    ...rest
   }
+
+  // Generate deterministic ID from all fields
+  const activityId = providedId ?? generateActivityId(base)
+
+  return { activityId, ...base }
 }
 
 /**

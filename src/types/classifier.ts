@@ -12,6 +12,8 @@ import type { ActivityCategory } from '../categories'
 import type { ScrapedMetadata } from '../scraper/types'
 
 export interface ClassifiedActivity {
+  /** Unique activity ID (16-char hash of all fields) */
+  readonly activityId: string
   readonly messageId: number
   /** Human-readable activity title */
   readonly activity: string

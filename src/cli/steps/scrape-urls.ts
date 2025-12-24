@@ -1,5 +1,5 @@
 /**
- * Scrape Step
+ * Scrape URLs Step
  *
  * Scrape URLs from candidates and return metadata.
  * Uses worker pool for parallel scraping with caching.
@@ -75,7 +75,7 @@ function isCachedError(data: CachedScrapeResult): data is CachedError {
  * Checks pipeline cache first, scrapes fresh if needed.
  * Uses API cache for individual URL results.
  */
-export async function stepScrape(
+export async function stepScrapeUrls(
   ctx: PipelineContext,
   candidates: readonly CandidateMessage[],
   options?: ScrapeOptions

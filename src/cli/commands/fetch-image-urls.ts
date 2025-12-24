@@ -1,13 +1,12 @@
 /**
- * Fetch Images Command
+ * Fetch Image URLs Command
  *
- * Fetch images for geocoded activities from various sources:
+ * Fetch image URLs for geocoded activities from various sources:
  * - CDN default images (category/action based)
- * - Wikipedia (landmarks, cities, countries)
  * - Pixabay (generic activities)
  * - Google Places Photos (venues with placeId)
  *
- * Runs: parse → scan → embed → filter → scrape → classify → geocode → fetch-images
+ * Runs: parse → scan → embed → filter → scrape-urls → classify → geocode → fetch-image-urls
  */
 
 import { writeFile } from 'node:fs/promises'
@@ -16,7 +15,7 @@ import type { GeocodedActivity } from '../../types'
 import type { CLIArgs } from '../args'
 import { formatActivityHeader, initCommandContext } from '../helpers'
 import type { Logger } from '../logger'
-import { stepFetchImages } from '../steps/fetch-images'
+import { stepFetchImageUrls } from '../steps/fetch-image-urls'
 import { StepRunner } from '../steps/runner'
 
 interface FetchImagesOutput {
@@ -29,7 +28,7 @@ interface FetchImagesOutput {
   fromGooglePlaces: number
   failed: number
   activities: Array<{
-    messageId: number
+    activityId: string
     activity: string
     category: string
     venue: string | null
@@ -39,10 +38,10 @@ interface FetchImagesOutput {
   }>
 }
 
-export async function cmdFetchImages(args: CLIArgs, logger: Logger): Promise<void> {
-  const { ctx } = await initCommandContext('Fetch Images', args, logger)
+export async function cmdFetchImageUrls(args: CLIArgs, logger: Logger): Promise<void> {
+  const { ctx } = await initCommandContext('Fetch Image URLs', args, logger)
 
-  // Use StepRunner to handle dependencies: geocode → fetch-images
+  // Use StepRunner to handle dependencies: geocode → fetch-image-urls
   const runner = new StepRunner(ctx, args, logger)
 
   // Run geocode step (which runs the full pipeline up to geocode)
@@ -68,8 +67,8 @@ export async function cmdFetchImages(args: CLIArgs, logger: Logger): Promise<voi
     return
   }
 
-  // Run fetch-images step
-  const fetchResult = await stepFetchImages(ctx, geocodedActivities, {
+  // Run fetch-image-urls step
+  const fetchResult = await stepFetchImageUrls(ctx, geocodedActivities, {
     skipCdn: args.skipCdn,
     skipPixabay: args.skipPixabay,
     skipWikipedia: args.skipWikipedia,
@@ -94,13 +93,13 @@ export async function cmdFetchImages(args: CLIArgs, logger: Logger): Promise<voi
   const output: FetchImagesOutput = {
     ...fetchResult.stats,
     activities: geocodedActivities.map((a) => ({
-      messageId: a.messageId,
+      activityId: a.activityId,
       activity: a.activity,
       category: a.category,
       venue: a.venue,
       city: a.city,
       country: a.country,
-      image: fetchResult.images.get(a.messageId) ?? null
+      image: fetchResult.images.get(a.activityId) ?? null
     }))
   }
 
@@ -119,7 +118,7 @@ export async function cmdFetchImages(args: CLIArgs, logger: Logger): Promise<voi
 
 function displayActivities(
   activities: readonly GeocodedActivity[],
-  images: Map<number, ImageResult | null>,
+  images: Map<string, ImageResult | null>,
   logger: Logger,
   showAll: boolean,
   maxResults: number
@@ -138,14 +137,15 @@ function displayActivities(
     const a = activities[i]
     if (!a) continue
 
-    const image = images.get(a.messageId)
+    const image = images.get(a.activityId)
     const { line1, line2 } = formatActivityHeader(i, a)
 
     logger.log(line1)
     logger.log(line2)
 
     if (image) {
-      logger.log(`   🖼️  ${image.source}: ${image.url}`)
+      const queryInfo = image.query ? ` (query: "${image.query}")` : ''
+      logger.log(`   🖼️  ${image.source}${queryInfo}: ${image.url}`)
       if (image.attribution) {
         logger.log(`   📝 ${image.attribution.name}`)
       }

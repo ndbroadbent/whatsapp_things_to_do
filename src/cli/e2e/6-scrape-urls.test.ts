@@ -1,5 +1,5 @@
 /**
- * Scrape Command E2E Tests
+ * Scrape URLs Command E2E Tests
  */
 
 import { describe, expect, it } from 'vitest'
@@ -18,22 +18,22 @@ interface ScrapeMetadataCache {
   entries: Array<[string, ScrapedMetadata]>
 }
 
-describe('scrape command', () => {
+describe('scrape-urls command', () => {
   it('scrapes on first run, uses cache on second run', () => {
     // First run: fresh scrape
-    const run1 = runCli(`scrape ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir}`)
+    const run1 = runCli(`scrape-urls ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir}`)
     expect(run1.exitCode).toBe(0)
     expect(run1.stdout).toContain('Scraping')
     expect(run1.stdout).toContain('URLs')
 
     // Second run: should use cache
-    const run2 = runCli(`scrape ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir}`)
+    const run2 = runCli(`scrape-urls ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir}`)
     expect(run2.exitCode).toBe(0)
     expect(run2.stdout).toContain('Scraping URLs... 📦 cached')
   })
 
   it('shows scrape stats', () => {
-    const { stdout } = runCli(`scrape ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir}`)
+    const { stdout } = runCli(`scrape-urls ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir}`)
     expect(stdout).toContain('Scrape Results')
     expect(stdout).toContain('Total URLs:')
     expect(stdout).toContain('Successful:')
@@ -85,14 +85,14 @@ describe('scrape command', () => {
   })
 
   it('shows scraped URLs in output', () => {
-    const { stdout } = runCli(`scrape ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir}`)
+    const { stdout } = runCli(`scrape-urls ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir}`)
     expect(stdout).toContain('Scraped URLs')
     // Should find at least one URL with scraped metadata
     expect(stdout).toContain('Title:')
   })
 
   it('shows redirect URL for tinyurl even though scrape failed', () => {
-    const { stdout } = runCli(`scrape ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir}`)
+    const { stdout } = runCli(`scrape-urls ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir}`)
     // tinyurl redirects to fakesiteexample.com - should show the redirect
     expect(stdout).toContain('tinyurl.com')
     expect(stdout).toContain('fakesiteexample.com/blog/go-hiking-at-yellowstone')
@@ -100,7 +100,7 @@ describe('scrape command', () => {
 
   it('supports --dry-run flag', () => {
     const { stdout, exitCode } = runCli(
-      `scrape ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir} --dry-run`
+      `scrape-urls ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir} --dry-run`
     )
     expect(exitCode).toBe(0)
     expect(stdout).toContain('dry run')

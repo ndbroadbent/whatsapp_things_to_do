@@ -9,6 +9,7 @@ import { existsSync, mkdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createActivity } from '../test-support'
 import type { CandidateMessage, ClassifiedActivity, GeocoderConfig } from '../types'
 import { FilesystemCache } from './filesystem'
 
@@ -52,28 +53,14 @@ function createCandidate(id: number, content: string): CandidateMessage {
 }
 
 function createClassifiedActivity(id: number, activity: string, city: string): ClassifiedActivity {
-  return {
+  return createActivity({
     messageId: id,
-
     activity,
-    funScore: 0.8,
-    interestingScore: 0.5,
     category: 'food',
-    confidence: 0.9,
     originalMessage: `Lets go to ${city}`,
-    sender: 'Test User',
     timestamp: new Date('2025-01-15T10:30:00Z'),
-    isGeneric: true,
-    isCompound: false,
-    action: null,
-    actionOriginal: null,
-    object: null,
-    objectOriginal: null,
-    venue: null,
-    city,
-    region: null,
-    country: null
-  }
+    city
+  })
 }
 
 describe('Cache Integration', () => {

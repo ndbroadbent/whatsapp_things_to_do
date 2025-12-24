@@ -5,6 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
+import { createActivity } from '../../test-support'
 import type { ClassifiedActivity } from '../../types'
 import {
   buildClassifyOutput,
@@ -15,7 +16,7 @@ import {
 
 describe('toOutputActivity', () => {
   it('maps all ClassifiedActivity fields to output format', () => {
-    const activity: ClassifiedActivity = {
+    const activity: ClassifiedActivity = createActivity({
       messageId: 123,
       activity: 'hike in Karangahake Gorge',
       funScore: 0.9,
@@ -35,7 +36,7 @@ describe('toOutputActivity', () => {
       city: null,
       region: null,
       country: 'New Zealand'
-    }
+    })
 
     const output: ClassifyOutputActivity = toOutputActivity(activity)
 
@@ -58,27 +59,11 @@ describe('toOutputActivity', () => {
   })
 
   it('converts Date timestamp to ISO string', () => {
-    const activity: ClassifiedActivity = {
+    const activity: ClassifiedActivity = createActivity({
       messageId: 1,
       activity: 'test',
-      funScore: 0.5,
-      interestingScore: 0.5,
-      category: 'other',
-      confidence: 0.5,
-      originalMessage: 'test',
-      sender: 'Test',
-      timestamp: new Date('2025-01-15T10:30:00.000Z'),
-      isGeneric: true,
-      isCompound: false,
-      action: null,
-      actionOriginal: null,
-      object: null,
-      objectOriginal: null,
-      venue: null,
-      city: null,
-      region: null,
-      country: null
-    }
+      timestamp: new Date('2025-01-15T10:30:00.000Z')
+    })
 
     const output = toOutputActivity(activity)
 
@@ -86,27 +71,16 @@ describe('toOutputActivity', () => {
   })
 
   it('includes action and object when present', () => {
-    const activity: ClassifiedActivity = {
+    const activity: ClassifiedActivity = createActivity({
       messageId: 2,
       activity: 'watch a movie',
-      funScore: 0.7,
-      interestingScore: 0.6,
       category: 'entertainment',
-      confidence: 0.8,
       originalMessage: "Let's watch a movie",
-      sender: 'Alice',
-      timestamp: new Date('2025-01-15T10:00:00.000Z'),
-      isGeneric: true,
-      isCompound: false,
       action: 'watch',
       actionOriginal: 'watch',
       object: 'movie',
-      objectOriginal: 'movie',
-      venue: null,
-      city: null,
-      region: null,
-      country: null
-    }
+      objectOriginal: 'movie'
+    })
 
     const output = toOutputActivity(activity)
 
@@ -125,7 +99,7 @@ describe('buildClassifyOutput', () => {
     }
 
     const activities: ClassifiedActivity[] = [
-      {
+      createActivity({
         messageId: 1,
         activity: 'hike in the mountains',
         funScore: 0.9,
@@ -136,16 +110,11 @@ describe('buildClassifyOutput', () => {
         sender: 'Bob',
         timestamp: new Date('2025-01-10T09:00:00.000Z'),
         isGeneric: false,
-        isCompound: false,
         action: 'hike',
         actionOriginal: 'hiking',
-        object: null,
-        objectOriginal: null,
-        venue: null,
-        city: null,
         region: 'Alps',
         country: 'Switzerland'
-      }
+      })
     ]
 
     const output: ClassifyOutput = buildClassifyOutput(stats, activities)
@@ -168,48 +137,25 @@ describe('buildClassifyOutput', () => {
     }
 
     const activities: ClassifiedActivity[] = [
-      {
+      createActivity({
         messageId: 1,
         activity: 'activity one',
-        funScore: 0.5,
-        interestingScore: 0.5,
-        category: 'other',
-        confidence: 0.5,
         originalMessage: 'msg 1',
-        sender: 'A',
-        timestamp: new Date(),
-        isGeneric: true,
-        isCompound: false,
-        action: null,
-        actionOriginal: null,
-        object: null,
-        objectOriginal: null,
-        venue: null,
-        city: null,
-        region: null,
-        country: null
-      },
-      {
+        sender: 'A'
+      }),
+      createActivity({
         messageId: 2,
         activity: 'activity two',
-        funScore: 0.6,
-        interestingScore: 0.7,
         category: 'food',
-        confidence: 0.8,
         originalMessage: 'msg 2',
         sender: 'B',
-        timestamp: new Date(),
         isGeneric: false,
-        isCompound: false,
         action: 'eat',
         actionOriginal: 'eat',
-        object: null,
-        objectOriginal: null,
         venue: 'Some Restaurant',
         city: 'Auckland',
-        region: null,
         country: 'New Zealand'
-      }
+      })
     ]
 
     const output: ClassifyOutput = buildClassifyOutput(stats, activities)

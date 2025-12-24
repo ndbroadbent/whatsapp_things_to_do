@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { createGeocodedActivity as createTestGeo } from '../test-support'
 import type { GeocodedActivity } from '../types'
 import { exportToPDF } from './pdf'
 
@@ -9,12 +10,9 @@ function createActivity(
   lat?: number,
   lng?: number
 ): GeocodedActivity {
-  return {
+  return createTestGeo({
     messageId: id,
-
     activity,
-    funScore: 0.7,
-    interestingScore: 0.5,
     category: category as GeocodedActivity['category'],
     confidence: 0.9,
     originalMessage: 'Original message',
@@ -22,17 +20,8 @@ function createActivity(
     timestamp: new Date('2025-01-15T10:30:00Z'),
     latitude: lat,
     longitude: lng,
-    isGeneric: true,
-    isCompound: false,
-    action: null,
-    actionOriginal: null,
-    object: null,
-    objectOriginal: null,
-    venue: null,
-    city: lat ? 'Test Location' : null,
-    region: null,
-    country: null
-  }
+    city: lat ? 'Test Location' : null
+  })
 }
 
 describe('PDF Export', () => {

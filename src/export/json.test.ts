@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { createGeocodedActivity as createTestGeo } from '../test-support'
 import type { GeocodedActivity } from '../types'
 import { exportToJSON } from './json'
 
@@ -7,12 +8,9 @@ function createActivity(
   activity: string,
   category: string = 'restaurant'
 ): GeocodedActivity {
-  return {
+  return createTestGeo({
     messageId: id,
-
     activity,
-    funScore: 0.7,
-    interestingScore: 0.5,
     category: category as GeocodedActivity['category'],
     confidence: 0.9,
     originalMessage: 'Original message',
@@ -20,17 +18,8 @@ function createActivity(
     timestamp: new Date('2025-01-15T10:30:00Z'),
     latitude: 41.9,
     longitude: 12.5,
-    isGeneric: true,
-    isCompound: false,
-    action: null,
-    actionOriginal: null,
-    object: null,
-    objectOriginal: null,
-    venue: null,
-    city: 'Test Location',
-    region: null,
-    country: null
-  }
+    city: 'Test Location'
+  })
 }
 
 describe('JSON Export', () => {
@@ -131,28 +120,14 @@ describe('JSON Export', () => {
     })
 
     it('handles activities without coordinates', () => {
-      const activity: GeocodedActivity = {
+      const activity = createTestGeo({
         messageId: 1,
-
         activity: 'No location',
-        funScore: 0.7,
-        interestingScore: 0.5,
         category: 'other',
-        confidence: 0.9,
         originalMessage: 'Message',
         sender: 'User',
-        timestamp: new Date(),
-        isGeneric: true,
-        isCompound: false,
-        action: null,
-        actionOriginal: null,
-        object: null,
-        objectOriginal: null,
-        venue: null,
-        city: null,
-        region: null,
-        country: null
-      }
+        timestamp: new Date()
+      })
 
       const json = exportToJSON([activity])
       const parsed = JSON.parse(json)
@@ -163,28 +138,14 @@ describe('JSON Export', () => {
 
     it('includes geocodedCount in metadata', () => {
       const withCoords = createActivity(1, 'With coords')
-      const withoutCoords: GeocodedActivity = {
+      const withoutCoords = createTestGeo({
         messageId: 2,
-
         activity: 'Without coords',
-        funScore: 0.7,
-        interestingScore: 0.5,
         category: 'other',
-        confidence: 0.9,
         originalMessage: 'Message',
         sender: 'User',
-        timestamp: new Date(),
-        isGeneric: true,
-        isCompound: false,
-        action: null,
-        actionOriginal: null,
-        object: null,
-        objectOriginal: null,
-        venue: null,
-        city: null,
-        region: null,
-        country: null
-      }
+        timestamp: new Date()
+      })
 
       const json = exportToJSON([withCoords, withoutCoords])
       const parsed = JSON.parse(json)

@@ -2,7 +2,7 @@
  * Classify Command
  *
  * AI-powered classification of candidates into activities.
- * Runs: parse → scan → embed → filter → scrape → classify
+ * Runs: parse → scan → embed → filter → scrape-urls → classify
  */
 
 import { writeFile } from 'node:fs/promises'
@@ -84,7 +84,7 @@ export function buildClassifyOutput(
 export async function cmdClassify(args: CLIArgs, logger: Logger): Promise<void> {
   const { ctx } = await initCommandContext('Classify', args, logger)
 
-  // Use StepRunner to handle dependencies: filter → scrape → classify
+  // Use StepRunner to handle dependencies: filter → scrapeUrls → classify
   const runner = new StepRunner(ctx, args, logger)
 
   // Run filter step (which runs parse → scan → embed → filter)
@@ -97,8 +97,8 @@ export async function cmdClassify(args: CLIArgs, logger: Logger): Promise<void> 
     return
   }
 
-  // Run scrape step
-  const { metadataMap } = await runner.run('scrape')
+  // Run scrapeUrls step
+  const { metadataMap } = await runner.run('scrapeUrls')
 
   // Dry run: show stats and exit
   if (args.dryRun) {
