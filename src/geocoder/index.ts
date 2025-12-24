@@ -219,13 +219,18 @@ export async function geocodeActivity(
   const result = await geocodeText(location, config, cache)
 
   if (result.ok) {
+    // isVenuePlaceId is true only if we have a specific venue name
+    // (not just city/country which would give us a city placeId)
+    const isVenuePlaceId = Boolean(activity.venue)
+
     return {
       ...activity,
       latitude: result.value.latitude,
       longitude: result.value.longitude,
       formattedAddress: result.value.formattedAddress,
       placeId: result.value.placeId,
-      geocodeSource: 'google_geocoding'
+      geocodeSource: 'google_geocoding',
+      isVenuePlaceId
     }
   }
 
@@ -233,13 +238,15 @@ export async function geocodeActivity(
   const activityResult = await geocodeText(activity.activity, config, cache)
 
   if (activityResult.ok) {
+    // place_search on activity text is likely a venue search
     return {
       ...activity,
       latitude: activityResult.value.latitude,
       longitude: activityResult.value.longitude,
       formattedAddress: activityResult.value.formattedAddress,
       placeId: activityResult.value.placeId,
-      geocodeSource: 'place_search'
+      geocodeSource: 'place_search',
+      isVenuePlaceId: true
     }
   }
 

@@ -36,7 +36,7 @@ describe('Eventbrite Scraper Integration', () => {
       expect(result.metadata.canonicalUrl).toBe(url)
       expect(result.metadata.title).toBe('Come As You Are -  A Night Of Acoustic Nirvana')
       expect(result.metadata.description).toBe('McLean, Elis, Banham and Teegs.')
-      expect(result.metadata.thumbnailUrl).toContain('img.evbuc.com')
+      expect(result.metadata.imageUrl).toContain('img.evbuc.com')
       expect(result.metadata.categories).toContain('event')
     })
   })

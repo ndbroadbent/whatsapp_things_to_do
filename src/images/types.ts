@@ -40,6 +40,13 @@ export interface ImageResult {
     | undefined
 }
 
+/** Scraped metadata for a URL (subset of fields needed for images) */
+export interface ScrapedUrlMetadata {
+  readonly imageUrl: string | null
+  readonly title: string | null
+  readonly canonicalUrl: string
+}
+
 /**
  * Configuration for image fetching.
  */
@@ -61,4 +68,7 @@ export interface ImageFetchConfig {
 
   /** Google Places API key */
   readonly googlePlacesApiKey?: string | undefined
+
+  /** Scraped URL metadata (keyed by original URL) */
+  readonly scrapedMetadata?: Map<string, ScrapedUrlMetadata> | undefined
 }

@@ -32,7 +32,7 @@ describe('Generic Scraper Integration', () => {
       expect(result.metadata.title).toBe('Kalima Resort & Spa - 5-Star Resort in Phuket')
       expect(result.metadata.description).toContain('Kalima Resort')
       expect(result.metadata.description).toContain('Phuket')
-      expect(result.metadata.thumbnailUrl).toContain('kalimaresort.com')
+      expect(result.metadata.imageUrl).toContain('kalimaresort.com')
       expect(result.metadata.categories).toContain('kalimaresort.com')
     })
 

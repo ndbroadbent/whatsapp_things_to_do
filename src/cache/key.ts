@@ -114,3 +114,25 @@ export function generateUrlCacheKey(url: string): string {
   const hash = createHash('sha256').update(url).digest('hex').slice(0, 8)
   return `web/${sanitized}_${hash}`
 }
+
+/**
+ * Generate cache key for image requests.
+ * Creates readable filename: sanitized query + short hash suffix.
+ * Path: images/<source>/<sanitized_query>-<hash>.json
+ *
+ * @example
+ * ```ts
+ * generateImageCacheKey('pixabay', 'hiking mountains')
+ * // Returns: 'images/pixabay/hiking_mountains-a1b2c3d4'
+ * ```
+ */
+export function generateImageCacheKey(source: string, query: string): string {
+  const sanitized = query
+    .toLowerCase()
+    .replace(/[^a-zA-Z0-9_-]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '')
+    .slice(0, 24)
+  const hash = createHash('sha256').update(query.toLowerCase()).digest('hex').slice(0, 8)
+  return `images/${source}/${sanitized}-${hash}`
+}

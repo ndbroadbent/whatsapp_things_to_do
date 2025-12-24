@@ -177,7 +177,7 @@ export async function stepScrape(
             description: null,
             hashtags: [],
             creator: null,
-            thumbnailUrl: null,
+            imageUrl: null,
             categories: [],
             suggestedKeywords: []
           }

@@ -14,6 +14,8 @@ export interface GeocodedActivity extends ClassifiedActivity {
   readonly formattedAddress?: string | undefined
   readonly placeId?: string | undefined
   readonly geocodeSource?: GeocodeSource | undefined
+  /** True if placeId is for a specific venue (not just a city/region) */
+  readonly isVenuePlaceId?: boolean | undefined
 }
 
 export interface GeocoderConfig {

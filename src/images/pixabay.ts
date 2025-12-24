@@ -7,6 +7,7 @@
  * API: https://pixabay.com/api/docs/
  */
 
+import { generateImageCacheKey } from '../cache/key'
 import type { ResponseCache } from '../cache/types'
 import { httpFetch } from '../http'
 import type { GeocodedActivity } from '../types/geocoder'
@@ -28,7 +29,7 @@ export async function fetchPixabayImage(
   const query = buildSearchQuery(activity)
   if (!query) return null
 
-  const cacheKey = `pixabay:${query.toLowerCase()}`
+  const cacheKey = generateImageCacheKey('pixabay', query)
 
   const cached = await getCached<ImageResult>(cache, cacheKey)
   if (cached.hit) {

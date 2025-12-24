@@ -115,7 +115,7 @@ function parseRedditJson(data: unknown, canonicalUrl: string): ScrapedMetadata |
   }
 
   // Get thumbnail if it's a valid URL (not "self", "default", "nsfw", etc.)
-  const thumbnailUrl = thumbnail?.startsWith('http') ? thumbnail.replace(/&amp;/g, '&') : null
+  const imageUrl = thumbnail?.startsWith('http') ? thumbnail.replace(/&amp;/g, '&') : null
 
   // Extract hashtags from title (rare on Reddit but possible)
   const hashtags: string[] = []
@@ -132,7 +132,7 @@ function parseRedditJson(data: unknown, canonicalUrl: string): ScrapedMetadata |
     hashtags,
     creator: author,
     creatorId: author ? `u/${author}` : null,
-    thumbnailUrl,
+    imageUrl,
     categories: subreddit ? [`r/${subreddit}`] : [],
     suggestedKeywords: subreddit ? [subreddit] : []
   }

@@ -2,95 +2,161 @@
  * Fetch Images Command
  *
  * Fetch images for geocoded activities from various sources:
- * - Google Places Photos (venues with placeId)
+ * - CDN default images (category/action based)
  * - Wikipedia (landmarks, cities, countries)
  * - Pixabay (generic activities)
+ * - Google Places Photos (venues with placeId)
+ *
+ * Runs: parse → scan → embed → filter → scrape → classify → geocode → fetch-images
  */
 
-import { readFile, writeFile } from 'node:fs/promises'
-import { basename } from 'node:path'
-import { FilesystemCache } from '../../cache/filesystem'
-import type { ImageFetchConfig, ImageResult } from '../../images/types'
-import { fetchImagesForActivities, VERSION } from '../../index'
+import { writeFile } from 'node:fs/promises'
+import type { ImageResult } from '../../images/types'
 import type { GeocodedActivity } from '../../types'
 import type { CLIArgs } from '../args'
+import { formatActivityHeader, initCommandContext } from '../helpers'
 import type { Logger } from '../logger'
-import { getCacheDir } from '../steps/context'
+import { stepFetchImages } from '../steps/fetch-images'
+import { StepRunner } from '../steps/runner'
 
-interface ActivityWithImage extends GeocodedActivity {
-  readonly image?: ImageResult | null | undefined
+interface FetchImagesOutput {
+  activitiesProcessed: number
+  imagesFound: number
+  fromCdn: number
+  fromScraped: number
+  fromWikipedia: number
+  fromPixabay: number
+  fromGooglePlaces: number
+  failed: number
+  activities: Array<{
+    messageId: number
+    activity: string
+    category: string
+    venue: string | null
+    city: string | null
+    country: string | null
+    image: ImageResult | null
+  }>
 }
 
 export async function cmdFetchImages(args: CLIArgs, logger: Logger): Promise<void> {
-  if (!args.input) {
-    throw new Error('No input file specified')
+  const { ctx } = await initCommandContext('Fetch Images', args, logger)
+
+  // Use StepRunner to handle dependencies: geocode → fetch-images
+  const runner = new StepRunner(ctx, args, logger)
+
+  // Run geocode step (which runs the full pipeline up to geocode)
+  const { activities: geocodedActivities } = await runner.run('geocode')
+
+  logger.log(`   Geocoded ${geocodedActivities.length} activities`)
+
+  if (geocodedActivities.length === 0) {
+    logger.log('\n⚠️  No activities geocoded. Nothing to fetch images for.')
+    return
   }
 
-  logger.log(`\nChatToMap Fetch Images v${VERSION}`)
-  logger.log(`\n📁 ${basename(args.input)}`)
+  // Dry run: show stats and exit
+  if (args.dryRun) {
+    logger.log('\n📊 Image Fetch Estimate (dry run)')
+    logger.log(`   Activities: ${geocodedActivities.length}`)
+    const sources: string[] = []
+    if (!args.skipCdn) sources.push('CDN')
+    if (!args.skipWikipedia) sources.push('Wikipedia')
+    if (!args.skipPixabay && process.env.PIXABAY_API_KEY) sources.push('Pixabay')
+    if (!args.skipGooglePlaces && process.env.GOOGLE_MAPS_API_KEY) sources.push('Google Places')
+    logger.log(`   Sources: ${sources.join(', ') || 'none'}`)
+    return
+  }
 
-  // Load geocoded activities from input file
-  const content = await readFile(args.input, 'utf-8')
-  const activities = JSON.parse(content) as GeocodedActivity[]
-  logger.log(`   Loaded ${activities.length} activities`)
-
-  // Initialize cache for API responses
-  const cacheDir = getCacheDir(args.cacheDir)
-  const cache = new FilesystemCache(cacheDir)
-
-  // Build config from CLI args and environment
-  const config: ImageFetchConfig = {
+  // Run fetch-images step
+  const fetchResult = await stepFetchImages(ctx, geocodedActivities, {
+    skipCdn: args.skipCdn,
     skipPixabay: args.skipPixabay,
     skipWikipedia: args.skipWikipedia,
-    skipGooglePlaces: args.skipGooglePlaces,
-    pixabayApiKey: process.env.PIXABAY_API_KEY,
-    googlePlacesApiKey: process.env.GOOGLE_PLACES_API_KEY
-  }
-
-  // Log which sources are enabled
-  const sources: string[] = []
-  if (!config.skipGooglePlaces && config.googlePlacesApiKey) sources.push('Google Places')
-  if (!config.skipWikipedia) sources.push('Wikipedia')
-  if (!config.skipPixabay && config.pixabayApiKey) sources.push('Pixabay')
-
-  logger.log(`\n🖼️  Fetching images from: ${sources.join(' → ') || '(no sources configured)'}`)
-
-  // Fetch images with progress
-  const imageMap = await fetchImagesForActivities(activities, config, cache, {
-    onProgress: (current, total) => {
-      if (args.verbose || current === total || current % 10 === 0) {
-        logger.log(`   [${current}/${total}] ${Math.round((current / total) * 100)}%`)
-      }
-    }
+    skipGooglePlaces: args.skipGooglePlaces
   })
 
-  // Merge images into activities
-  const activitiesWithImages: ActivityWithImage[] = activities.map((activity) => ({
-    ...activity,
-    image: imageMap.get(activity.messageId)
-  }))
+  // Summary
+  logger.log('\n📊 Image Fetch Results')
+  logger.log(`   Processed: ${fetchResult.stats.activitiesProcessed}`)
+  logger.log(`   Found: ${fetchResult.stats.imagesFound}`)
+  if (fetchResult.stats.fromCdn > 0) logger.log(`   From CDN: ${fetchResult.stats.fromCdn}`)
+  if (fetchResult.stats.fromScraped > 0)
+    logger.log(`   From scraped: ${fetchResult.stats.fromScraped}`)
+  if (fetchResult.stats.fromWikipedia > 0)
+    logger.log(`   From Wikipedia: ${fetchResult.stats.fromWikipedia}`)
+  if (fetchResult.stats.fromPixabay > 0)
+    logger.log(`   From Pixabay: ${fetchResult.stats.fromPixabay}`)
+  if (fetchResult.stats.fromGooglePlaces > 0)
+    logger.log(`   From Google Places: ${fetchResult.stats.fromGooglePlaces}`)
+  if (fetchResult.stats.failed > 0) logger.log(`   Not found: ${fetchResult.stats.failed}`)
 
-  // Count by source
-  const sourceCounts = new Map<string, number>()
-  let nullCount = 0
-  for (const result of imageMap.values()) {
-    if (result === null) {
-      nullCount++
+  const output: FetchImagesOutput = {
+    ...fetchResult.stats,
+    activities: geocodedActivities.map((a) => ({
+      messageId: a.messageId,
+      activity: a.activity,
+      category: a.category,
+      venue: a.venue,
+      city: a.city,
+      country: a.country,
+      image: fetchResult.images.get(a.messageId) ?? null
+    }))
+  }
+
+  if (args.jsonOutput) {
+    const json = JSON.stringify(output, null, 2)
+    if (args.jsonOutput === 'stdout') {
+      console.log(json)
     } else {
-      sourceCounts.set(result.source, (sourceCounts.get(result.source) ?? 0) + 1)
+      await writeFile(args.jsonOutput, json)
+      logger.success(`\n✓ Saved activities with images to ${args.jsonOutput}`)
     }
+  } else {
+    displayActivities(geocodedActivities, fetchResult.images, logger, args.showAll, args.maxResults)
+  }
+}
+
+function displayActivities(
+  activities: readonly GeocodedActivity[],
+  images: Map<number, ImageResult | null>,
+  logger: Logger,
+  showAll: boolean,
+  maxResults: number
+): void {
+  if (activities.length === 0) {
+    logger.log('\n🖼️  Activities with Images: none')
+    return
   }
 
-  logger.log('\n📊 Image sources:')
-  for (const [source, count] of sourceCounts) {
-    logger.log(`   ${source}: ${count}`)
-  }
-  if (nullCount > 0) {
-    logger.log(`   (no image): ${nullCount}`)
+  logger.log('\n🖼️  Activities with Images:')
+  logger.log('')
+
+  const displayCount = showAll ? activities.length : Math.min(maxResults, activities.length)
+
+  for (let i = 0; i < displayCount; i++) {
+    const a = activities[i]
+    if (!a) continue
+
+    const image = images.get(a.messageId)
+    const { line1, line2 } = formatActivityHeader(i, a)
+
+    logger.log(line1)
+    logger.log(line2)
+
+    if (image) {
+      logger.log(`   🖼️  ${image.source}: ${image.url}`)
+      if (image.attribution) {
+        logger.log(`   📝 ${image.attribution.name}`)
+      }
+    } else {
+      logger.log(`   ⚠️  No image found`)
+    }
+
+    logger.log('')
   }
 
-  // Write output
-  const output = args.jsonOutput ?? args.input.replace('.json', '.with-images.json')
-  await writeFile(output, JSON.stringify(activitiesWithImages, null, 2))
-  logger.success(`\n✨ Wrote ${activitiesWithImages.length} activities to ${output}`)
+  if (!showAll && activities.length > maxResults) {
+    logger.log(`   ... and ${activities.length - maxResults} more (use --all to show all)`)
+  }
 }

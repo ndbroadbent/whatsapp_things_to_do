@@ -99,7 +99,7 @@ describe('scrapeEventbrite', () => {
         expect(result.metadata.hashtags).toContain('wine')
         expect(result.metadata.hashtags).toContain('auckland')
         expect(result.metadata.creator).toBe('Auckland Events Ltd')
-        expect(result.metadata.thumbnailUrl).toBe('https://example.com/food-fest.jpg')
+        expect(result.metadata.imageUrl).toBe('https://example.com/food-fest.jpg')
         expect(result.metadata.categories).toContain('event')
         expect(result.metadata.categories).toContain('Viaduct Harbour')
         expect(result.metadata.categories).toContain('Auckland, Auckland')
@@ -157,7 +157,7 @@ describe('scrapeEventbrite', () => {
 
       expect(result.ok).toBe(true)
       if (result.ok) {
-        expect(result.metadata.thumbnailUrl).toBe('https://example.com/concert1.jpg')
+        expect(result.metadata.imageUrl).toBe('https://example.com/concert1.jpg')
       }
     })
 
@@ -181,7 +181,7 @@ describe('scrapeEventbrite', () => {
       expect(result.ok).toBe(true)
       if (result.ok) {
         expect(result.metadata.title).toBe('Yoga Workshop')
-        expect(result.metadata.thumbnailUrl).toBe('https://example.com/yoga.jpg')
+        expect(result.metadata.imageUrl).toBe('https://example.com/yoga.jpg')
       }
     })
   })

@@ -335,7 +335,7 @@ Hope this helps!`
       description: 'A beautiful cabin in the woods',
       hashtags: [],
       creator: 'Host Name',
-      thumbnailUrl: null,
+      imageUrl: null,
       categories: ['accommodation'],
       suggestedKeywords: []
     }
@@ -445,7 +445,7 @@ Hope this helps!`
         description: null,
         hashtags: [],
         creator: null,
-        thumbnailUrl: null,
+        imageUrl: null,
         categories: [],
         suggestedKeywords: []
       }
@@ -465,7 +465,7 @@ Hope this helps!`
         description: null,
         hashtags: [],
         creator: null,
-        thumbnailUrl: null,
+        imageUrl: null,
         categories: [],
         suggestedKeywords: []
       }
@@ -490,7 +490,7 @@ Hope this helps!`
       description: 'A cool video about stuff',
       hashtags: [],
       creator: 'Creator',
-      thumbnailUrl: 'https://img.youtube.com/abc.jpg',
+      imageUrl: 'https://img.youtube.com/abc.jpg',
       categories: ['video'],
       suggestedKeywords: []
     }

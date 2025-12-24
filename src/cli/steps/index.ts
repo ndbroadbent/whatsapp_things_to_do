@@ -7,6 +7,7 @@
 
 export { stepClassify } from './classify'
 export { initContext } from './context'
+export { stepFetchImages } from './fetch-images'
 export { stepFilter } from './filter'
 export { stepGeocode } from './geocode'
 export { stepParse } from './parse'

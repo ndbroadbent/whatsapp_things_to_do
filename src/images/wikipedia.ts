@@ -7,6 +7,7 @@
  * API: https://en.wikipedia.org/api/rest_v1/page/summary/{title}
  */
 
+import { generateImageCacheKey } from '../cache/key'
 import type { ResponseCache } from '../cache/types'
 import { httpFetch } from '../http'
 import type { GeocodedActivity } from '../types/geocoder'
@@ -52,7 +53,7 @@ async function fetchWikipediaPageImage(
   title: string,
   cache: ResponseCache
 ): Promise<ImageResult | null> {
-  const cacheKey = `wikipedia:${title.toLowerCase()}`
+  const cacheKey = generateImageCacheKey('wikipedia', title)
 
   const cached = await getCached<ImageResult>(cache, cacheKey)
   if (cached.hit) {

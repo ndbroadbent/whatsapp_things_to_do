@@ -43,8 +43,8 @@ export interface ScrapedMetadata {
   readonly creator: string | null
   /** Creator/channel ID (platform-specific) */
   readonly creatorId?: string | null
-  /** Thumbnail URL if available */
-  readonly thumbnailUrl: string | null
+  /** Image URL from OG tags or JSON-LD */
+  readonly imageUrl: string | null
   /** Content categories/labels from the platform */
   readonly categories: readonly string[]
   /** Suggested/related keywords */

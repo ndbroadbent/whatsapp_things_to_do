@@ -63,7 +63,7 @@ describe('TikTok Scraper Integration', () => {
         expect(result.metadata.suggestedKeywords).toContain('Accordion')
 
         // Thumbnail URL
-        expect(result.metadata.thumbnailUrl).toContain('tiktokcdn')
+        expect(result.metadata.imageUrl).toContain('tiktokcdn')
       }
     })
 

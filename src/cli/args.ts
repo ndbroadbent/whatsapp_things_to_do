@@ -16,6 +16,7 @@ export interface CLIArgs {
   formats: string[]
   minConfidence: number
   skipGeocoding: boolean
+  skipCdn: boolean
   skipPixabay: boolean
   skipWikipedia: boolean
   skipGooglePlaces: boolean
@@ -177,11 +178,14 @@ function createProgram(): Command {
   program
     .command('fetch-images')
     .description('Fetch images for geocoded activities')
-    .argument('<input>', 'Geocoded activities JSON file')
-    .option('-o, --output <file>', 'Save activities with images to JSON file')
+    .argument('<input>', 'Chat export file or directory')
+    .option('--json [file]', 'Output as JSON (to file if specified, otherwise stdout)')
+    .option('--no-image-cdn', 'Skip CDN default images (fetch all from APIs)')
     .option('--skip-pixabay', 'Skip Pixabay image search')
     .option('--skip-wikipedia', 'Skip Wikipedia image lookup')
     .option('--skip-google-places', 'Skip Google Places photos')
+    .option('-n, --max-results <num>', 'Max results to display', '10')
+    .option('-a, --all', 'Show all activities with images')
 
   // ============ EXPORT ============
   program
@@ -218,6 +222,7 @@ function buildCLIArgs(commandName: string, input: string, opts: Record<string, u
     formats: format.split(',').map((f) => f.trim()),
     minConfidence: Number.parseFloat(String(opts.minConfidence ?? '0.5')),
     skipGeocoding: opts.skipGeocoding === true,
+    skipCdn: opts.imageCdn === false,
     skipPixabay: opts.skipPixabay === true,
     skipWikipedia: opts.skipWikipedia === true,
     skipGooglePlaces: opts.skipGooglePlaces === true,

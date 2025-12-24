@@ -72,6 +72,7 @@ describe('YouTube Scraper Integration', () => {
           ACCESS OUR FACEBOOK:
           https://www.facebook.com/supercreativee",
             "hashtags": [],
+            "imageUrl": "https://i.ytimg.com/vi/oQ-Vc_xQrZk/maxresdefault.jpg",
             "suggestedKeywords": [
               "AFTER TRYING",
               "THIS RECIPE",
@@ -83,7 +84,6 @@ describe('YouTube Scraper Integration', () => {
               "RECIPE",
               "FOOD",
             ],
-            "thumbnailUrl": "https://i.ytimg.com/vi/oQ-Vc_xQrZk/maxresdefault.jpg",
             "title": "AFTER TRYING THIS RECIPE, I ONLY WANT TO EAT BEEF MINCE THIS WAY.",
           }
         `)
@@ -181,6 +181,7 @@ describe('YouTube Scraper Integration', () => {
               "queenstown",
               "newzealand",
             ],
+            "imageUrl": "https://i.ytimg.com/vi_webp/juZi4ODQFFA/maxresdefault.webp",
             "suggestedKeywords": [
               "daneger and stacey",
               "queenstown things to do",
@@ -203,7 +204,6 @@ describe('YouTube Scraper Integration', () => {
               "new zealand",
               "queenstown guide",
             ],
-            "thumbnailUrl": "https://i.ytimg.com/vi_webp/juZi4ODQFFA/maxresdefault.webp",
             "title": "12 Top Things To Do In QUEENSTOWN, New Zealand",
           }
         `)

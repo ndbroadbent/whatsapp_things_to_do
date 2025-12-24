@@ -195,7 +195,7 @@ describe('scrapeYouTube', () => {
         expect(result.metadata.hashtags).toContain('food')
         expect(result.metadata.categories).toContain('Howto & Style')
         expect(result.metadata.suggestedKeywords).toContain('pasta')
-        expect(result.metadata.thumbnailUrl).toContain('maxresdefault.jpg')
+        expect(result.metadata.imageUrl).toContain('maxresdefault.jpg')
       }
     })
 

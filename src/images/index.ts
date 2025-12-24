@@ -4,9 +4,8 @@
  * Fetches images for activities using a priority chain:
  * 1. Scraped OG images (already available from URL scraping)
  * 2. CDN default images (category/action based)
- * 3. Google Places Photos (for venues with placeId)
- * 4. Wikipedia (for landmarks, cities, countries)
- * 5. Pixabay (for generic activities)
+ * 3. Google Places Photos (for venues with placeId - NOT cities/regions)
+ * 4. Pixabay (for generic activities)
  *
  * Returns null if no image found.
  */
@@ -17,17 +16,39 @@ import { fetchCdnDefaultImage } from './cdn'
 import { fetchGooglePlacesPhoto } from './google-places'
 import { fetchPixabayImage } from './pixabay'
 import type { ImageFetchConfig, ImageResult } from './types'
-import { fetchWikipediaImage } from './wikipedia'
 
 export { fetchGooglePlacesPhoto } from './google-places'
 export { fetchPixabayImage } from './pixabay'
 export type { ImageFetchConfig, ImageResult, ImageSource } from './types'
 export { fetchWikipediaImage } from './wikipedia'
 
+/** Extract URLs from message text */
+function extractUrls(text: string): string[] {
+  const urlRegex = /https?:\/\/[^\s<>"{}|\\^`[\]]+/gi
+  return text.match(urlRegex) ?? []
+}
+
+/** Find scraped image URL for an activity by looking up URLs in the message */
+function findScrapedImage(
+  activity: GeocodedActivity,
+  scrapedMetadata: Map<string, { imageUrl: string | null }> | undefined
+): string | null {
+  if (!scrapedMetadata) return null
+
+  const urls = extractUrls(activity.originalMessage)
+  for (const url of urls) {
+    const metadata = scrapedMetadata.get(url)
+    if (metadata?.imageUrl) {
+      return metadata.imageUrl
+    }
+  }
+  return null
+}
+
 /**
  * Fetch an image for a single activity.
  *
- * Tries sources in priority order: scraped → cdn → google_places → wikipedia → pixabay.
+ * Tries sources in priority order: scraped → cdn → google_places → pixabay.
  * Returns null if no image found from any source.
  */
 export async function fetchImageForActivity(
@@ -35,11 +56,11 @@ export async function fetchImageForActivity(
   config: ImageFetchConfig,
   cache: ResponseCache
 ): Promise<ImageResult | null> {
-  // 1. Check for scraped OG image (imageUrl field would be added to activity)
-  // This requires adding imageUrl to ClassifiedActivity type
-  // if (activity.imageUrl) {
-  //   return { url: activity.imageUrl, source: 'scraped' }
-  // }
+  // 1. Check for scraped OG image (highest priority)
+  const scrapedImageUrl = findScrapedImage(activity, config.scrapedMetadata)
+  if (scrapedImageUrl) {
+    return { url: scrapedImageUrl, source: 'scraped' }
+  }
 
   // 2. Try CDN default images (unless --no-image-cdn)
   if (!config.skipCdn) {
@@ -47,19 +68,18 @@ export async function fetchImageForActivity(
     if (result) return result
   }
 
-  // 3. Try Google Places Photos (if placeId and not skipped)
-  if (activity.placeId && !config.skipGooglePlaces && config.googlePlacesApiKey) {
+  // 3. Try Google Places Photos (only for venue placeIds, not city/region placeIds)
+  if (
+    activity.placeId &&
+    activity.isVenuePlaceId &&
+    !config.skipGooglePlaces &&
+    config.googlePlacesApiKey
+  ) {
     const result = await fetchGooglePlacesPhoto(activity.placeId, config.googlePlacesApiKey)
     if (result) return result
   }
 
-  // 4. Try Wikipedia (if venue/city/country and not skipped)
-  if (!config.skipWikipedia && (activity.venue || activity.city || activity.country)) {
-    const result = await fetchWikipediaImage(activity, cache)
-    if (result) return result
-  }
-
-  // 5. Try Pixabay (if not skipped and has API key)
+  // 4. Try Pixabay (if not skipped and has API key)
   if (!config.skipPixabay && config.pixabayApiKey) {
     const result = await fetchPixabayImage(activity, config.pixabayApiKey, cache)
     if (result) return result

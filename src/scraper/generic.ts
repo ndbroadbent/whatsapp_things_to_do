@@ -108,7 +108,8 @@ function parseGenericData(
 
   const title = (data?.name as string) ?? (data?.headline as string) ?? og.title ?? null
   const description = (data?.description as string) ?? og.description ?? null
-  const thumbnailUrl = extractImageUrl(data?.image) ?? og.image ?? null
+  // Prefer OG image, fall back to JSON-LD image
+  const imageUrl = og.image ?? extractImageUrl(data?.image) ?? null
 
   // Extract hashtags from description
   const hashtags = description ? extractHashtags(description) : []
@@ -130,7 +131,7 @@ function parseGenericData(
     description,
     hashtags,
     creator: null,
-    thumbnailUrl,
+    imageUrl,
     categories,
     suggestedKeywords: [],
     rawData: { jsonLd, og }

@@ -5,6 +5,7 @@
  * Each step declares its dependencies and the runner ensures they run first.
  */
 
+import type { ImageResult } from '../../images/types'
 import type { ScrapedMetadata } from '../../scraper/types'
 import type {
   CandidateMessage,
@@ -27,6 +28,7 @@ interface StepOutputs {
   scrape: { metadataMap: Map<string, ScrapedMetadata> }
   classify: { activities: readonly ClassifiedActivity[] }
   geocode: { activities: readonly GeocodedActivity[] }
+  fetchImages: { images: Map<number, ImageResult | null> }
 }
 
 type StepName = keyof StepOutputs
@@ -88,6 +90,8 @@ export class StepRunner {
         return this.runClassify() as Promise<StepOutputs[K]>
       case 'geocode':
         return this.runGeocode() as Promise<StepOutputs[K]>
+      case 'fetchImages':
+        return this.runFetchImages() as Promise<StepOutputs[K]>
       default:
         throw new Error(`Unknown step: ${step}`)
     }
@@ -171,5 +175,19 @@ export class StepRunner {
       homeCountry: this.args.homeCountry
     })
     return { activities: result.activities }
+  }
+
+  private async runFetchImages(): Promise<StepOutputs['fetchImages']> {
+    // Dependency: geocode
+    const { activities } = await this.run('geocode')
+
+    const { stepFetchImages } = await import('./fetch-images')
+    const result = await stepFetchImages(this.ctx, activities, {
+      skipCdn: this.args.skipCdn,
+      skipPixabay: this.args.skipPixabay,
+      skipWikipedia: this.args.skipWikipedia,
+      skipGooglePlaces: this.args.skipGooglePlaces
+    })
+    return { images: result.images }
   }
 }

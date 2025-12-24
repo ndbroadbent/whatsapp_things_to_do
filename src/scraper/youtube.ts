@@ -183,7 +183,7 @@ function parseYouTubeData(
   const thumbnails = getNestedValue(videoDetails, ['thumbnail', 'thumbnails']) as
     | Array<{ url: string }>
     | undefined
-  const thumbnailUrl = thumbnails?.[thumbnails.length - 1]?.url ?? null
+  const imageUrl = thumbnails?.[thumbnails.length - 1]?.url ?? null
 
   // Extract keywords (tags)
   const keywords = (videoDetails.keywords ?? []) as string[]
@@ -202,7 +202,7 @@ function parseYouTubeData(
     hashtags,
     creator,
     creatorId: channelId ?? null,
-    thumbnailUrl,
+    imageUrl,
     categories,
     suggestedKeywords: keywords,
     rawData: playerResponse

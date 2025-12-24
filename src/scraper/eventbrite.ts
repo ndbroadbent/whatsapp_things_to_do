@@ -85,7 +85,7 @@ function parseEventbriteData(
 
   const title = (data?.name as string) ?? og.title ?? null
   const description = (data?.description as string) ?? og.description ?? null
-  const thumbnailUrl = extractImageUrl(data?.image) ?? og.image ?? null
+  const imageUrl = extractImageUrl(data?.image) ?? og.image ?? null
 
   // Extract hashtags from description
   const hashtags = description ? extractHashtags(description) : []
@@ -115,7 +115,7 @@ function parseEventbriteData(
     description,
     hashtags,
     creator,
-    thumbnailUrl,
+    imageUrl,
     categories,
     suggestedKeywords: [],
     rawData: { jsonLd, og }

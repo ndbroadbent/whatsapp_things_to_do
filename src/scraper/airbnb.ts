@@ -50,7 +50,7 @@ function parseAirbnbData(
 ): ScrapedMetadata | null {
   const title = og.title ?? null
   const description = og.description ?? null
-  const thumbnailUrl = og.image ?? null
+  const imageUrl = og.image ?? null
 
   // Extract hashtags from description if present
   const hashtags = description ? extractHashtags(description) : []
@@ -64,7 +64,7 @@ function parseAirbnbData(
     description,
     hashtags,
     creator: null,
-    thumbnailUrl,
+    imageUrl,
     categories: [],
     suggestedKeywords: [],
     rawData: { og }

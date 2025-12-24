@@ -239,7 +239,7 @@ function parseTikTokData(
 
   // Extract thumbnail
   const video = vd.video as Record<string, unknown> | undefined
-  const thumbnailUrl = (video?.cover ?? video?.dynamicCover ?? video?.originCover ?? null) as
+  const imageUrl = (video?.cover ?? video?.dynamicCover ?? video?.originCover ?? null) as
     | string
     | null
 
@@ -255,7 +255,7 @@ function parseTikTokData(
     description: description || null,
     hashtags: allHashtags,
     creator,
-    thumbnailUrl,
+    imageUrl,
     categories: diversificationLabels,
     suggestedKeywords: suggestedWords,
     rawData: data

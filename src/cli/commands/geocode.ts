@@ -32,6 +32,8 @@ interface GeocodeOutput {
     latitude: number | undefined
     longitude: number | undefined
     formattedAddress: string | undefined
+    placeId: string | undefined
+    isVenuePlaceId: boolean | undefined
     geocodeSource: string | undefined
   }>
 }
@@ -102,6 +104,8 @@ export async function cmdGeocode(args: CLIArgs, logger: Logger): Promise<void> {
       latitude: a.latitude,
       longitude: a.longitude,
       formattedAddress: a.formattedAddress,
+      placeId: a.placeId,
+      isVenuePlaceId: a.isVenuePlaceId,
       geocodeSource: a.geocodeSource
     }))
   }

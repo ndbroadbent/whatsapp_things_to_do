@@ -37,11 +37,13 @@ export type PipelineStage =
   | 'scrape_metadata'
   | 'classify_stats'
   | 'geocode_stats'
+  | 'fetch_images_stats'
   | 'candidates.heuristics'
   | 'candidates.embeddings'
   | 'candidates.all'
   | 'classifications'
   | 'geocodings'
+  | 'images'
 
 interface PipelineRunMeta {
   inputFile: string

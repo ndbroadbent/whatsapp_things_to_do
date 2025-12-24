@@ -33,7 +33,7 @@ describe('Airbnb Scraper Integration', () => {
       expect(result.metadata.title).toContain('Queenstown')
       expect(result.metadata.title).toContain('4.99')
       expect(result.metadata.description).toBe('Above and Beyond')
-      expect(result.metadata.thumbnailUrl).toContain('muscache.com')
+      expect(result.metadata.imageUrl).toContain('muscache.com')
     })
   })
 })
