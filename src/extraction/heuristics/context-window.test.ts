@@ -40,7 +40,10 @@ describe('Context Window', () => {
     if (!visitCandidate) throw new Error('visitCandidate not found')
 
     // With 280 char minimum, we should reach "Sarah" (4 messages back)
-    const allContext = [...visitCandidate.contextBefore, ...visitCandidate.contextAfter].join('\n')
+    const allContext = [
+      ...visitCandidate.contextBefore.map((m) => m.content),
+      ...visitCandidate.contextAfter.map((m) => m.content)
+    ].join('\n')
     expect(allContext).toContain('Sarah')
   })
 
@@ -63,7 +66,10 @@ describe('Context Window', () => {
     const candidate = result.candidates.find((c) => c.content.includes('try that place'))
     if (!candidate) throw new Error('candidate not found')
 
-    const allContext = [...candidate.contextBefore, ...candidate.contextAfter].join('\n')
+    const allContext = [
+      ...candidate.contextBefore.map((m) => m.content),
+      ...candidate.contextAfter.map((m) => m.content)
+    ].join('\n')
 
     // Long message about The Golden Fork should be truncated
     expect(allContext).toContain('[truncated to 280 chars]')
@@ -80,7 +86,7 @@ describe('Context Window', () => {
     const candidate = result.candidates.find((c) => c.content.includes('try that place'))
     if (!candidate) throw new Error('candidate not found')
 
-    const beforeContext = candidate.contextBefore.join('\n')
+    const beforeContext = candidate.contextBefore.map((m) => m.content).join('\n')
 
     // Should have at least 280 chars before (excluding newlines for calculation)
     const beforeChars = beforeContext.replace(/\n/g, '').length

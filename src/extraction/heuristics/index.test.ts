@@ -209,8 +209,8 @@ describe('Candidate Extractor', () => {
         const candidate = result.candidates[0]
         if (!candidate) throw new Error('candidate not found')
 
-        expect(candidate.contextBefore.some((m) => m.includes('Previous'))).toBe(true)
-        expect(candidate.contextAfter.some((m) => m.includes('Next'))).toBe(true)
+        expect(candidate.contextBefore.some((m) => m.content.includes('Previous'))).toBe(true)
+        expect(candidate.contextAfter.some((m) => m.content.includes('Next'))).toBe(true)
       })
     })
 

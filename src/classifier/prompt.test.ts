@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { ScrapedMetadata } from '../scraper/types'
-import type { CandidateMessage, QueryType } from '../types'
+import type { CandidateMessage, ContextMessage, QueryType } from '../types'
 import {
   buildClassificationPrompt,
   type ClassificationContext,
   injectUrlMetadataIntoText,
-  parseClassificationResponse
+  parseClassificationResponse,
+  separateCandidatesByType
 } from './prompt'
 
 const TEST_CONTEXT: ClassificationContext = {
@@ -13,11 +14,20 @@ const TEST_CONTEXT: ClassificationContext = {
   timezone: 'Pacific/Auckland'
 }
 
+function createContextMessage(id: number, content: string, sender = 'User'): ContextMessage {
+  return {
+    id,
+    sender,
+    content,
+    timestamp: new Date('2025-01-15T10:30:00Z')
+  }
+}
+
 function createCandidate(
   id: number,
   content: string,
-  contextBefore: string[] = [],
-  contextAfter: string[] = [],
+  contextBefore: ContextMessage[] = [],
+  contextAfter: ContextMessage[] = [],
   candidateType: QueryType = 'suggestion'
 ): CandidateMessage {
   return {
@@ -61,7 +71,9 @@ describe('Classifier Prompt', () => {
 
     it('includes context when provided', () => {
       const candidates = [
-        createCandidate(1, 'We should go there', ['Previous: I found a great place'])
+        createCandidate(1, 'We should go there', [
+          createContextMessage(0, 'I found a great place', 'Previous')
+        ])
       ]
 
       const prompt = buildClassificationPrompt(candidates, TEST_CONTEXT)
@@ -150,29 +162,71 @@ describe('Classifier Prompt', () => {
       expect(prompt).not.toContain('ID: 1 [AGREE]')
     })
 
-    it('handles mixed suggestion and agreement candidates', () => {
+    it('uses suggestion prompt for mixed candidates (separation happens at classifier level)', () => {
       const candidates = [
         createCandidate(1, 'Lets go to that cafe', [], [], 'suggestion'),
         createCandidate(2, 'Sounds fun!', [], [], 'agreement'),
         createCandidate(3, 'Check out this hike', [], [], 'suggestion')
       ]
 
+      // When mixed candidates are passed, auto-detection picks suggestion prompt
+      // (since not ALL are agreements). Real separation happens in classifyMessages.
       const prompt = buildClassificationPrompt(candidates, TEST_CONTEXT)
 
-      expect(prompt).toContain('ID: 1 |') // No tag
-      expect(prompt).toContain('ID: 2 [AGREE]')
-      expect(prompt).toContain('ID: 3 |') // No tag
+      // Should use suggestion prompt (no [AGREE] handling in prompt)
+      expect(prompt).toContain('ID: 1 |')
+      expect(prompt).toContain('ID: 2 |') // No [AGREE] tag in suggestion prompt
+      expect(prompt).toContain('ID: 3 |')
+      expect(prompt).not.toContain('[AGREE]')
+    })
+  })
+
+  describe('separateCandidatesByType', () => {
+    it('separates suggestions from agreements', () => {
+      const candidates = [
+        createCandidate(1, 'Lets go to that cafe', [], [], 'suggestion'),
+        createCandidate(2, 'Sounds fun!', [], [], 'agreement'),
+        createCandidate(3, 'Check out this hike', [], [], 'suggestion'),
+        createCandidate(4, 'Amazing!', [], [], 'agreement')
+      ]
+
+      const { suggestions, agreements } = separateCandidatesByType(candidates)
+
+      expect(suggestions).toHaveLength(2)
+      expect(agreements).toHaveLength(2)
+      expect(suggestions.map((c) => c.messageId)).toEqual([1, 3])
+      expect(agreements.map((c) => c.messageId)).toEqual([2, 4])
     })
 
-    it('includes instructions for handling agreement candidates', () => {
-      const candidates = [createCandidate(1, 'Test', [], [], 'agreement')]
+    it('handles all suggestions', () => {
+      const candidates = [
+        createCandidate(1, 'Lets go hiking', [], [], 'suggestion'),
+        createCandidate(2, 'Try that restaurant', [], [], 'suggestion')
+      ]
 
-      const prompt = buildClassificationPrompt(candidates, TEST_CONTEXT)
+      const { suggestions, agreements } = separateCandidatesByType(candidates)
 
-      expect(prompt).toContain('[AGREE]')
-      expect(prompt).toContain('agreement/enthusiasm')
-      expect(prompt).toContain('activity is usually in the surrounding context')
-      expect(prompt).toContain('If context has no clear activity, skip it')
+      expect(suggestions).toHaveLength(2)
+      expect(agreements).toHaveLength(0)
+    })
+
+    it('handles all agreements', () => {
+      const candidates = [
+        createCandidate(1, 'Sounds great!', [], [], 'agreement'),
+        createCandidate(2, 'Im keen!', [], [], 'agreement')
+      ]
+
+      const { suggestions, agreements } = separateCandidatesByType(candidates)
+
+      expect(suggestions).toHaveLength(0)
+      expect(agreements).toHaveLength(2)
+    })
+
+    it('handles empty array', () => {
+      const { suggestions, agreements } = separateCandidatesByType([])
+
+      expect(suggestions).toHaveLength(0)
+      expect(agreements).toHaveLength(0)
     })
   })
 
@@ -498,7 +552,11 @@ Hope this helps!`
     }
 
     it('enriches candidate contexts with URL metadata', () => {
-      const candidates = [createCandidate(1, 'test', ['Watch https://youtube.com/watch?v=abc'])]
+      const candidates = [
+        createCandidate(1, 'test', [
+          createContextMessage(0, 'Watch https://youtube.com/watch?v=abc')
+        ])
+      ]
       const metadataMap = new Map([['https://youtube.com/watch?v=abc', metadata]])
       const contextWithMetadata: ClassificationContext = {
         ...TEST_CONTEXT,

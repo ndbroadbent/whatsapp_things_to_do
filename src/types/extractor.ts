@@ -19,6 +19,14 @@ export type CandidateSource =
       readonly queryType: QueryType
     }
 
+/** A message in the context window around a candidate. */
+export interface ContextMessage {
+  readonly id: number
+  readonly sender: string
+  readonly content: string
+  readonly timestamp: Date
+}
+
 export interface CandidateMessage {
   readonly messageId: number
   readonly content: string
@@ -29,9 +37,9 @@ export interface CandidateMessage {
   /** Whether this is a suggestion (proposing activity) or agreement (positive response). */
   readonly candidateType: QueryType
   /** Messages before the target (for classifier context). */
-  readonly contextBefore: readonly string[]
+  readonly contextBefore: readonly ContextMessage[]
   /** Messages after the target (for classifier context). */
-  readonly contextAfter: readonly string[]
+  readonly contextAfter: readonly ContextMessage[]
   readonly urls?: readonly string[] | undefined
 }
 

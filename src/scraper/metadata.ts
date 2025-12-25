@@ -56,14 +56,14 @@ export function extractUrlsFromCandidates(candidates: readonly CandidateMessage[
       urls.add(url)
     }
     // Check context before
-    for (const line of candidate.contextBefore) {
-      for (const url of extractUrlsFromText(line)) {
+    for (const msg of candidate.contextBefore) {
+      for (const url of extractUrlsFromText(msg.content)) {
         urls.add(url)
       }
     }
     // Check context after
-    for (const line of candidate.contextAfter) {
-      for (const url of extractUrlsFromText(line)) {
+    for (const msg of candidate.contextAfter) {
+      for (const url of extractUrlsFromText(msg.content)) {
         urls.add(url)
       }
     }

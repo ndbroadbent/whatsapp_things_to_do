@@ -18,7 +18,9 @@ import { DEFAULT_MODELS } from './models'
 import {
   buildClassificationPrompt,
   type ParsedClassification,
-  parseClassificationResponse
+  type PromptType,
+  parseClassificationResponse,
+  separateCandidatesByType
 } from './prompt'
 import { callProviderWithFallbacks } from './providers'
 import { countTokens, MAX_BATCH_TOKENS } from './tokenizer'
@@ -34,6 +36,7 @@ export {
 
 import { VALID_CATEGORIES } from '../categories'
 import { generateActivityId } from '../types/activity-id'
+import { resolveMessageWithOffset } from './message-offset'
 
 const DEFAULT_BATCH_SIZE = 10
 
@@ -63,8 +66,12 @@ function toClassifiedActivity(
     )
     return null
   }
+
+  // Resolve the actual message using offset (for [AGREE] candidates pointing to earlier messages)
+  const resolvedMessage = resolveMessageWithOffset(candidate, response.off)
+
   // Capitalize first letter of title
-  const title = response.title ?? candidate.content.slice(0, 100)
+  const title = response.title ?? resolvedMessage.content.slice(0, 100)
   const capitalizedTitle = title.charAt(0).toUpperCase() + title.slice(1)
 
   // Build activity without ID first
@@ -83,8 +90,8 @@ function toClassifiedActivity(
       {
         id: candidate.messageId,
         timestamp: candidate.timestamp,
-        sender: candidate.sender,
-        message: candidate.content
+        sender: resolvedMessage.sender,
+        message: resolvedMessage.content
       }
     ],
     isGeneric: response.gen,
@@ -112,17 +119,27 @@ function toClassifiedActivity(
  *
  * This is the core classification function - processes a single batch.
  * For parallel processing, CLI uses a worker pool that calls this function.
+ *
+ * @param candidates Candidates to classify (should all be same type for best results)
+ * @param config Classifier configuration
+ * @param cache Optional response cache
+ * @param promptType Optional prompt type override (auto-detected if not specified)
  */
 export async function classifyBatch(
   candidates: readonly CandidateMessage[],
   config: ClassifierConfig,
-  cache?: ResponseCache
+  cache?: ResponseCache,
+  promptType?: PromptType
 ): Promise<Result<ClassifiedActivity[]>> {
-  const prompt = buildClassificationPrompt(candidates, {
-    homeCountry: config.homeCountry,
-    timezone: config.timezone,
-    urlMetadata: config.urlMetadata
-  })
+  const prompt = buildClassificationPrompt(
+    candidates,
+    {
+      homeCountry: config.homeCountry,
+      timezone: config.timezone,
+      urlMetadata: config.urlMetadata
+    },
+    promptType
+  )
 
   // Safety check: ensure prompt isn't too long
   const tokenCount = countTokens(prompt)
@@ -175,10 +192,79 @@ export async function classifyBatch(
 }
 
 /**
+ * Create batches from candidates with specified size.
+ */
+function createBatches(
+  candidates: readonly CandidateMessage[],
+  batchSize: number
+): CandidateMessage[][] {
+  const batches: CandidateMessage[][] = []
+  for (let i = 0; i < candidates.length; i += batchSize) {
+    batches.push([...candidates.slice(i, i + batchSize)])
+  }
+  return batches
+}
+
+/**
+ * Process batches of a specific type.
+ */
+async function processBatches(
+  batches: CandidateMessage[][],
+  promptType: PromptType,
+  config: ClassifierConfig,
+  cache: ResponseCache | undefined,
+  model: string,
+  batchIndexOffset: number,
+  totalBatches: number
+): Promise<Result<ClassifiedActivity[]>> {
+  const results: ClassifiedActivity[] = []
+
+  for (let i = 0; i < batches.length; i++) {
+    const batch = batches[i]
+    if (!batch) continue
+
+    const globalBatchIndex = batchIndexOffset + i
+
+    // Check cache BEFORE calling onBatchStart
+    const messages = batch.map((c) => ({ messageId: c.messageId, content: c.content }))
+    const cacheKey = generateClassifierCacheKey(config.provider, model, messages)
+    const cached = cache ? await cache.get<string>(cacheKey) : null
+
+    config.onBatchStart?.({
+      batchIndex: globalBatchIndex,
+      totalBatches,
+      candidateCount: batch.length,
+      model,
+      provider: config.provider,
+      fromCache: cached !== null
+    })
+
+    const startTime = Date.now()
+    const result = await classifyBatch(batch, config, cache, promptType)
+    const durationMs = Date.now() - startTime
+
+    if (!result.ok) {
+      return result
+    }
+
+    config.onBatchComplete?.({
+      batchIndex: globalBatchIndex,
+      totalBatches,
+      activityCount: result.value.length,
+      durationMs
+    })
+
+    results.push(...result.value)
+  }
+
+  return { ok: true, value: results }
+}
+
+/**
  * Classify candidate messages using AI.
  *
- * Uses smart batching to keep nearby candidates together in the same batch,
- * improving classification quality for planning discussions that span multiple messages.
+ * Separates candidates into suggestions and agreements, processing each type
+ * with a specialized prompt for better accuracy with smaller models.
  *
  * @param candidates Candidate messages to classify
  * @param config Classifier configuration
@@ -192,50 +278,49 @@ export async function classifyMessages(
 ): Promise<Result<ClassifiedActivity[]>> {
   const batchSize = config.batchSize ?? DEFAULT_BATCH_SIZE
   const model = config.model ?? DEFAULT_MODELS[config.provider]
+
+  // Separate candidates by type for specialized prompts
+  const { suggestions, agreements } = separateCandidatesByType(candidates)
+
+  // Create batches for each type
+  const suggestionBatches = createBatches(suggestions, batchSize)
+  const agreementBatches = createBatches(agreements, batchSize)
+  const totalBatches = suggestionBatches.length + agreementBatches.length
+
   const results: ClassifiedActivity[] = []
 
-  // Simple batching - take candidates in order
-  const batches: CandidateMessage[][] = []
-  for (let i = 0; i < candidates.length; i += batchSize) {
-    batches.push([...candidates.slice(i, i + batchSize)])
+  // Process suggestion batches first
+  if (suggestionBatches.length > 0) {
+    const suggestionResult = await processBatches(
+      suggestionBatches,
+      'suggestion',
+      config,
+      cache,
+      model,
+      0,
+      totalBatches
+    )
+    if (!suggestionResult.ok) {
+      return suggestionResult
+    }
+    results.push(...suggestionResult.value)
   }
 
-  // Process batches sequentially (CLI uses worker pool for parallelism)
-  for (let i = 0; i < batches.length; i++) {
-    const batch = batches[i]
-    if (!batch) continue
-
-    // Check cache BEFORE calling onBatchStart
-    const messages = batch.map((c) => ({ messageId: c.messageId, content: c.content }))
-    const cacheKey = generateClassifierCacheKey(config.provider, model, messages)
-    const cached = cache ? await cache.get<string>(cacheKey) : null
-
-    config.onBatchStart?.({
-      batchIndex: i,
-      totalBatches: batches.length,
-      candidateCount: batch.length,
+  // Process agreement batches
+  if (agreementBatches.length > 0) {
+    const agreementResult = await processBatches(
+      agreementBatches,
+      'agreement',
+      config,
+      cache,
       model,
-      provider: config.provider,
-      fromCache: cached !== null
-    })
-
-    const startTime = Date.now()
-    const result = await classifyBatch(batch, config, cache)
-    const durationMs = Date.now() - startTime
-
-    if (!result.ok) {
-      return result
+      suggestionBatches.length,
+      totalBatches
+    )
+    if (!agreementResult.ok) {
+      return agreementResult
     }
-
-    // Call onBatchComplete with results
-    config.onBatchComplete?.({
-      batchIndex: i,
-      totalBatches: batches.length,
-      activityCount: result.value.length,
-      durationMs
-    })
-
-    results.push(...result.value)
+    results.push(...agreementResult.value)
   }
 
   return { ok: true, value: results }

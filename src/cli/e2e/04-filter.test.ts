@@ -90,7 +90,9 @@ describe('filter command', () => {
   })
 
   it('supports --dry-run flag', () => {
-    const { stdout, exitCode } = runCli(`filter ${FIXTURE_INPUT} --dry-run --method embeddings`)
+    const { stdout, exitCode } = runCli(
+      `filter ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir} --dry-run --method embeddings`
+    )
     expect(exitCode).toBe(0)
     expect(stdout).toContain('Embedding Cost Estimate')
     expect(stdout).not.toContain('Extraction Results')

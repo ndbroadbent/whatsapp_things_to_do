@@ -2,12 +2,17 @@
  * Classification Prompt
  *
  * AI prompt for classifying candidate messages as activities.
- * Includes URL metadata enrichment for better context.
+ * Split into two prompt types for better accuracy with smaller models:
+ * - Suggestion prompt: For regular candidates where activity is in the >>> message
+ * - Agreement prompt: For [AGREE] candidates pointing to earlier messages
  */
 
 import { VALID_CATEGORIES } from '../categories'
 import type { ScrapedMetadata } from '../scraper/types'
-import type { CandidateMessage } from '../types'
+import type { CandidateMessage, ContextMessage } from '../types'
+
+// Re-export parsing types and functions
+export { type ParsedClassification, parseClassificationResponse } from './response-parser'
 
 /** URL regex - matches http/https URLs */
 const URL_REGEX = /https?:\/\/[^\s<>"{}|\\^`[\]]+/g
@@ -60,27 +65,37 @@ export function injectUrlMetadataIntoText(
 }
 
 /**
+ * Format a context message as a string for the AI prompt.
+ * Example: "[2024-10-11T13:34] John: Hello world"
+ */
+function formatContextMessage(msg: ContextMessage): string {
+  const iso = msg.timestamp.toISOString().slice(0, 16) // "2024-10-11T13:34"
+  return `[${iso}] ${msg.sender}: ${msg.content}`
+}
+
+/**
  * Format candidate with surrounding context for the classifier prompt.
- * Format: context before, then >>> target message, then context after.
- * Optionally enriches URLs with scraped metadata.
+ * For suggestions: includes both before and after context.
+ * For agreements: only includes before context (what they're agreeing to).
  */
 function formatCandidateWithContext(
   candidate: CandidateMessage,
-  metadataMap?: Map<string, ScrapedMetadata>
+  metadataMap?: Map<string, ScrapedMetadata>,
+  includeAfterContext = true
 ): string {
   const parts: string[] = []
 
   // Context before the target message
   if (candidate.contextBefore.length > 0) {
-    parts.push(candidate.contextBefore.join('\n'))
+    parts.push(candidate.contextBefore.map(formatContextMessage).join('\n'))
   }
 
   // The target message (marked with >>>)
   parts.push(`>>> ${candidate.sender}: ${candidate.content}`)
 
-  // Context after the target message
-  if (candidate.contextAfter.length > 0) {
-    parts.push(candidate.contextAfter.join('\n'))
+  // Context after the target message (only for suggestions)
+  if (includeAfterContext && candidate.contextAfter.length > 0) {
+    parts.push(candidate.contextAfter.map(formatContextMessage).join('\n'))
   }
 
   let result = parts.join('\n')
@@ -119,57 +134,25 @@ export interface ClassificationContext {
   readonly urlMetadata?: Map<string, ScrapedMetadata> | undefined
 }
 
-/**
- * Build the classification prompt for a batch of candidates.
- */
-export function buildClassificationPrompt(
-  candidates: readonly CandidateMessage[],
-  context: ClassificationContext
-): string {
-  if (!context.homeCountry) {
-    throw new Error('ClassificationContext.homeCountry is required')
-  }
+// ============================================================================
+// SHARED PROMPT SECTIONS
+// ============================================================================
 
-  const messagesText = candidates
-    .map((candidate) => {
-      const formatted = formatCandidateWithContext(candidate, context.urlMetadata)
-      const timestamp = formatTimestamp(candidate.timestamp)
-      const typeTag = candidate.candidateType === 'agreement' ? ' [AGREE]' : ''
-      return `
----
-ID: ${candidate.messageId}${typeTag} | ${timestamp}
-${formatted}
----`
-    })
-    .join('\n')
-
+function buildUserContextSection(context: ClassificationContext): string {
   const timezoneInfo = context.timezone ? `\nTimezone: ${context.timezone}` : ''
-  const userContext = `
-USER CONTEXT:
-Home country: ${context.homeCountry}${timezoneInfo}
-`
+  return `USER CONTEXT:
+Home country: ${context.homeCountry}${timezoneInfo}`
+}
 
-  return `GOAL: Extract "things to do" from chat history - activities, places, and plans worth putting on a map or list.
-${userContext}
-
-WHY THESE MESSAGES:
-You're seeing messages pre-filtered by heuristics (regex patterns like "let's go", "we should try") and semantic search (embeddings). We intentionally cast a wide net - you'll see some false positives. Your job is to identify the real activities worth saving.
-
-Messages marked >>> are candidates. Use surrounding context to understand what they refer to.
-
-[AGREE] = agreement/enthusiasm ("sounds great!", "I'm keen") rather than a direct suggestion. For these, the activity is usually in the surrounding context - extract it from there. If context has no clear activity, skip it.
-
-URLs may have [URL_META: {...}] with scraped metadata - use this to understand what links are about.
-
-INCLUDE (output these):
+const SHARED_INCLUDE_RULES = `INCLUDE (output these):
 - Named places: restaurants, cafes, food trucks, bars, venues, parks, trails
 - Specific activities: hiking, kayaking, concerts, movies, shows
 - Travel plans: trips, destinations, hotels, Airbnb
 - Events: festivals, markets, concerts, exhibitions
 - Things to do: hobbies, experiences, skills, sports, games
-- Generic but actionable: "Let's go to a cafe" (specific type of place)
+- Generic but actionable: "Let's go to a cafe" (specific type of place)`
 
-SKIP (don't output):
+const SHARED_SKIP_RULES = `SKIP (don't output):
 - Vague: "wanna go out?", "do something fun", "go somewhere"
 - Logistics: "leave at 3:50pm", "skip the nachos"
 - Questions: "where should we go?"
@@ -179,19 +162,21 @@ SKIP (don't output):
 - Romantic/intimate, adult content
 - Sad or stressful: funerals, hospitals, work deadlines, financial worries
 - Sensitive: potential secrets, embarrassing messages, offensive content, or illegal activities
-- Unclear references: "go there again" (where?), "check it out" (what?)
+- Unclear references: "go there again" (where?), "check it out" (what?)`
 
-MESSAGES:
-${messagesText}
+function buildJsonSchemaSection(includeOffset: boolean): string {
+  const offsetField = includeOffset
+    ? `    "off": <message_offset: 0 if activity is in >>> message, -1 for immediately before, -2 for two before, etc.>,\n`
+    : ''
 
-OUTPUT FORMAT:
+  return `OUTPUT FORMAT:
 Return JSON array with ONLY activities worth saving. Skip non-activities entirely. Return [] if none found.
 
 \`\`\`json
 [
   {
     "msg": <message_id>,
-    "title": "<activity description, under 100 chars, fix any typos (e.g., 'ballon'→'balloon')>",
+${offsetField}    "title": "<activity description, under 100 chars, fix any typos (e.g., 'ballon'→'balloon')>",
     "fun": <0.0-1.0 how fun/enjoyable>,
     "int": <0.0-1.0 how interesting/unique>,
     "cat": "<category>",
@@ -211,16 +196,74 @@ Return JSON array with ONLY activities worth saving. Skip non-activities entirel
 ]
 \`\`\`
 
-KEYWORDS (kw): Include up to 3 keywords for stock photo search. Must be DIFFERENT from act/obj/venue. Include:
+(ALL fields are required. Use null or empty string if the field has no applicable value.)`
+}
+
+const SHARED_KEYWORDS_SECTION = `KEYWORDS (kw): Include up to 3 keywords for stock photo search. Must be DIFFERENT from act/obj/venue. Include:
 - Location-specific details: "hot air balloon" + Turkey → ["cappadocia", "sunrise", "fairy chimneys"]
 - Disambiguation: "watch play" → ["theatre", "stage", "actors"] (not playground)
-- DO NOT include any generic terms that may dilute the search query. For example, "play paintball" is a much better query WITHOUT generic keywords like "action, game, team" (which return images of football and basketball.) Include no keywords at all if the act/obj/venue are already specific.
+- DO NOT include any generic terms that may dilute the search query. For example, "play paintball" is a much better query WITHOUT generic keywords like "action, game, team" (which return images of football and basketball.) Include no keywords at all if the act/obj/venue are already specific.`
 
-LOCATION: Fill city/region/country if explicitly mentioned or obvious from context. For ambiguous names (e.g., "Omaha"), assume the user's home country. Venue must be a specific place and not a general region.
+function buildLocationSection(homeCountry: string): string {
+  return `LOCATION: Fill city/region/country if mentioned or obvious from context. For ambiguous names (e.g., "Omaha"), assume the user's home country (${homeCountry}). Venue can only be a specific place and not a general region.`
+}
 
-CATEGORIES: ${VALID_CATEGORIES.join(', ')}
+const SHARED_CATEGORIES_SECTION = `CATEGORIES: ${VALID_CATEGORIES.join(', ')}
+("other" should be used only as a last resort. Only use it if no other category applies.)`
 
-NORMALIZATION: tramping→hike, cycling→bike, film→movie. But keep distinct: cafe≠restaurant, bar≠restaurant.
+const SHARED_NORMALIZATION = `NORMALIZATION: tramping→hike, cycling→bike, film→movie. But keep distinct: cafe≠restaurant, bar≠restaurant.`
+
+const SHARED_COMPOUND_SECTION = `COMPOUND vs MULTIPLE: For com:true, still emit ONE object - it just flags that the JSON is lossy so that we prevent activity aggregation errors. If a message lists truly separate activities ("Try Kazuya, also check out the Botanic Gardens"), emit multiple objects.`
+
+// ============================================================================
+// SUGGESTION PROMPT (regular candidates)
+// ============================================================================
+
+function buildSuggestionPrompt(
+  candidates: readonly CandidateMessage[],
+  context: ClassificationContext
+): string {
+  const messagesText = candidates
+    .map((candidate) => {
+      const formatted = formatCandidateWithContext(candidate, context.urlMetadata, true)
+      const timestamp = formatTimestamp(candidate.timestamp)
+      return `
+---
+ID: ${candidate.messageId} | ${timestamp}
+${formatted}
+---`
+    })
+    .join('\n')
+
+  return `GOAL: Extract "things to do" from chat history - activities, places, and plans worth putting on a map or list.
+
+${buildUserContextSection(context)}
+
+WHY THESE MESSAGES:
+You're seeing messages pre-filtered by heuristics (regex patterns like "let's go", "we should try") and semantic search (embeddings). We intentionally cast a wide net - you'll see some false positives. Your job is to identify the real activities worth saving.
+
+Messages marked >>> are candidates. The activity MUST come from the >>> candidate message itself, not from surrounding context.
+
+CRITICAL: Only extract activities that are IN the >>> message itself. Context is for understanding intent, not for finding activities.
+- WRONG: >>> "Just having coffee" with context "Paintball. Saturday?" → extracting paintball (activity is in context, not candidate)
+- RIGHT: >>> "Just having coffee" → skip (not an activity suggestion)
+- RIGHT: >>> "Paintball. Saturday?" → extract paintball (activity is in the candidate itself)
+
+URLs may have [URL_META: {...}] with scraped metadata - use this to understand what links are about.
+
+${SHARED_INCLUDE_RULES}
+
+${SHARED_SKIP_RULES}
+
+${buildJsonSchemaSection(false)}
+
+${SHARED_KEYWORDS_SECTION}
+
+${buildLocationSection(context.homeCountry)}
+
+${SHARED_CATEGORIES_SECTION}
+
+${SHARED_NORMALIZATION}
 
 EXAMPLES:
 - "Go tramping in Queenstown" → act:"hike", city:"Queenstown", gen:false
@@ -229,137 +272,133 @@ EXAMPLES:
 - "Let's visit Omaha" (user in NZ) → city:"Omaha", country:"New Zealand"
 - "Go to Iceland and see the aurora" → act:"travel", country:"Iceland", com:true (two activities: travel + aurora viewing)
 
-COMPOUND vs MULTIPLE: For com:true, still emit ONE object - it just flags that the JSON is lossy so that we prevent activity aggregation errors. But if a message lists truly separate activities ("Try Kazuya, also check out the Botanic Gardens"), emit multiple objects.`
+${SHARED_COMPOUND_SECTION}
+
+MESSAGES:
+${messagesText}
+`
 }
 
-export interface ParsedClassification {
-  msg: number
-  title: string | null
-  /** How fun/enjoyable is this activity? 0=boring, 1=exciting */
-  fun: number
-  /** How interesting/unique is this activity? 0=common/mundane, 1=rare/novel */
-  int: number
-  cat: string
-  conf: number
-  gen: boolean
-  com: boolean
-  act: string | null
-  act_orig: string | null
-  obj: string | null
-  obj_orig: string | null
-  venue: string | null
-  city: string | null
-  region: string | null
-  country: string | null
-  /** 3 keywords for stock photo search (different from act/obj/venue) */
-  kw: string[]
+// ============================================================================
+// AGREEMENT PROMPT ([AGREE] candidates)
+// ============================================================================
+
+function buildAgreementPrompt(
+  candidates: readonly CandidateMessage[],
+  context: ClassificationContext
+): string {
+  const messagesText = candidates
+    .map((candidate) => {
+      // Only show context BEFORE for agreements (what they're agreeing to)
+      const formatted = formatCandidateWithContext(candidate, context.urlMetadata, false)
+      const timestamp = formatTimestamp(candidate.timestamp)
+      return `
+---
+ID: ${candidate.messageId} [AGREE] | ${timestamp}
+${formatted}
+---`
+    })
+    .join('\n')
+
+  return `GOAL: Extract activities that the user is agreeing to or expressing enthusiasm about.
+
+${buildUserContextSection(context)}
+
+These are AGREEMENT messages - phrases like "sounds great!", "I'm keen!", "let's do it!". Your job is to find WHAT they are agreeing to by looking at the messages BEFORE the >>> candidate.
+
+The >>> message is the agreement itself. Look at the context BEFORE it to find the activity being agreed to.
+
+For each activity found, use:
+- "msg": the ID of the >>> agreement message
+- "off": negative offset pointing to where the activity is (e.g., -1 for immediately before, -2 for two messages before)
+
+If you can't find a clear activity in the context before the agreement, skip it entirely.
+
+URLs may have [URL_META: {...}] with scraped metadata - use this to understand what links are about.
+
+${SHARED_INCLUDE_RULES}
+
+${SHARED_SKIP_RULES}
+
+${buildJsonSchemaSection(true)}
+
+${SHARED_KEYWORDS_SECTION}
+
+${buildLocationSection(context.homeCountry)}
+
+${SHARED_CATEGORIES_SECTION}
+
+${SHARED_NORMALIZATION}
+
+EXAMPLES:
+- Context: "Wanna do a whale safari?" then >>> "That sounds amazing!" → off:-1, act:"do", obj:"safari"
+- Context: "Let's go hiking" then "What about Saturday?" then >>> "Perfect!" → off:-2, act:"hike"
+- >>> "Sounds fun!" with no clear activity before → skip entirely
+
+${SHARED_COMPOUND_SECTION}
+
+MESSAGES:
+${messagesText}
+`
 }
 
-function extractJsonFromResponse(response: string): string {
-  // Try to extract JSON from response (might be wrapped in ```json```)
-  const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/)
-  if (jsonMatch?.[1]) {
-    return jsonMatch[1]
+// ============================================================================
+// PUBLIC API
+// ============================================================================
+
+export type PromptType = 'suggestion' | 'agreement'
+
+/**
+ * Build the classification prompt for a batch of candidates.
+ * Automatically selects the appropriate prompt type based on candidate types.
+ */
+export function buildClassificationPrompt(
+  candidates: readonly CandidateMessage[],
+  context: ClassificationContext,
+  promptType?: PromptType
+): string {
+  if (!context.homeCountry) {
+    throw new Error('ClassificationContext.homeCountry is required')
   }
-  // Try to find JSON array directly
-  const arrayMatch = response.match(/\[[\s\S]*\]/)
-  if (!arrayMatch) {
-    throw new Error('Could not find JSON array in response')
-  }
-  return arrayMatch[0]
-}
 
-function parseString(val: unknown): string | null {
-  return typeof val === 'string' && val.trim() ? val : null
-}
+  // Auto-detect prompt type if not specified
+  const type = promptType ?? detectPromptType(candidates)
 
-function parseNumber(val: unknown, fallback: number, clamp = true): number {
-  if (typeof val === 'number') {
-    return clamp ? Math.max(0, Math.min(1, val)) : val
+  if (type === 'agreement') {
+    return buildAgreementPrompt(candidates, context)
   }
-  if (typeof val === 'string') {
-    const parsed = Number.parseFloat(val)
-    if (!Number.isNaN(parsed)) {
-      return clamp ? Math.max(0, Math.min(1, parsed)) : parsed
-    }
-  }
-  return fallback
-}
-
-function parseBoolean(val: unknown, fallback: boolean): boolean {
-  if (typeof val === 'boolean') return val
-  if (typeof val === 'string') {
-    if (val.toLowerCase() === 'true') return true
-    if (val.toLowerCase() === 'false') return false
-  }
-  return fallback
-}
-
-function parseStringArray(val: unknown): string[] {
-  if (!Array.isArray(val)) return []
-  return val.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
-}
-
-function parseItem(obj: Record<string, unknown>): ParsedClassification {
-  return {
-    msg: parseNumber(obj.msg, 0, false), // msg is an ID, not clamped to 0-1
-    title: parseString(obj.title),
-    fun: parseNumber(obj.fun, 0.5),
-    int: parseNumber(obj.int, 0.5),
-    cat: typeof obj.cat === 'string' ? obj.cat : 'other',
-    conf: parseNumber(obj.conf, 0.5),
-    gen: parseBoolean(obj.gen, true),
-    com: parseBoolean(obj.com, true),
-    act: parseString(obj.act),
-    act_orig: parseString(obj.act_orig),
-    obj: parseString(obj.obj),
-    obj_orig: parseString(obj.obj_orig),
-    venue: parseString(obj.venue),
-    city: parseString(obj.city),
-    region: parseString(obj.region),
-    country: parseString(obj.country),
-    kw: parseStringArray(obj.kw)
-  }
+  return buildSuggestionPrompt(candidates, context)
 }
 
 /**
- * Parse the classification response from the AI.
- * @param response Raw AI response text
- * @param expectedIds Optional array of message IDs - at least one must match
+ * Detect the prompt type based on candidates.
+ * If all candidates are agreements, use agreement prompt.
+ * Otherwise use suggestion prompt.
  */
-export function parseClassificationResponse(
-  response: string,
-  expectedIds?: readonly number[]
-): ParsedClassification[] {
-  const jsonStr = extractJsonFromResponse(response)
-  const parsed = JSON.parse(jsonStr) as unknown
+function detectPromptType(candidates: readonly CandidateMessage[]): PromptType {
+  if (candidates.length === 0) return 'suggestion'
+  const allAgreements = candidates.every((c) => c.candidateType === 'agreement')
+  return allAgreements ? 'agreement' : 'suggestion'
+}
 
-  if (!Array.isArray(parsed)) {
-    throw new Error('Response is not an array')
-  }
+/**
+ * Separate candidates into suggestion and agreement batches.
+ * This allows processing them with different prompts for better accuracy.
+ */
+export function separateCandidatesByType(candidates: readonly CandidateMessage[]): {
+  suggestions: CandidateMessage[]
+  agreements: CandidateMessage[]
+} {
+  const suggestions: CandidateMessage[] = []
+  const agreements: CandidateMessage[] = []
 
-  // Empty array is valid - means no activities found
-  if (parsed.length === 0) {
-    return []
-  }
-
-  const results = parsed.map((item: unknown) => {
-    if (typeof item !== 'object' || item === null) {
-      throw new Error('Array item is not an object')
-    }
-    return parseItem(item as Record<string, unknown>)
-  })
-
-  // Validate at least one msg matches expected
-  if (expectedIds && expectedIds.length > 0) {
-    const expectedSet = new Set(expectedIds)
-    const hasMatch = results.some((r) => expectedSet.has(r.msg))
-    if (!hasMatch) {
-      throw new Error(
-        `AI response contains no matching message IDs. Expected: [${expectedIds.join(', ')}], got: [${results.map((r) => r.msg).join(', ')}]`
-      )
+  for (const candidate of candidates) {
+    if (candidate.candidateType === 'agreement') {
+      agreements.push(candidate)
+    } else {
+      suggestions.push(candidate)
     }
   }
 
-  return results
+  return { suggestions, agreements }
 }

@@ -177,14 +177,17 @@ describe('classify command', () => {
       'classifications.json'
     )
 
-    // Verify descending sort order
+    // Helper to round to 1 decimal place (avoids floating point comparison issues)
+    const round1 = (n: number) => Math.round(n * 10) / 10
+
+    // Verify descending sort order (with rounding to handle floating point)
     for (let i = 0; i < activities.length - 1; i++) {
       const current = activities[i]
       const next = activities[i + 1]
       if (!current || !next) continue
 
-      const scoreA = current.interestingScore * 2 + current.funScore
-      const scoreB = next.interestingScore * 2 + next.funScore
+      const scoreA = round1(current.interestingScore * 2 + current.funScore)
+      const scoreB = round1(next.interestingScore * 2 + next.funScore)
       expect(scoreA).toBeGreaterThanOrEqual(scoreB)
     }
 

@@ -9,8 +9,6 @@ export {
   generateCacheKey,
   generateClassifierCacheKey,
   generateEmbeddingCacheKey,
-  generateGeocodeCacheKey,
-  generateImageCacheKey
+  generateGeocodeCacheKey
 } from './key'
-export { hashFileBytes, PipelineCache, type PipelineStage } from './pipeline'
 export type { CachedResponse, CacheKeyComponents, ResponseCache } from './types'

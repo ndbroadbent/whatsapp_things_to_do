@@ -40,8 +40,9 @@ describe('embed command', () => {
   })
 
   it('supports --dry-run flag', () => {
-    // Create a new temp dir to ensure no cache
-    const { stdout, exitCode } = runCli(`embed ${FIXTURE_INPUT} --dry-run`)
+    const { stdout, exitCode } = runCli(
+      `embed ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir} --dry-run`
+    )
     expect(exitCode).toBe(0)
     expect(stdout).toContain('Dry run')
     expect(stdout).not.toContain('Embedded')

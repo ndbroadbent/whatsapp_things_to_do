@@ -8,6 +8,7 @@
 import type {
   CandidateMessage,
   CandidateSource,
+  ContextMessage,
   ExtractorOptions,
   ExtractorResult,
   ParsedMessage,
@@ -83,8 +84,8 @@ interface RegexMatch {
   patternName: string
   candidateType: QueryType
   urls: readonly string[] | undefined
-  contextBefore: readonly string[]
-  contextAfter: readonly string[]
+  contextBefore: readonly ContextMessage[]
+  contextAfter: readonly ContextMessage[]
 }
 
 function applyActivityBoost(baseConfidence: number, content: string): number {
@@ -193,8 +194,8 @@ interface UrlMatch {
   urlType: string
   candidateType: QueryType
   urls: readonly string[]
-  contextBefore: readonly string[]
-  contextAfter: readonly string[]
+  contextBefore: readonly ContextMessage[]
+  contextAfter: readonly ContextMessage[]
 }
 
 interface BestUrl {
@@ -288,8 +289,8 @@ interface BaseMatch {
   confidence: number
   candidateType: QueryType
   urls: readonly string[] | undefined
-  contextBefore: readonly string[]
-  contextAfter: readonly string[]
+  contextBefore: readonly ContextMessage[]
+  contextAfter: readonly ContextMessage[]
 }
 
 /**

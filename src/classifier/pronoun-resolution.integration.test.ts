@@ -54,7 +54,10 @@ describe('Classifier Pronoun Resolution', () => {
     if (!visitCandidate) throw new Error('visitCandidate not found')
 
     // Verify context includes "Sarah" (in before or after context)
-    const allContext = [...visitCandidate.contextBefore, ...visitCandidate.contextAfter].join('\n')
+    const allContext = [
+      ...visitCandidate.contextBefore.map((m) => m.content),
+      ...visitCandidate.contextAfter.map((m) => m.content)
+    ].join('\n')
     expect(allContext).toContain('Sarah')
     // Use real API key if available, otherwise use dummy (cache will provide response)
     const apiKey = process.env.OPENAI_API_KEY || 'dummy-key-for-cached-tests'

@@ -10,7 +10,7 @@ import {
   MAX_MESSAGE_CHARS,
   MIN_CONTEXT_MESSAGES,
   TRUNCATION_MARKER,
-  truncateMessage
+  truncateContent
 } from './context-window'
 
 function createMessage(id: number, content: string, sender = 'User'): ParsedMessage {
@@ -25,21 +25,21 @@ function createMessage(id: number, content: string, sender = 'User'): ParsedMess
   }
 }
 
-describe('truncateMessage', () => {
+describe('truncateContent', () => {
   it('returns short messages unchanged', () => {
     const msg = 'Hello world'
-    expect(truncateMessage(msg)).toBe(msg)
+    expect(truncateContent(msg)).toBe(msg)
   })
 
   it('truncates messages over 280 chars', () => {
     const longMsg = 'x'.repeat(300)
-    const result = truncateMessage(longMsg)
+    const result = truncateContent(longMsg)
     expect(result).toBe('x'.repeat(MAX_MESSAGE_CHARS) + TRUNCATION_MARKER)
   })
 
   it('returns exactly 280 chars unchanged', () => {
     const msg = 'x'.repeat(280)
-    expect(truncateMessage(msg)).toBe(msg)
+    expect(truncateContent(msg)).toBe(msg)
   })
 })
 

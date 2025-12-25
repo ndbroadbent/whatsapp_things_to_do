@@ -130,6 +130,37 @@ describe('PipelineCache', () => {
       expect(retrieved).toEqual(data)
     })
 
+    it('restores Date objects in contextBefore/contextAfter', () => {
+      const timestamp = new Date('2025-01-15T10:30:00Z')
+      const data = [
+        {
+          messageId: 1,
+          content: 'Test',
+          timestamp,
+          contextBefore: [{ id: 0, sender: 'Alice', content: 'Before', timestamp }],
+          contextAfter: [{ id: 2, sender: 'Bob', content: 'After', timestamp }]
+        }
+      ]
+      cache.setStage('candidates.heuristics', data)
+
+      const retrieved = cache.getStage<typeof data>('candidates.heuristics')
+      expect(retrieved).not.toBeNull()
+      if (!retrieved) throw new Error('retrieved is null')
+
+      // Check top-level timestamp is restored
+      expect(retrieved[0]?.timestamp).toBeInstanceOf(Date)
+      // Check contextBefore timestamps are restored
+      expect(retrieved[0]?.contextBefore[0]?.timestamp).toBeInstanceOf(Date)
+      expect(retrieved[0]?.contextBefore[0]?.timestamp.toISOString()).toBe(
+        '2025-01-15T10:30:00.000Z'
+      )
+      // Check contextAfter timestamps are restored
+      expect(retrieved[0]?.contextAfter[0]?.timestamp).toBeInstanceOf(Date)
+      expect(retrieved[0]?.contextAfter[0]?.timestamp.toISOString()).toBe(
+        '2025-01-15T10:30:00.000Z'
+      )
+    })
+
     it('throws when no run initialized', () => {
       const freshCache = new PipelineCache(tempDir)
       expect(() => freshCache.setStage('messages', [])).toThrow('Pipeline run not initialized')

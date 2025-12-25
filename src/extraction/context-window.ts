@@ -13,16 +13,7 @@
  * - Messages include timestamps in WhatsApp format so AI understands time gaps
  */
 
-import type { CandidateMessage, ParsedMessage } from '../types'
-
-/**
- * Format a message line with ISO timestamp.
- * Example: "[2024-10-11T13:34] John: Hello world"
- */
-function formatMessageLine(msg: ParsedMessage): string {
-  const iso = msg.timestamp.toISOString().slice(0, 16) // "2024-10-11T13:34"
-  return `[${iso}] ${msg.sender}: ${msg.content}`
-}
+import type { CandidateMessage, ContextMessage, ParsedMessage } from '../types'
 
 const MIN_CONTEXT_CHARS = 280
 export const MIN_CONTEXT_MESSAGES = 2
@@ -30,10 +21,10 @@ export const MAX_MESSAGE_CHARS = 280
 export const TRUNCATION_MARKER = ' [truncated to 280 chars]'
 
 export interface MessageContext {
-  /** Formatted context messages before target */
-  readonly before: readonly string[]
-  /** Formatted context messages after target */
-  readonly after: readonly string[]
+  /** Context messages before target */
+  readonly before: readonly ContextMessage[]
+  /** Context messages after target */
+  readonly after: readonly ContextMessage[]
   /** First message ID in context window (before target) */
   readonly firstMessageId: number
   /** Last message ID in context window (after target) */
@@ -43,11 +34,23 @@ export interface MessageContext {
 }
 
 /**
- * Truncate a message line to max chars with marker.
+ * Truncate content to max chars with marker.
  */
-export function truncateMessage(line: string): string {
-  if (line.length <= MAX_MESSAGE_CHARS) return line
-  return line.slice(0, MAX_MESSAGE_CHARS) + TRUNCATION_MARKER
+export function truncateContent(content: string): string {
+  if (content.length <= MAX_MESSAGE_CHARS) return content
+  return content.slice(0, MAX_MESSAGE_CHARS) + TRUNCATION_MARKER
+}
+
+/**
+ * Convert a ParsedMessage to a ContextMessage with truncated content.
+ */
+function toContextMessage(msg: ParsedMessage): ContextMessage {
+  return {
+    id: msg.id,
+    sender: msg.sender,
+    content: truncateContent(msg.content),
+    timestamp: msg.timestamp
+  }
 }
 
 /**
@@ -73,8 +76,8 @@ export function getMessageContext(
     )
   }
 
-  const beforeMessages: string[] = []
-  const afterMessages: string[] = []
+  const beforeMessages: ContextMessage[] = []
+  const afterMessages: ContextMessage[] = []
   let beforeChars = 0
   let afterChars = 0
   let firstMessageId = targetMsg.id
@@ -84,11 +87,10 @@ export function getMessageContext(
   for (let i = index - 1; i >= 0; i--) {
     const msg = messages[i]
     if (!msg) continue
-    const rawLine = formatMessageLine(msg)
-    const line = truncateMessage(rawLine)
+    const contextMsg = toContextMessage(msg)
 
-    beforeMessages.unshift(line)
-    beforeChars += line.length
+    beforeMessages.unshift(contextMsg)
+    beforeChars += contextMsg.content.length
     firstMessageId = msg.id
 
     // Stop when we have both minimums met
@@ -101,11 +103,10 @@ export function getMessageContext(
   for (let i = index + 1; i < messages.length; i++) {
     const msg = messages[i]
     if (!msg) continue
-    const rawLine = formatMessageLine(msg)
-    const line = truncateMessage(rawLine)
+    const contextMsg = toContextMessage(msg)
 
-    afterMessages.push(line)
-    afterChars += line.length
+    afterMessages.push(contextMsg)
+    afterChars += contextMsg.content.length
     lastMessageId = msg.id
 
     // Stop when we have both minimums met

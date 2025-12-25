@@ -6,8 +6,27 @@
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import type { CachedResponse, ResponseCache } from './types'
+
+/**
+ * Throws if tests try to access the user's real cache directory.
+ * Tests must use isolated temp directories.
+ */
+function guardAgainstUserCache(cacheDir: string): void {
+  const isTest = process.env['VITEST'] === 'true' || process.env['NODE_ENV'] === 'test'
+  if (!isTest) return
+
+  const realCacheDir = join(homedir(), '.cache', 'chat-to-map')
+  if (cacheDir.startsWith(realCacheDir)) {
+    throw new Error(
+      `TEST ERROR: Attempted to access user's real cache directory!\n` +
+        `  Cache dir: ${cacheDir}\n` +
+        `  Tests must use isolated temp directories, not ~/.cache/chat-to-map/`
+    )
+  }
+}
 
 /**
  * Filesystem-based cache implementation for CLI usage.
@@ -24,7 +43,9 @@ import type { CachedResponse, ResponseCache } from './types'
  * Uses first 2 chars of hash as subdirectory to avoid too many files in one dir.
  */
 export class FilesystemCache implements ResponseCache {
-  constructor(private readonly cacheDir: string) {}
+  constructor(private readonly cacheDir: string) {
+    guardAgainstUserCache(cacheDir)
+  }
 
   async get<T = unknown>(hash: string): Promise<CachedResponse<T> | null> {
     const path = this.getCachePath(hash)

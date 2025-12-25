@@ -221,6 +221,21 @@ export class PipelineCache {
           if (item && typeof item.timestamp === 'string') {
             item.timestamp = new Date(item.timestamp)
           }
+          // Restore timestamps in contextBefore/contextAfter for candidate stages
+          if (item && Array.isArray(item.contextBefore)) {
+            for (const ctx of item.contextBefore) {
+              if (ctx && typeof ctx.timestamp === 'string') {
+                ctx.timestamp = new Date(ctx.timestamp)
+              }
+            }
+          }
+          if (item && Array.isArray(item.contextAfter)) {
+            for (const ctx of item.contextAfter) {
+              if (ctx && typeof ctx.timestamp === 'string') {
+                ctx.timestamp = new Date(ctx.timestamp)
+              }
+            }
+          }
         }
       }
     }
