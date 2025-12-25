@@ -198,7 +198,7 @@ Return JSON array with ONLY activities worth saving. Skip non-activities entirel
     "conf": <0.0-1.0 your confidence>,
     "gen": <true if generic, no specific venue/URL>,
     "com": <true if compound/complex activity that one JSON object can't fully represent>,
-    "act": "<normalized action: hike, eat, watch, visit>",
+    "act": "<normalized action: go, hike, eat, watch, play, visit, etc. (always required)>",
     "act_orig": "<original action word>",
     "obj": "<normalized object: movie, restaurant>",
     "obj_orig": "<original object word>",

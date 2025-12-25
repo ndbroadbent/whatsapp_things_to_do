@@ -569,9 +569,9 @@ describe('clusterActivities', () => {
               "instances": [
                 {
                   "action": "hike",
-                  "actionOriginal": null,
+                  "actionOriginal": "do",
                   "activity": "Go hiking",
-                  "activityId": "686732c1a4e108a0",
+                  "activityId": "f2e1514a4a4642e7",
                   "category": "other",
                   "city": "Queenstown",
                   "confidence": 0.95,
@@ -597,9 +597,9 @@ describe('clusterActivities', () => {
                 },
                 {
                   "action": "hike",
-                  "actionOriginal": null,
+                  "actionOriginal": "do",
                   "activity": "Tramping trip",
-                  "activityId": "3beb21e036c065e4",
+                  "activityId": "006c0e729eecd15b",
                   "category": "other",
                   "city": "Queenstown",
                   "confidence": 0.85,
@@ -625,9 +625,9 @@ describe('clusterActivities', () => {
                 },
                 {
                   "action": "hike",
-                  "actionOriginal": null,
+                  "actionOriginal": "do",
                   "activity": "Hike the mountains",
-                  "activityId": "6f4fc35d579fe935",
+                  "activityId": "98ec5870bdad59e1",
                   "category": "other",
                   "city": "Queenstown",
                   "confidence": 0.9,
@@ -655,9 +655,9 @@ describe('clusterActivities', () => {
               "lastMentioned": 2025-01-20T10:00:00.000Z,
               "representative": {
                 "action": "hike",
-                "actionOriginal": null,
+                "actionOriginal": "do",
                 "activity": "Go hiking",
-                "activityId": "686732c1a4e108a0",
+                "activityId": "f2e1514a4a4642e7",
                 "category": "other",
                 "city": "Queenstown",
                 "confidence": 0.95,
@@ -692,9 +692,9 @@ describe('clusterActivities', () => {
               "instances": [
                 {
                   "action": "eat",
-                  "actionOriginal": null,
+                  "actionOriginal": "do",
                   "activity": "Try Kazuya",
-                  "activityId": "5eae0fbecb2c44a1",
+                  "activityId": "1292d0214bf77cc8",
                   "category": "food",
                   "city": "Auckland",
                   "confidence": 0.9,
@@ -722,9 +722,9 @@ describe('clusterActivities', () => {
               "lastMentioned": 2025-02-01T10:00:00.000Z,
               "representative": {
                 "action": "eat",
-                "actionOriginal": null,
+                "actionOriginal": "do",
                 "activity": "Try Kazuya",
-                "activityId": "5eae0fbecb2c44a1",
+                "activityId": "1292d0214bf77cc8",
                 "category": "food",
                 "city": "Auckland",
                 "confidence": 0.9,
@@ -802,9 +802,9 @@ describe('clusterActivities', () => {
               "instances": [
                 {
                   "action": "hike",
-                  "actionOriginal": null,
+                  "actionOriginal": "do",
                   "activity": "Go hiking",
-                  "activityId": "3ea680935531bfd0",
+                  "activityId": "615ec0d4cfa07d3b",
                   "category": "other",
                   "city": null,
                   "confidence": 0.9,
@@ -830,9 +830,9 @@ describe('clusterActivities', () => {
                 },
                 {
                   "action": "hike",
-                  "actionOriginal": null,
+                  "actionOriginal": "do",
                   "activity": "Tramping",
-                  "activityId": "68333190e60d1cf7",
+                  "activityId": "845495071783b67f",
                   "category": "other",
                   "city": null,
                   "confidence": 0.9,
@@ -860,9 +860,9 @@ describe('clusterActivities', () => {
               "lastMentioned": 2025-01-02T10:00:00.000Z,
               "representative": {
                 "action": "hike",
-                "actionOriginal": null,
+                "actionOriginal": "do",
                 "activity": "Go hiking",
-                "activityId": "3ea680935531bfd0",
+                "activityId": "615ec0d4cfa07d3b",
                 "category": "other",
                 "city": null,
                 "confidence": 0.9,
@@ -898,9 +898,9 @@ describe('clusterActivities', () => {
               "instances": [
                 {
                   "action": "travel",
-                  "actionOriginal": null,
+                  "actionOriginal": "do",
                   "activity": "Trip to Iceland and see aurora",
-                  "activityId": "8dd64643fe710111",
+                  "activityId": "ad2dbbe35fd29cf3",
                   "category": "other",
                   "city": null,
                   "confidence": 0.9,
@@ -926,9 +926,9 @@ describe('clusterActivities', () => {
                 },
                 {
                   "action": "travel",
-                  "actionOriginal": null,
+                  "actionOriginal": "do",
                   "activity": "Trip to Iceland and see aurora",
-                  "activityId": "8dd64643fe710111",
+                  "activityId": "ad2dbbe35fd29cf3",
                   "category": "other",
                   "city": null,
                   "confidence": 0.9,
@@ -956,9 +956,9 @@ describe('clusterActivities', () => {
               "lastMentioned": 2025-01-04T10:00:00.000Z,
               "representative": {
                 "action": "travel",
-                "actionOriginal": null,
+                "actionOriginal": "do",
                 "activity": "Trip to Iceland and see aurora",
-                "activityId": "8dd64643fe710111",
+                "activityId": "ad2dbbe35fd29cf3",
                 "category": "other",
                 "city": null,
                 "confidence": 0.9,

@@ -99,7 +99,9 @@ function renderActivityItem(
   const firstMessage = item.messages[0]
   const senderName = firstMessage?.sender.split(' ')[0] ?? 'Unknown'
   const dateStr = firstMessage ? formatDate(firstMessage.timestamp) : ''
-  details.push(`From: ${senderName} on ${dateStr}`)
+  const mentionCount = item.messages.length
+  const mentionSuffix = mentionCount > 1 ? ` (${mentionCount} mentions)` : ''
+  details.push(`From: ${senderName} on ${dateStr}${mentionSuffix}`)
   const detailsText = details.join(' | ')
 
   // Calculate text height for vertical centering

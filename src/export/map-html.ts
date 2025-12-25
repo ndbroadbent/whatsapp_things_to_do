@@ -4,7 +4,8 @@
  * Generate an interactive HTML map using Leaflet.js.
  */
 
-import { CATEGORY_EMOJI, formatLocation, type GeocodedActivity, type MapConfig } from '../types'
+import { formatLocation, type GeocodedActivity, type MapConfig } from '../types'
+import { generateListOnlyHTML } from './map-list-html'
 import { formatDate } from './utils'
 
 const DEFAULT_ZOOM = 6
@@ -19,6 +20,12 @@ const MARKER_COLORS = [
   'darkgreen'
 ]
 
+interface MapMessage {
+  sender: string
+  date: string
+  message: string
+}
+
 interface MapPoint {
   lat: number
   lng: number
@@ -32,6 +39,7 @@ interface MapPoint {
   color: string
   imagePath: string | null
   placeId: string | null
+  messages: MapMessage[]
 }
 
 /**
@@ -113,11 +121,39 @@ function toMapPoints(
       url: firstMessage ? extractUrl(firstMessage.message) : null,
       color,
       imagePath: config.imagePaths?.get(s.activityId) ?? null,
-      placeId: s.placeId ?? null
+      placeId: s.placeId ?? null,
+      messages: s.messages.map((m) => ({
+        sender: m.sender,
+        date: formatDate(m.timestamp),
+        message: m.message.slice(0, 200)
+      }))
     })
   }
 
   return { points, senderColors }
+}
+
+/**
+ * Format senders for display: "Sender: X" or "Senders: X, Y" or "Senders: X, Y, and N more"
+ */
+function formatSendersForPopup(messages: readonly MapMessage[]): string {
+  const uniqueSenders: string[] = []
+  const seen = new Set<string>()
+  for (const m of messages) {
+    const name = m.sender.split(' ')[0] ?? m.sender
+    if (!seen.has(name)) {
+      seen.add(name)
+      uniqueSenders.push(name)
+    }
+  }
+  const label = uniqueSenders.length === 1 ? 'Sender' : 'Senders'
+  let display: string
+  if (uniqueSenders.length <= 2) {
+    display = uniqueSenders.join(', ')
+  } else {
+    display = `${uniqueSenders.slice(0, 2).join(', ')}, and ${uniqueSenders.length - 2} more`
+  }
+  return `${label}: ${display}`
 }
 
 /**
@@ -126,21 +162,38 @@ function toMapPoints(
 function generateMarkersJS(points: readonly MapPoint[]): string {
   return points
     .map((p) => {
-      const senderName = p.sender.split(' ')[0] ?? p.sender
       const imageHtml = p.imagePath
         ? `<img src="${escapeJS(p.imagePath)}" style="width:100%;max-width:200px;border-radius:4px;margin-bottom:8px;" />`
         : ''
       const mapsUrl = p.placeId
         ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.activity)}&query_place_id=${p.placeId}`
         : null
+      const senderDisplay = formatSendersForPopup(p.messages)
+      const mentionCount = p.messages.length
+      const mentionText = mentionCount > 1 ? ` (${mentionCount} mentions)` : ''
+
+      // Build messages section for popup
+      const messagesHtml =
+        mentionCount > 1
+          ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:11px;max-height:120px;overflow-y:auto;">
+              ${p.messages
+                .map(
+                  (m) =>
+                    `<div style="margin-bottom:6px;"><strong>${escapeJS(m.sender.split(' ')[0] ?? m.sender)}</strong> · ${m.date}<br><span style="color:#666;">${escapeJS(m.message)}</span></div>`
+                )
+                .join('')}
+            </div>`
+          : ''
+
       const popupContent = `
-        <div style="max-width: 220px;">
+        <div style="max-width: 240px;">
           ${imageHtml}
           <strong>${escapeJS(p.activity)}</strong><br>
-          <small>${p.date} - ${escapeJS(senderName)}</small><br>
+          <small>${p.date} · ${escapeJS(senderDisplay)}${mentionText}</small><br>
           ${p.location ? `<em>${escapeJS(p.location)}</em><br>` : ''}
           ${mapsUrl ? `<a href="${escapeJS(mapsUrl)}" target="_blank">View on Google Maps</a><br>` : ''}
           ${p.url ? `<a href="${escapeJS(p.url)}" target="_blank">Source Link</a>` : ''}
+          ${messagesHtml}
         </div>
       `
         .replace(/\n/g, '')
@@ -178,87 +231,6 @@ function generateLegendHTML(senderColors: Map<string, string>): string {
     .join('')
 
   return items
-}
-
-/**
- * Generate a list-only HTML page when no geocoded points are available.
- * Shows all activities in a nice list format with category emojis.
- */
-function generateListOnlyHTML(suggestions: readonly GeocodedActivity[], config: MapConfig): string {
-  const title = config.title ?? 'Things To Do'
-
-  const listItems = suggestions
-    .map((s) => {
-      const emoji = CATEGORY_EMOJI[s.category] ?? '📍'
-      const firstMessage = s.messages[0]
-      const date = formatDate(firstMessage?.timestamp)
-      const sender = firstMessage?.sender ?? 'Unknown'
-      const loc = formatLocation(s)
-      const location = loc ? `<span class="location">${escapeJS(loc)}</span>` : ''
-      return `
-        <div class="item">
-          <span class="emoji">${emoji}</span>
-          <div class="content">
-            <div class="activity">${escapeJS(s.activity)}</div>
-            <div class="meta">${date} • ${escapeJS(sender)}${location ? ` • ${location}` : ''}</div>
-          </div>
-        </div>
-      `
-    })
-    .join('')
-
-  return `<!DOCTYPE html>
-<html>
-<head>
-  <title>${title}</title>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 20px;
-      background: #f5f5f5;
-    }
-    h1 { color: #333; margin-bottom: 10px; }
-    .subtitle { color: #666; margin-bottom: 30px; }
-    .note {
-      background: #fff3cd;
-      border: 1px solid #ffc107;
-      border-radius: 8px;
-      padding: 15px;
-      margin-bottom: 20px;
-    }
-    .note strong { color: #856404; }
-    .item {
-      display: flex;
-      background: white;
-      border-radius: 8px;
-      padding: 15px;
-      margin-bottom: 10px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-    .emoji { font-size: 24px; margin-right: 15px; }
-    .content { flex: 1; }
-    .activity { font-weight: 500; color: #333; margin-bottom: 5px; }
-    .meta { font-size: 13px; color: #666; }
-    .location { color: #0066cc; }
-  </style>
-</head>
-<body>
-  <h1>${escapeJS(title)}</h1>
-  <p class="subtitle">${suggestions.length} activities found</p>
-
-  <div class="note">
-    <strong>Note:</strong> Map view requires geocoding. Set <code>GOOGLE_MAPS_API_KEY</code>
-    environment variable to enable location mapping.
-  </div>
-
-  ${listItems}
-</body>
-</html>`
 }
 
 /**
@@ -361,6 +333,16 @@ export function exportToMapHTML(
     .activity-links { display:flex; gap:12px; font-size:13px; }
     .activity-links a { color:#2563eb; text-decoration:none; }
     .activity-links a:hover { text-decoration:underline; }
+    .sender-info { position:relative; display:inline; }
+    .sender-trigger { cursor:help; border-bottom:1px dotted #9ca3af; }
+    .sender-trigger:hover { border-bottom-color:#6b7280; }
+    .msg-tooltip { display:none; position:absolute; bottom:100%; left:0; margin-bottom:8px; background:#1f2937; color:#fff; padding:12px; border-radius:8px; font-size:12px; min-width:280px; max-width:360px; box-shadow:0 4px 12px rgba(0,0,0,0.3); z-index:100; }
+    .msg-tooltip::after { content:''; position:absolute; top:100%; left:20px; border:6px solid transparent; border-top-color:#1f2937; }
+    .sender-info:hover .msg-tooltip { display:block; }
+    .msg-tooltip-item { margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #374151; }
+    .msg-tooltip-item:last-child { margin-bottom:0; padding-bottom:0; border-bottom:none; }
+    .msg-tooltip-header { font-weight:500; color:#9ca3af; margin-bottom:4px; }
+    .msg-tooltip-text { color:#e5e7eb; line-height:1.4; word-wrap:break-word; }
   </style>
 </head>
 <body>
@@ -437,16 +419,49 @@ export function exportToMapHTML(
         score: p.score,
         imagePath: p.imagePath,
         placeId: p.placeId,
-        url: p.url
+        url: p.url,
+        messages: p.messages
       }))
     )};
+
+    function escapeHtml(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function formatSenders(messages) {
+      var uniqueSenders = [];
+      var seen = {};
+      for (var i = 0; i < messages.length; i++) {
+        var name = messages[i].sender.split(' ')[0];
+        if (!seen[name]) { seen[name] = true; uniqueSenders.push(name); }
+      }
+      var label = uniqueSenders.length === 1 ? 'Sender' : 'Senders';
+      var display;
+      if (uniqueSenders.length <= 2) {
+        display = uniqueSenders.join(', ');
+      } else {
+        display = uniqueSenders.slice(0, 2).join(', ') + ', and ' + (uniqueSenders.length - 2) + ' more';
+      }
+      return { label: label, display: display };
+    }
+
+    function buildTooltip(messages) {
+      var items = messages.map(function(m) {
+        var senderName = m.sender.split(' ')[0];
+        return '<div class="msg-tooltip-item"><div class="msg-tooltip-header">' + escapeHtml(senderName) + ' · ' + m.date + '</div><div class="msg-tooltip-text">' + escapeHtml(m.message) + '</div></div>';
+      }).join('');
+      return '<div class="msg-tooltip">' + items + '</div>';
+    }
 
     function renderActivityList(sorted) {
       var html = sorted.map(function(a) {
         var mapsUrl = a.placeId ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(a.activity) + '&query_place_id=' + a.placeId : null;
         var thumb = a.imagePath ? '<img src="' + a.imagePath + '" class="activity-thumb" alt="" />' : '<div class="activity-thumb-placeholder"></div>';
         var links = (mapsUrl ? '<a href="' + mapsUrl + '" target="_blank">Google Maps</a>' : '') + (a.url ? '<a href="' + a.url + '" target="_blank">Source</a>' : '');
-        return '<div class="activity-row">' + thumb + '<div class="activity-content"><div class="activity-title">' + a.activity + '</div><div class="activity-meta">' + (a.location ? '<span class="activity-location">' + a.location + '</span> · ' : '') + a.sender + ' · ' + a.date + '</div><div class="activity-links">' + links + '</div></div></div>';
+        var senderInfo = formatSenders(a.messages);
+        var tooltip = buildTooltip(a.messages);
+        var senderHtml = '<span class="sender-info"><span class="sender-trigger">' + senderInfo.label + ': ' + senderInfo.display + '</span>' + tooltip + '</span>';
+        return '<div class="activity-row">' + thumb + '<div class="activity-content"><div class="activity-title">' + escapeHtml(a.activity) + '</div><div class="activity-meta">' + (a.location ? '<span class="activity-location">' + escapeHtml(a.location) + '</span> · ' : '') + senderHtml + ' · ' + a.date + '</div><div class="activity-links">' + links + '</div></div></div>';
       }).join('');
       document.getElementById('activityListBody').innerHTML = html;
     }

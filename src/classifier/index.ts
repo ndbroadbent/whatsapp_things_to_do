@@ -50,11 +50,19 @@ function normalizeCategory(category: string): ActivityCategory {
 
 /**
  * Convert a parsed classification to a classified activity.
+ * Returns null if the activity has no action (invalid/incomplete classification).
  */
 function toClassifiedActivity(
   response: ParsedClassification,
   candidate: CandidateMessage
-): ClassifiedActivity {
+): ClassifiedActivity | null {
+  // Action is required - if empty, the classification is invalid
+  if (!response.act || response.act.trim() === '') {
+    console.warn(
+      `[classifier] Discarding activity with empty action: msg=${response.msg}, title="${response.title}"`
+    )
+    return null
+  }
   // Capitalize first letter of title
   const title = response.title ?? candidate.content.slice(0, 100)
   const capitalizedTitle = title.charAt(0).toUpperCase() + title.slice(1)
@@ -143,13 +151,16 @@ export async function classifyBatch(
     const expectedIds = candidates.map((c) => c.messageId)
     const parsed = parseClassificationResponse(responseResult.value, expectedIds)
 
-    // Map responses to candidates
+    // Map responses to candidates, filtering out invalid classifications
     const suggestions: ClassifiedActivity[] = []
 
     for (const response of parsed) {
       const candidate = candidates.find((c) => c.messageId === response.msg)
       if (candidate) {
-        suggestions.push(toClassifiedActivity(response, candidate))
+        const activity = toClassifiedActivity(response, candidate)
+        if (activity) {
+          suggestions.push(activity)
+        }
       }
     }
 

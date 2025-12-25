@@ -70,6 +70,7 @@ function createMockClassifierResponse(
     confidence: number
     city?: string
     country?: string
+    action?: string
   }>
 ): string {
   // Convert to new schema format
@@ -81,16 +82,17 @@ function createMockClassifierResponse(
       int: 0.5,
       cat: item.category,
       conf: item.confidence,
-      gen: true,
-      com: true,
-      act: null,
-      act_orig: null,
+      gen: false,
+      com: false,
+      act: item.action ?? 'try',
+      act_orig: item.action ?? 'try',
       obj: null,
       obj_orig: null,
       venue: null,
       city: item.city ?? null,
       region: null,
-      country: item.country ?? null
+      country: item.country ?? null,
+      kw: []
     }))
   )
 }

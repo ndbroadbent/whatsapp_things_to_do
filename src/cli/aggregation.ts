@@ -7,7 +7,7 @@
  * This is an orchestrator concern (CLI), not core library.
  */
 
-import { type ClassifiedActivity, formatLocation } from '../types'
+import type { ClassifiedActivity } from '../types'
 
 /**
  * Normalize a string for comparison (lowercase, trim, collapse whitespace).
@@ -60,28 +60,59 @@ function similarity(a: string, b: string): number {
 }
 
 /**
+ * Check if a field matches (null/empty is wildcard, otherwise exact match).
+ */
+function fieldMatches(a: string | null, b: string | null): boolean {
+  const normA = normalizeString(a ?? '')
+  const normB = normalizeString(b ?? '')
+  // Empty/null is wildcard - matches anything
+  if (normA === '' || normB === '') return true
+  return normA === normB
+}
+
+/**
+ * Check if venue matches (null/empty is wildcard, otherwise 95% similarity).
+ */
+function venueMatches(a: string | null, b: string | null): boolean {
+  const normA = normalizeString(a ?? '')
+  const normB = normalizeString(b ?? '')
+  // Empty/null is wildcard - matches anything
+  if (normA === '' || normB === '') return true
+  return similarity(normA, normB) >= 0.95
+}
+
+/**
  * Check if two activities should be grouped together.
  *
- * Matching criteria (in priority order):
- * 1. Exact location match (case-insensitive) - e.g., "Queenstown" appears twice
- * 2. High activity name similarity (>= 0.8) - e.g., "pottery class" vs "pottery classes"
+ * Matching criteria:
+ * 1. Exact title match (>= 95% similarity) - always merge
+ * 2. OR: Both are non-compound AND all structured fields match
+ *    - action, object: exact match (null/empty is wildcard)
+ *    - venue: 95% similarity (null/empty is wildcard)
+ *    - city, region, country: exact match (null/empty is wildcard)
+ *    - category excluded (AI picks randomly)
  */
 function shouldGroup(a: ClassifiedActivity, b: ClassifiedActivity): boolean {
-  // Exact location match (if both have locations)
-  const locA = formatLocation(a)
-  const locB = formatLocation(b)
-  if (locA && locB) {
-    if (normalizeString(locA) === normalizeString(locB)) {
-      return true
-    }
-  }
-
-  // High activity name similarity
-  if (similarity(a.activity, b.activity) >= 0.8) {
+  // Exact title match (>= 95% similarity) - always merge
+  if (similarity(a.activity, b.activity) >= 0.95) {
     return true
   }
 
-  return false
+  // Both must be non-compound (simple activities that can be matched on fields)
+  if (a.isCompound || b.isCompound) {
+    return false
+  }
+
+  // All structured fields must match (null/empty acts as wildcard)
+  const fieldsMatch =
+    fieldMatches(a.action, b.action) &&
+    fieldMatches(a.object, b.object) &&
+    venueMatches(a.venue, b.venue) &&
+    fieldMatches(a.city, b.city) &&
+    fieldMatches(a.region, b.region) &&
+    fieldMatches(a.country, b.country)
+
+  return fieldsMatch
 }
 
 /**
