@@ -1,0 +1,15 @@
+[1/1/24, 10:00:00 AM] Alice Smith: This is message one with some content
+[1/1/24, 10:00:01 AM] Bob Jones: This is message two
+[1/1/24, 10:00:02 AM] Alice Smith: I heard about this amazing restaurant called The Golden Fork that serves incredible Italian food and has been featured in multiple food magazines for their handmade pasta and wood-fired pizzas, plus they have a beautiful outdoor patio area perfect for summer dining with friends and family
+[1/1/24, 10:00:03 AM] Bob Jones: Short reply
+[1/1/24, 10:00:04 AM] Alice Smith: Another short one
+[1/1/24, 10:00:05 AM] Bob Jones: We should definitely try that place sometime
+[1/1/24, 10:00:06 AM] Alice Smith: Yes for sure
+[1/1/24, 10:00:07 AM] Bob Jones: Maybe next weekend
+[1/1/24, 10:00:08 AM] Alice Smith: Sounds good to me
+[1/1/24, 10:00:09 AM] Bob Jones: I'll make a reservation
+[1/1/24, 10:00:10 AM] Alice Smith: Perfect
+[1/1/24, 10:00:11 AM] Bob Jones: Done
+[1/1/24, 10:00:12 AM] Alice Smith: Great
+[1/1/24, 10:00:13 AM] Bob Jones: See you then
+[1/1/24, 10:00:14 AM] Alice Smith: Bye

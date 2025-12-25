@@ -71,7 +71,9 @@ export class HttpRecorder {
 
   private replay(fixturePath: string, gzipped: boolean): Response {
     const raw = readFileSync(fixturePath)
-    const json = gzipped ? gunzipSync(raw).toString('utf-8') : raw.toString('utf-8')
+    const json = gzipped
+      ? new TextDecoder().decode(new Uint8Array(gunzipSync(new Uint8Array(raw))))
+      : raw.toString('utf-8')
     const fixture: RecordedFixture = JSON.parse(json)
     const response = new Response(fixture.body, {
       status: fixture.status,
@@ -108,8 +110,9 @@ export class HttpRecorder {
       recordedAt: new Date().toISOString()
     }
 
-    const compressed = gzipSync(JSON.stringify(fixture, null, 2))
-    writeFileSync(fixturePath, compressed)
+    const jsonBytes = new TextEncoder().encode(JSON.stringify(fixture, null, 2))
+    const compressed = gzipSync(jsonBytes)
+    writeFileSync(fixturePath, new Uint8Array(compressed))
 
     const result = new Response(body, {
       status: response.status,

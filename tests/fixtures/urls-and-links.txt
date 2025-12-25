@@ -1,0 +1,33 @@
+[3/22/24, 11:00:00 AM] Alex: Found this cool restaurant
+[3/22/24, 11:00:30 AM] Alex: https://maps.google.com/maps?q=-36.8485,174.7633
+[3/22/24, 11:01:00 AM] Taylor: Looks amazing! We should try it
+[3/22/24, 11:05:00 AM] Alex: Also check out this TikTok of that hiking spot
+[3/22/24, 11:05:30 AM] Alex: https://www.tiktok.com/@nzhikes/video/1234567890
+[3/22/24, 11:06:00 AM] Taylor: The views look incredible!
+[3/22/24, 11:10:00 AM] Alex: Someone shared this cafe on Instagram
+[3/22/24, 11:10:30 AM] Alex: https://www.instagram.com/p/ABC123xyz/
+[3/22/24, 11:11:00 AM] Taylor: That coffee art is next level
+[3/22/24, 11:15:00 AM] Alex: Here's the Airbnb I was telling you about
+[3/22/24, 11:15:30 AM] Alex: https://www.airbnb.com/rooms/12345678
+[3/22/24, 11:16:00 AM] Taylor: Perfect for our trip! Let's book it
+[3/22/24, 11:20:00 AM] Alex: This YouTube video about Queenstown is great
+[3/22/24, 11:20:30 AM] Alex: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+[3/22/24, 11:21:00 AM] Taylor: So many things to do there
+[3/22/24, 11:25:00 AM] Alex: Found this event on Eventbrite
+[3/22/24, 11:25:30 AM] Alex: https://www.eventbrite.com/e/auckland-food-festival-12345
+[3/22/24, 11:26:00 AM] Taylor: We should definitely go to that!
+[3/22/24, 11:30:00 AM] Alex: Trip planning - TripAdvisor link
+[3/22/24, 11:30:30 AM] Alex: https://www.tripadvisor.com/Restaurant_Review-Auckland-Restaurant-Name.html
+[3/22/24, 11:31:00 AM] Taylor: Good reviews. Let's add it to the list
+[3/22/24, 11:35:00 AM] Alex: Booking.com has good hotel deals
+[3/22/24, 11:35:30 AM] Alex: https://www.booking.com/hotel/nz/auckland-central.html
+[3/22/24, 11:36:00 AM] Taylor: Nice find! Looks central
+[3/22/24, 11:40:00 AM] Alex: Here's the exact location of that viewpoint
+[3/22/24, 11:40:30 AM] Alex: https://goo.gl/maps/ABC123
+[3/22/24, 11:41:00 AM] Taylor: Saved it!
+[3/22/24, 11:45:00 AM] Alex: Someone posted this on X about the festival
+[3/22/24, 11:45:30 AM] Alex: https://x.com/aucklandevents/status/123456789
+[3/22/24, 11:46:00 AM] Taylor: Looks like it'll be busy
+[3/22/24, 11:50:00 AM] Alex: This Facebook event has all the details
+[3/22/24, 11:50:30 AM] Alex: https://www.facebook.com/events/987654321
+[3/22/24, 11:51:00 AM] Taylor: Perfect, I'll RSVP

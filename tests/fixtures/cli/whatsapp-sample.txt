@@ -1,0 +1,285 @@
+[10/10/23, 8:15:22 AM] Alice Smith: Morning!
+[10/10/23, 8:16:01 AM] John Smith: Hey good morning
+[10/10/23, 8:16:15 AM] Alice Smith: Did you sleep ok?
+[10/10/23, 8:17:02 AM] John Smith: Yeah not bad, woke up once
+[10/10/23, 8:17:33 AM] Alice Smith: Same here
+[10/10/23, 12:30:45 PM] John Smith: Having lunch now
+[10/10/23, 12:31:02 PM] Alice Smith: Nice what did you get?
+[10/10/23, 12:31:18 PM] John Smith: Just a sandwich
+[10/10/23, 12:31:25 PM] Alice Smith: Cool
+[10/10/23, 5:45:12 PM] Alice Smith: On my way home
+[10/10/23, 5:45:30 PM] John Smith: Ok see you soon
+[10/10/23, 5:46:01 PM] Alice Smith: Want me to pick up milk?
+[10/10/23, 5:46:15 PM] John Smith: Yes please
+[10/10/23, 5:46:22 PM] Alice Smith: Ok will do
+[10/11/23, 7:22:05 AM] John Smith: Running late today
+[10/11/23, 7:22:18 AM] Alice Smith: No worries
+[10/11/23, 7:22:30 AM] John Smith: Traffic is bad
+[10/11/23, 7:23:01 AM] Alice Smith: Take your time
+[10/11/23, 12:15:33 PM] Alice Smith: How's your day going?
+[10/11/23, 12:16:02 PM] John Smith: Busy but good
+[10/11/23, 12:16:15 PM] John Smith: Lots of meetings
+[10/11/23, 12:16:30 PM] Alice Smith: Same here honestly
+[10/11/23, 9:32:03 PM] Alice Smith: How is it going?
+[10/11/23, 9:32:21 PM] John Smith: Good! We just finished
+[10/11/23, 9:32:23 PM] John Smith: Coming home
+[10/11/23, 9:32:27 PM] Alice Smith: Yay
+[10/11/23, 9:36:36 PM] John Smith: We should go to a play or something
+[10/11/23, 9:36:44 PM] John Smith: Or concert
+[10/11/23, 9:53:36 PM] Alice Smith: Yeah
+[10/12/23, 8:05:11 AM] John Smith: Have a good day
+[10/12/23, 8:05:22 AM] Alice Smith: You too!
+[10/12/23, 8:05:30 AM] John Smith: Thanks
+[10/12/23, 1:22:45 PM] Alice Smith: Did you remember to call them?
+[10/12/23, 1:23:02 PM] John Smith: Oh shoot I forgot
+[10/12/23, 1:23:15 PM] Alice Smith: It's ok do it tomorrow
+[10/12/23, 1:23:22 PM] John Smith: Will do
+[10/12/23, 6:30:18 PM] John Smith: Leaving now
+[10/12/23, 6:30:25 PM] Alice Smith: Ok
+[10/12/23, 10:56:59 PM] John Smith: image omitted
+[10/12/23, 10:57:04 PM] John Smith: Fun though!
+[10/13/23, 9:15:33 AM] Alice Smith: Sleep well?
+[10/13/23, 9:16:01 AM] John Smith: Like a rock
+[10/13/23, 9:16:15 AM] Alice Smith: Good!
+[10/13/23, 2:45:22 PM] John Smith: Can you check the mail?
+[10/13/23, 2:45:35 PM] Alice Smith: Already did, nothing important
+[10/13/23, 2:45:42 PM] John Smith: Ok thanks
+[10/14/23, 11:22:05 AM] Alice Smith: What do you want for dinner?
+[10/14/23, 11:22:30 AM] John Smith: Whatever you feel like
+[10/14/23, 11:22:45 AM] Alice Smith: Helpful as always 😂
+[10/14/23, 11:23:01 AM] John Smith: Haha sorry
+[10/14/23, 11:23:15 AM] John Smith: Pasta?
+[10/14/23, 11:23:22 AM] Alice Smith: Sure that works
+[11/22/23, 8:30:15 AM] John Smith: Morning
+[11/22/23, 8:30:28 AM] Alice Smith: Hey! Sleep well?
+[11/22/23, 8:30:42 AM] John Smith: Not bad
+[11/22/23, 12:15:33 PM] Alice Smith: What time are you done today?
+[11/22/23, 12:15:50 PM] John Smith: Around 5 I think
+[11/22/23, 12:16:02 PM] Alice Smith: Ok cool
+[12/15/23, 7:45:22 AM] John Smith: Have a good day
+[12/15/23, 7:45:35 AM] Alice Smith: You too!
+[12/15/23, 5:30:18 PM] Alice Smith: On my way
+[12/15/23, 5:30:30 PM] John Smith: Ok
+[1/8/24, 9:22:05 AM] Alice Smith: Happy Monday
+[1/8/24, 9:22:18 AM] John Smith: Is that a thing? 😂
+[1/8/24, 9:22:30 AM] Alice Smith: Trying to be positive
+[1/8/24, 9:22:45 AM] John Smith: Fair enough
+[1/20/24, 10:15:33 AM] John Smith: Grocery run later?
+[1/20/24, 10:15:50 AM] Alice Smith: Sure, make a list
+[1/20/24, 10:16:02 AM] John Smith: Will do
+[2/5/24, 8:30:11 AM] Alice Smith: Good morning
+[2/5/24, 8:30:25 AM] John Smith: Morning!
+[2/5/24, 8:30:38 AM] Alice Smith: Cold outside
+[2/5/24, 8:30:52 AM] John Smith: Yeah I noticed
+[2/8/24, 12:22:05 PM] John Smith: What's for lunch?
+[2/8/24, 12:22:18 PM] Alice Smith: Leftover soup
+[2/8/24, 12:22:30 PM] John Smith: Sounds good
+[2/10/24, 9:15:33 AM] Alice Smith: How's the weather there?
+[2/10/24, 9:15:50 AM] John Smith: Pretty nice actually
+[2/10/24, 9:16:02 AM] Alice Smith: Good!
+[2/10/24, 4:47:23 PM] John Smith: I'm sure it is amazing though
+[2/10/24, 10:04:11 PM] Alice Smith: How is it going
+[2/10/24, 10:04:34 PM] John Smith: Coming home now
+[2/10/24, 10:04:40 PM] Alice Smith: Yay
+[2/10/24, 10:04:40 PM] John Smith: Had a nice time
+[2/10/24, 11:18:40 PM] John Smith: https://www.reddit.com/r/oddlysatisfying/s/6jHbC0UQEi
+[2/10/24, 11:21:15 PM] John Smith: Let's do a whale and dolphin safari! https://whalewatchingauckland.com/
+[2/10/24, 11:21:42 PM] John Smith: I didn't know you can do that in Auckland
+[2/10/24, 11:22:05 PM] Alice Smith: That looks amazing!
+[2/10/24, 11:22:18 PM] John Smith: Right?
+[2/11/24, 8:30:11 AM] Alice Smith: Good morning
+[2/11/24, 8:30:25 AM] John Smith: Hey
+[2/11/24, 8:30:38 AM] Alice Smith: Did you sleep ok?
+[2/11/24, 8:30:52 AM] John Smith: Yeah pretty good
+[2/11/24, 12:04:48 PM] John Smith: Hello! I don't know if we will go to the color thing today
+[2/11/24, 12:04:50 PM] John Smith: Maybe not
+[2/11/24, 12:04:56 PM] John Smith: We are playing Heat
+[2/11/24, 12:05:15 PM] Alice Smith: Ok have fun!
+[2/11/24, 12:05:22 PM] John Smith: Will do
+[2/15/24, 9:22:05 AM] John Smith: Almost the weekend
+[2/15/24, 9:22:18 AM] Alice Smith: Finally!
+[2/15/24, 9:22:30 AM] John Smith: Any plans?
+[2/15/24, 9:22:45 AM] Alice Smith: Not yet
+[2/28/24, 7:45:33 AM] Alice Smith: Last day of February
+[2/28/24, 7:45:50 AM] John Smith: Time flies
+[2/28/24, 7:46:02 AM] Alice Smith: Tell me about it
+[3/15/24, 7:30:11 AM] John Smith: Good morning
+[3/15/24, 7:30:25 AM] Alice Smith: Morning! Coffee?
+[3/15/24, 7:30:38 AM] John Smith: Always
+[3/15/24, 12:05:22 PM] Alice Smith: Busy afternoon?
+[3/15/24, 12:05:45 PM] John Smith: Not too bad
+[3/15/24, 12:06:01 PM] Alice Smith: Good
+[3/15/24, 6:22:18 PM] John Smith: Done for the day
+[3/15/24, 6:22:30 PM] Alice Smith: Nice!
+[3/16/24, 10:15:33 AM] Alice Smith: Did you take out the trash?
+[3/16/24, 10:15:50 AM] John Smith: Yep all done
+[3/16/24, 10:16:02 AM] Alice Smith: Thanks!
+[4/3/24, 8:45:22 AM] John Smith: Have a good day at work
+[4/3/24, 8:45:35 AM] Alice Smith: You too!
+[4/3/24, 12:30:18 PM] Alice Smith: Lunch?
+[4/3/24, 12:30:30 PM] John Smith: Just had some
+[4/3/24, 12:30:42 PM] Alice Smith: Ok
+[4/3/24, 5:55:01 PM] John Smith: Heading home
+[4/3/24, 5:55:15 PM] Alice Smith: See you soon
+[4/4/24, 1:46:38 PM] John Smith: So much waiting around
+[4/4/24, 1:46:56 PM] John Smith: Good lunch though
+[4/4/24, 1:46:58 PM] John Smith: And good coffee
+[4/4/24, 2:17:15 PM] Alice Smith: Yay
+[4/4/24, 2:17:22 PM] Alice Smith: For the lunch and coffee
+[4/5/24, 6:43:06 AM] Alice Smith: Wanna go to bay of islands for our anniversary?
+https://maps.app.goo.gl/JHKspRDJ5m6bhzFT9?g_st=iw
+[4/5/24, 8:43:06 AM] John Smith: Sounds great!
+[4/5/24, 8:43:10 AM] John Smith: great beaches
+[4/6/24, 9:22:05 AM] Alice Smith: Morning
+[4/6/24, 9:22:18 AM] John Smith: Hey
+[4/6/24, 9:22:30 AM] Alice Smith: How did you sleep?
+[4/6/24, 9:22:45 AM] John Smith: Pretty good actually
+[4/6/24, 1:15:33 PM] John Smith: Want anything from the store?
+[4/6/24, 1:15:50 PM] Alice Smith: Just bread please
+[4/6/24, 1:16:02 PM] John Smith: Got it
+[4/7/24, 8:30:11 AM] Alice Smith: Lazy Sunday?
+[4/7/24, 8:30:25 AM] John Smith: Definitely
+[4/7/24, 8:30:38 AM] Alice Smith: Perfect
+[6/15/24, 10:22:05 AM] John Smith: Running errands
+[6/15/24, 10:22:18 AM] Alice Smith: Ok
+[6/15/24, 10:22:30 AM] John Smith: Need anything?
+[6/15/24, 10:22:45 AM] Alice Smith: Nope I'm good
+[6/15/24, 3:45:22 PM] Alice Smith: Back yet?
+[6/15/24, 3:45:35 PM] John Smith: Almost home
+[6/15/24, 3:45:42 PM] Alice Smith: Ok
+[8/22/24, 7:15:33 AM] John Smith: Have a good day
+[8/22/24, 7:15:50 AM] Alice Smith: Thanks you too
+[8/22/24, 12:30:18 PM] Alice Smith: Lunch was good
+[8/22/24, 12:30:30 PM] John Smith: Nice what did you have?
+[8/22/24, 12:30:42 PM] Alice Smith: Salad
+[8/22/24, 12:30:55 PM] John Smith: Healthy!
+[8/24/24, 9:15:22 AM] John Smith: Morning
+[8/24/24, 9:15:35 AM] Alice Smith: Hey!
+[8/24/24, 9:15:42 AM] John Smith: What are you up to?
+[8/24/24, 9:15:55 AM] Alice Smith: Just having coffee
+[8/24/24, 10:22:05 AM] John Smith: Paintball. Saturday?
+[8/24/24, 10:22:18 AM] Alice Smith: I'm keen!
+[8/24/24, 10:22:30 AM] John Smith: Sweet I'll book it
+[8/24/24, 10:22:45 AM] Alice Smith: How many people?
+[8/24/24, 10:23:01 AM] John Smith: Just us I think but there will be some others there who will join in
+[8/24/24, 10:23:15 AM] Alice Smith: Ok cool
+[10/05/24, 9:22:05 AM] Alice Smith: Good morning
+[10/05/24, 9:22:18 AM] John Smith: Morning!
+[10/05/24, 9:22:30 AM] Alice Smith: Any plans today?
+[10/05/24, 9:22:45 AM] John Smith: Not really, just relaxing
+[10/05/24, 9:23:01 AM] Alice Smith: Sounds perfect
+[10/7/24, 8:15:22 AM] John Smith: Good morning
+[10/7/24, 8:15:35 AM] Alice Smith: Morning!
+[10/7/24, 8:15:42 AM] John Smith: Another week begins
+[10/7/24, 8:15:55 AM] Alice Smith: Yep here we go
+[10/7/24, 12:30:18 PM] Alice Smith: Lunch?
+[10/7/24, 12:30:30 PM] John Smith: Just finished
+[10/7/24, 12:30:42 PM] Alice Smith: Ok
+[10/8/24, 9:22:05 AM] John Smith: Hey
+[10/8/24, 9:22:18 AM] Alice Smith: Morning
+[10/8/24, 9:22:30 AM] John Smith: How are you?
+[10/8/24, 9:22:45 AM] Alice Smith: Good, tired though
+[10/8/24, 9:23:01 AM] John Smith: Same
+[10/9/24, 7:45:33 AM] Alice Smith: Did you call them?
+[10/9/24, 7:45:50 AM] John Smith: Not yet, will do today. Should we stay here in Phuket? https://kalimaresort.com/
+[10/9/24, 7:46:02 AM] Alice Smith: Yeah that would be nice!
+[10/9/24, 5:30:18 PM] John Smith: Done for the day
+[10/9/24, 5:30:30 PM] Alice Smith: Nice! Coming home?
+[10/9/24, 5:30:42 PM] John Smith: Yeah leaving now
+[10/10/24, 8:22:05 AM] Alice Smith: Morning
+[10/10/24, 8:22:18 AM] John Smith: Hey good morning
+[10/10/24, 8:22:30 AM] Alice Smith: Any news?
+[10/10/24, 8:22:45 AM] John Smith: Nothing much
+[10/10/24, 12:15:33 PM] John Smith: Quick lunch break
+[10/10/24, 12:15:50 PM] Alice Smith: Same here
+[10/10/24, 6:30:18 PM] Alice Smith: Watching anything tonight?
+[10/10/24, 6:30:30 PM] John Smith: Maybe a movie
+[10/10/24, 6:30:42 PM] Alice Smith: Sounds good
+[10/10/24, 9:13:11 PM] John Smith: there are a few sequels to this too
+[10/10/24, 9:13:11 PM] John Smith: https://en.wikipedia.org/wiki/The_Matrix
+[10/10/24, 9:15:22 PM] Alice Smith: Oh wow didn't know that
+[10/10/24, 9:15:35 PM] John Smith: Yeah quite a lot
+[10/10/24, 11:07:58 PM] Alice Smith: Missed voice call
+[10/11/24, 8:30:11 AM] John Smith: Sorry missed your call
+[10/11/24, 8:30:25 AM] Alice Smith: No worries
+[10/11/24, 8:30:38 AM] John Smith: Was in the shower
+[10/11/24, 8:30:52 AM] Alice Smith: All good
+[10/11/24, 12:22:05 PM] John Smith: Lunch time
+[10/11/24, 12:22:18 PM] Alice Smith: What are you having?
+[10/11/24, 12:22:30 PM] John Smith: Sandwich
+[10/11/24, 1:34:03 PM] John Smith: lets go for a hike this weekend in Karangahake Gorge
+[10/11/24, 2:03:56 PM] Alice Smith: Okay
+[10/11/24, 2:20:31 PM] Alice Smith: image omitted
+[10/11/24, 2:20:45 PM] John Smith: Nice!
+[10/11/24, 5:45:22 PM] Alice Smith: Heading home
+[10/11/24, 5:45:35 PM] John Smith: Ok see you soon
+[10/12/24, 9:22:05 AM] John Smith: Ready for the hike?
+[10/12/24, 9:22:18 AM] Alice Smith: Almost!
+[10/12/24, 9:22:30 AM] John Smith: Great
+[11/15/24, 8:30:11 AM] Alice Smith: Morning
+[11/15/24, 8:30:25 AM] John Smith: Hey
+[11/15/24, 8:30:38 AM] Alice Smith: How's your week going?
+[11/15/24, 8:30:52 AM] John Smith: Busy but good
+[12/18/24, 8:30:11 AM] John Smith: Cold out there
+[12/18/24, 8:30:25 AM] Alice Smith: I know right
+[12/18/24, 8:30:38 AM] John Smith: Need to get a warmer jacket
+[12/18/24, 8:30:52 AM] Alice Smith: There's a sale on at the mall
+[12/18/24, 8:31:05 AM] John Smith: Oh nice might check it out
+[12/19/24, 9:15:22 AM] Alice Smith: Did you see my message?
+[12/19/24, 9:15:35 AM] John Smith: Which one?
+[12/19/24, 9:15:42 AM] Alice Smith: About the groceries
+[12/19/24, 9:15:55 AM] John Smith: Oh yeah got it
+[12/19/24, 1:52:01 PM] Alice Smith: We should visit Prinzhorn collection of art! It's in Germany
+[12/19/24, 2:06:06 PM] John Smith: yeah!
+[12/20/24, 9:44:54 AM] Alice Smith: image omitted
+[12/20/24, 9:44:55 AM] Alice Smith: image omitted
+[12/20/24, 10:30:18 PM] John Smith: Tired
+[12/20/24, 10:30:30 PM] Alice Smith: Same
+[12/20/24, 10:30:42 PM] John Smith: Long day
+[12/20/24, 10:30:55 PM] Alice Smith: Get some rest
+[12/21/24, 8:22:05 AM] Alice Smith: Morning!
+[12/21/24, 8:22:18 AM] John Smith: Hey
+[12/21/24, 8:22:30 AM] Alice Smith: Sleep ok?
+[12/21/24, 8:22:45 AM] John Smith: Yeah pretty good
+[1/15/25, 9:30:11 AM] John Smith: New year new me
+[1/15/25, 9:30:25 AM] Alice Smith: Haha sure
+[1/15/25, 9:30:38 AM] John Smith: I mean it this time!
+[1/15/25, 9:30:52 AM] Alice Smith: 😂
+[3/22/25, 10:22:05 AM] Alice Smith: How's work?
+[3/22/25, 10:22:18 AM] John Smith: Same old same old
+[3/22/25, 10:22:30 AM] Alice Smith: I hear you
+[3/22/25, 10:22:45 AM] John Smith: Looking forward to the weekend
+[3/22/25, 10:23:01 AM] Alice Smith: Me too
+[5/18/25, 7:15:33 AM] John Smith: Good morning
+[5/18/25, 7:15:50 AM] Alice Smith: Morning!
+[5/18/25, 7:16:02 AM] John Smith: Morning! I just saw this blog post, we should totally do this: https://tinyurl.com/a6vzxrj4
+[5/18/25, 7:16:15 AM] Alice Smith: Yeah that would be awesome!
+[7/30/25, 12:30:18 PM] Alice Smith: Lunch time
+[7/30/25, 12:30:30 PM] John Smith: What are you having?
+[7/30/25, 12:30:42 PM] Alice Smith: Leftovers
+[7/30/25, 12:30:55 PM] John Smith: Nice
+[10/6/25, 8:22:05 AM] John Smith: Morning
+[10/6/25, 8:22:18 AM] Alice Smith: Hey good morning
+[10/6/25, 8:22:30 AM] John Smith: Ready for the week?
+[10/6/25, 8:22:45 AM] Alice Smith: As ready as I'll ever be
+[10/6/25, 5:45:22 PM] Alice Smith: Heading home
+[10/6/25, 5:45:35 PM] John Smith: Ok see you soon
+[10/7/25, 9:15:33 AM] John Smith: Busy morning
+[10/7/25, 9:15:50 AM] Alice Smith: Same here
+[10/7/25, 9:16:02 AM] John Smith: Lots of emails
+[10/7/25, 9:16:15 AM] Alice Smith: Tell me about it
+[10/7/25, 1:33:56 PM] Alice Smith: Is your slack on?
+[10/7/25, 1:34:10 PM] John Smith: Yeah but my microphone is muted
+[10/7/25, 1:34:26 PM] Alice Smith: Well, his ain't!
+[10/7/25, 1:34:39 PM] Alice Smith: 😂😂
+[10/7/25, 1:35:51 PM] Alice Smith: We should take a hot air ballon ride
+[10/7/25, 1:36:09 PM] Alice Smith: In turkey 😉
+[10/7/25, 1:36:26 PM] John Smith: Yeah!
+[10/7/25, 6:29:58 PM] John Smith: I'm too tired to
+[10/7/25, 6:30:05 PM] John Smith: Will come home
+[10/7/25, 6:30:18 PM] Alice Smith: Ok drive safe
+[10/7/25, 6:30:30 PM] John Smith: Will do
+[10/8/25, 8:15:22 AM] Alice Smith: Morning!
+[10/8/25, 8:15:35 AM] John Smith: Good morning
+[10/8/25, 8:15:42 AM] Alice Smith: Have a good day
+[10/8/25, 8:15:55 PM] John Smith: You too!

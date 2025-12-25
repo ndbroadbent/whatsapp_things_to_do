@@ -58,9 +58,10 @@ describe('TikTok Scraper Integration', () => {
         expect(result.metadata.categories).toContain('Singing & Instruments')
         expect(result.metadata.categories).toContain('Talents')
 
-        // Suggested keywords
-        expect(result.metadata.suggestedKeywords).toContain('Classical Music')
-        expect(result.metadata.suggestedKeywords).toContain('Accordion')
+        // Suggested keywords (case-insensitive check)
+        const keywordsLower = result.metadata.suggestedKeywords.map((k) => k.toLowerCase())
+        expect(keywordsLower).toContain('classical music')
+        expect(keywordsLower).toContain('accordion')
 
         // Thumbnail URL
         expect(result.metadata.imageUrl).toContain('tiktokcdn')

@@ -1,0 +1,26 @@
+[3/28/24, 9:00:00 AM] Pat: Morning! Busy day today
+[3/28/24, 9:01:00 AM] Jordan: We should finish that work project by Friday
+[3/28/24, 9:02:00 AM] Pat: Yeah, let's try to get it done before the deadline
+[3/28/24, 9:03:00 AM] Jordan: Can we go to the dentist appointment first?
+[3/28/24, 9:04:00 AM] Pat: I need to see the doctor about my knee
+[3/28/24, 9:05:00 AM] Jordan: We should not forget to pay the bills
+[3/28/24, 9:06:00 AM] Pat: Let's go get groceries after work
+[3/28/24, 9:07:00 AM] Jordan: The vet appointment is at 3pm for the dog
+[3/28/24, 9:08:00 AM] Pat: We can't go to the meeting late
+[3/28/24, 9:09:00 AM] Jordan: I won't be able to make it to the office today
+[3/28/24, 9:10:00 AM] Pat: We shouldn't order takeaway again
+[3/28/24, 9:11:00 AM] Jordan: Let's try to clean the house this weekend
+[3/28/24, 9:12:00 AM] Pat: We went to that cafe last week, remember?
+[3/28/24, 9:13:00 AM] Jordan: Already been to that restaurant, it was okay
+[3/28/24, 9:14:00 AM] Pat: We did try the sushi place on Monday
+[3/28/24, 9:15:00 AM] Jordan: The mechanic said the car needs fixing
+[3/28/24, 9:16:00 AM] Pat: I have a job interview tomorrow morning
+[3/28/24, 9:17:00 AM] Jordan: Don't forget the optometrist at 2pm
+[3/28/24, 9:18:00 AM] Pat: We need to buy a new vacuum
+[3/28/24, 9:19:00 AM] Jordan: The boss wants us in early tomorrow
+[3/28/24, 9:20:00 AM] Pat: Can we go pick up the dry cleaning?
+[3/28/24, 9:21:00 AM] Jordan: Let's do the laundry tonight
+[3/28/24, 9:22:00 AM] Pat: The hospital called about my results
+[3/28/24, 9:23:00 AM] Jordan: I've been there before, nothing special
+[3/28/24, 9:24:00 AM] Pat: We visited that museum last month
+[3/28/24, 9:25:00 AM] Jordan: We already tried that hike, remember the rain?

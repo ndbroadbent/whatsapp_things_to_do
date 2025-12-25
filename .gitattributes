@@ -1,0 +1,2 @@
+tests/fixtures/cli/cache-fixture.tar.gz filter=lfs diff=lfs merge=lfs -text
+src/extraction/embeddings/queries/query-embeddings.json.gz filter=lfs diff=lfs merge=lfs -text
