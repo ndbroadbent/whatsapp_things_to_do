@@ -40,3 +40,9 @@ pre-commit:
     query-embeddings:
       glob: "src/embeddings/queries/*.json"
       run: bun scripts/check-query-embeddings.ts
+
+# Enable pre-push hook so lefthook runs git-lfs pre-push automatically
+pre-push:
+  commands:
+    placeholder:
+      run: "true"
