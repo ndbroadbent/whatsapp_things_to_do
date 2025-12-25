@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: CI
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: TypeScript type checking
+        run: bun run typecheck
+
+      - name: Lint (Biome)
+        run: bunx biome check .
+
+      - name: Check for biome-ignore comments
+        run: ./scripts/check-ignores.sh
+
+      - name: Check code duplication
+        run: bunx jscpd src/
+
+      - name: Check file length limits
+        run: ./scripts/check_file_length.sh
+
+      - name: Check query embeddings
+        run: bun scripts/check-query-embeddings.ts
+
+      - name: Check for dead code (knip)
+        run: bunx knip
+
+      - name: Run unit tests
+        run: bun run test
+        env:
+          CI: true
+
+      - name: Run E2E tests
+        run: bun run vitest run --config src/cli/e2e/vitest.config.ts src/cli/e2e/
+        env:
+          CI: true
+
+      - name: Build
+        run: bun run build
