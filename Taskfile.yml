@@ -39,17 +39,17 @@ tasks:
   lint:
     desc: Run Biome linter (check only)
     cmds:
-      - bunx biome check .
+      - bun run lint
 
   lint:fix:
     desc: Run Biome linter and auto-fix issues
     cmds:
-      - bunx biome check --write .
+      - bun run lint:fix
 
   format:
     desc: Format code with Biome
     cmds:
-      - bunx biome format --write .
+      - bun run format
 
   typecheck:
     desc: TypeScript type checking
@@ -59,12 +59,12 @@ tasks:
   duplication:
     desc: Check for code duplication
     cmds:
-      - bunx jscpd src/
+      - bun run duplication
 
   knip:
     desc: Check for dead code (unused exports, dependencies, files)
     cmds:
-      - bunx knip
+      - bun run knip
 
   file-length:
     desc: Check file length limits

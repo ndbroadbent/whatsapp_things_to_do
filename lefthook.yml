@@ -6,12 +6,12 @@ pre-commit:
   commands:
     biome-format:
       glob: "*.{ts,js,json}"
-      run: bunx biome format --write {staged_files}
+      run: bun run biome format --write {staged_files}
       stage_fixed: true
 
     biome-lint:
       glob: "*.{ts,js}"
-      run: bunx biome check --write {staged_files}
+      run: bun run biome check --write {staged_files}
       stage_fixed: true
 
     typecheck:
@@ -20,11 +20,11 @@ pre-commit:
 
     duplication:
       glob: "*.ts"
-      run: bunx jscpd src/
+      run: bun run duplication
 
     knip:
       glob: "*.ts"
-      run: bunx knip
+      run: bun run knip
 
     file-length:
       run: ./scripts/check_file_length.sh {staged_files}

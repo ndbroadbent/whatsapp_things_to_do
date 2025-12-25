@@ -34,13 +34,13 @@ jobs:
         run: bun run typecheck
 
       - name: Lint (Biome)
-        run: bunx biome check .
+        run: bun run lint
 
       - name: Check for biome-ignore comments
         run: ./scripts/check-ignores.sh
 
       - name: Check code duplication
-        run: bunx jscpd src/
+        run: bun run duplication
 
       - name: Check file length limits
         run: ./scripts/check_file_length.sh
@@ -49,7 +49,7 @@ jobs:
         run: bun scripts/check-query-embeddings.ts
 
       - name: Check for dead code (knip)
-        run: bunx knip
+        run: bun run knip
 
       - name: Run unit tests
         run: bun run test
