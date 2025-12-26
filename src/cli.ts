@@ -11,6 +11,7 @@
 import { parseCliArgs } from './cli/args'
 import { cmdAnalyze } from './cli/commands/analyze'
 import { cmdClassify } from './cli/commands/classify'
+import { cmdConfig } from './cli/commands/config'
 import { cmdEmbed } from './cli/commands/embed'
 import { cmdFetchImageUrls } from './cli/commands/fetch-image-urls'
 import { cmdFetchImages } from './cli/commands/fetch-images'
@@ -75,6 +76,10 @@ async function main(): Promise<void> {
 
       case 'list':
         await cmdList(args.outputDir, logger)
+        break
+
+      case 'config':
+        await cmdConfig(args, logger)
         break
 
       default:

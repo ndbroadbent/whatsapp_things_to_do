@@ -33,6 +33,8 @@ const API_KEY_ENV_VARS = [
 /** Shared test state */
 export interface E2ETestState {
   tempCacheDir: string
+  /** Path to temp config file (isolated from user's config) */
+  tempConfigFile: string
   initialCacheHash: string
   initialCacheFiles: Set<string>
   /** Whether cache updates are allowed (UPDATE_E2E_CACHE=true) */
@@ -44,6 +46,7 @@ export interface E2ETestState {
 /** Test state - initialized by globalSetup, accessed via inject() in tests */
 export let testState: E2ETestState = {
   tempCacheDir: '',
+  tempConfigFile: '',
   initialCacheHash: '',
   initialCacheFiles: new Set(),
   allowCacheUpdates: false,
@@ -180,6 +183,11 @@ function parseArgs(args: string): string[] {
  */
 function buildCliEnv(): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...process.env, NO_COLOR: '1' }
+
+  // Use isolated config file for tests (prevents reading/writing user's config)
+  if (testState.tempConfigFile) {
+    env.CHAT_TO_MAP_CONFIG = testState.tempConfigFile
+  }
 
   // If fixture exists and we're NOT updating, lock down the environment
   if (testState.hasFixture && !testState.allowCacheUpdates) {
@@ -321,6 +329,8 @@ export function setupE2ETests(): E2ETestState {
 
   const hasFixture = existsSync(CACHE_FIXTURE)
   const tempCacheDir = mkdtempSync(join(tmpdir(), 'chat-to-map-e2e-'))
+  // Create temp config file to isolate tests from user's config
+  const tempConfigFile = join(tempCacheDir, 'config.json')
 
   if (replaceCache) {
     console.log('🔄 E2E tests running in REPLACE mode (rebuilding cache from scratch)')
@@ -332,13 +342,21 @@ export function setupE2ETests(): E2ETestState {
 
   if (process.env.DEBUG_E2E) {
     console.log(`🔍 E2E temp cache dir: ${tempCacheDir}`)
+    console.log(`🔍 E2E temp config file: ${tempConfigFile}`)
   }
 
   extractCacheFixture(tempCacheDir)
   const initialCacheHash = hashCacheDirectories(tempCacheDir)
   const initialCacheFiles = listCacheFiles(tempCacheDir)
 
-  return { tempCacheDir, initialCacheHash, initialCacheFiles, allowCacheUpdates, hasFixture }
+  return {
+    tempCacheDir,
+    tempConfigFile,
+    initialCacheHash,
+    initialCacheFiles,
+    allowCacheUpdates,
+    hasFixture
+  }
 }
 
 /**

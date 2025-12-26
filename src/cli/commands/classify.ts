@@ -117,6 +117,7 @@ export async function cmdClassify(args: CLIArgs, logger: Logger): Promise<void> 
   const classifyResult = await stepClassify(ctx, candidates, {
     homeCountry: args.homeCountry,
     timezone: args.timezone,
+    configFile: args.configFile,
     urlMetadata: metadataMap,
     batchSize: 30
   })

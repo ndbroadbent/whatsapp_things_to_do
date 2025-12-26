@@ -1,25 +1,14 @@
 /**
  * User Settings
  *
- * Manages user settings like home country with automatic geoip lookup.
- * Settings are cached in the cache directory as user-settings.json.
+ * Resolves user context (home country, timezone) with automatic detection and caching.
+ * Settings are stored in ~/.config/chat-to-map/config.json (XDG standard).
  */
 
 import { existsSync, readlinkSync } from 'node:fs'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
 import { httpFetch } from '../http'
+import { type Config, loadConfig, migrateFromUserSettings, saveConfig } from './config'
 import type { Logger } from './logger'
-import { getCacheDir } from './steps/context'
-
-interface UserSettings {
-  /** User's home country (e.g., "New Zealand") */
-  homeCountry?: string | undefined
-  /** User's timezone (e.g., "Pacific/Auckland") */
-  timezone?: string | undefined
-  /** When settings were last updated */
-  updatedAt?: string | undefined
-}
 
 interface GeoIpResponse {
   country_name?: string
@@ -30,7 +19,9 @@ interface ResolveOptions {
   argsHomeCountry?: string | undefined
   /** CLI arg for timezone */
   argsTimezone?: string | undefined
-  /** Custom cache directory */
+  /** Custom config file path */
+  configFile?: string | undefined
+  /** Custom cache directory (for migration only) */
   cacheDir?: string | undefined
   /** Logger for output */
   logger?: Logger | undefined
@@ -70,45 +61,6 @@ function getSystemTimezone(): string | undefined {
 }
 
 /**
- * Get path to user settings file.
- */
-function getUserSettingsPath(cacheDir?: string): string {
-  return join(getCacheDir(cacheDir), 'user-settings.json')
-}
-
-/**
- * Load user settings from cache.
- */
-async function loadUserSettings(cacheDir?: string, logger?: Logger): Promise<UserSettings | null> {
-  const path = getUserSettingsPath(cacheDir)
-  if (!existsSync(path)) {
-    return null
-  }
-  try {
-    const content = await readFile(path, 'utf-8')
-    const settings = JSON.parse(content) as UserSettings
-    logger?.log(`\n📍 Loaded settings from ${path}`)
-    return settings
-  } catch {
-    return null
-  }
-}
-
-/**
- * Save user settings to cache.
- */
-async function saveUserSettings(
-  settings: UserSettings,
-  cacheDir?: string,
-  logger?: Logger
-): Promise<void> {
-  const path = getUserSettingsPath(cacheDir)
-  await mkdir(dirname(path), { recursive: true })
-  await writeFile(path, JSON.stringify(settings, null, 2))
-  logger?.log(`\n📍 Saved settings to ${path}`)
-}
-
-/**
  * Fetch country from geoip APIs (tries multiple with fallback).
  */
 async function fetchGeoIp(logger?: Logger): Promise<string | null> {
@@ -142,7 +94,7 @@ async function fetchGeoIp(logger?: Logger): Promise<string | null> {
  * Priority for both home country and timezone:
  * 1. CLI arg (--home-country, --timezone)
  * 2. Environment variable (HOME_COUNTRY, TIMEZONE)
- * 3. Cached value from user-settings.json
+ * 3. Config file value from ~/.config/chat-to-map/config.json
  * 4. Auto-detect (geoip for country, /etc/localtime for timezone)
  *
  * Throws if home country cannot be determined from any source.
@@ -150,7 +102,13 @@ async function fetchGeoIp(logger?: Logger): Promise<string | null> {
 export async function resolveUserContext(
   options: ResolveOptions = {}
 ): Promise<ResolvedUserContext> {
-  const { argsHomeCountry, argsTimezone, cacheDir, logger } = options
+  const { argsHomeCountry, argsTimezone, configFile, cacheDir, logger } = options
+
+  // Attempt migration from old user-settings.json on first access
+  const migrated = await migrateFromUserSettings(cacheDir, configFile)
+  if (migrated) {
+    logger?.log('\n📍 Migrated settings from old user-settings.json location')
+  }
 
   // Resolve home country
   let homeCountry: string | undefined
@@ -176,27 +134,29 @@ export async function resolveUserContext(
     timezoneSource = 'TIMEZONE env'
   }
 
-  // Check cached settings for any missing values
-  const cached = await loadUserSettings(cacheDir, logger)
-  if (cached) {
-    if (!homeCountry && cached.homeCountry) {
-      homeCountry = cached.homeCountry
-      countrySource = 'cached'
+  // Check config file for any missing values
+  const config = await loadConfig(configFile)
+  if (config) {
+    if (!homeCountry && config.homeCountry) {
+      homeCountry = config.homeCountry
+      countrySource = 'config'
     }
-    if (!timezone && cached.timezone) {
-      timezone = cached.timezone
-      timezoneSource = 'cached'
+    if (!timezone && config.timezone) {
+      timezone = config.timezone
+      timezoneSource = 'config'
     }
   }
 
   // Auto-detect missing values
   let needsSave = false
+  const updates: Partial<Config> = {}
 
   if (!homeCountry) {
     const detected = await fetchGeoIp(logger)
     if (detected) {
       homeCountry = detected
       countrySource = 'detected from IP'
+      updates.homeCountry = detected
       needsSave = true
     }
   }
@@ -206,21 +166,14 @@ export async function resolveUserContext(
     if (systemTz) {
       timezone = systemTz
       timezoneSource = 'system'
+      updates.timezone = systemTz
       needsSave = true
     }
   }
 
   // Save if we detected new values
   if (needsSave && homeCountry) {
-    await saveUserSettings(
-      {
-        homeCountry,
-        timezone,
-        updatedAt: new Date().toISOString()
-      },
-      cacheDir,
-      logger
-    )
+    await saveConfig({ ...config, ...updates }, configFile)
   }
 
   if (!homeCountry) {

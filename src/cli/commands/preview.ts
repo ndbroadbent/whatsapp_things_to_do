@@ -142,6 +142,7 @@ export async function cmdPreview(args: CLIArgs, logger: Logger): Promise<void> {
   const { homeCountry, timezone } = await resolveUserContext({
     argsHomeCountry: args.homeCountry,
     argsTimezone: args.timezone,
+    configFile: args.configFile,
     cacheDir: ctx.cacheDir,
     logger
   })

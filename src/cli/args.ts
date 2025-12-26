@@ -6,6 +6,7 @@
 
 import { Command } from 'commander'
 import { VERSION } from '../index'
+import { getConfigDescription, getConfigType, getValidConfigKeys } from './config'
 
 export type ExtractionMethod = 'heuristics' | 'embeddings' | 'both'
 
@@ -16,6 +17,7 @@ export interface CLIArgs {
   formats: string[]
   minConfidence: number
   skipGeocoding: boolean
+  fetchImages: boolean
   skipCdn: boolean
   skipPixabay: boolean
   skipWikipedia: boolean
@@ -34,7 +36,14 @@ export interface CLIArgs {
   scrapeTimeout: number
   noCache: boolean
   cacheDir: string | undefined
+  configFile: string | undefined
   showAll: boolean
+  /** For config command: action (list, set, unset) */
+  configAction: 'list' | 'set' | 'unset'
+  /** For config command: key name */
+  configKey: string | undefined
+  /** For config command: value to set */
+  configValue: string | undefined
 }
 
 const DEFAULT_BASE_DIR = './chat-to-map'
@@ -66,12 +75,13 @@ function createProgram(): Command {
     .option('--debug', 'Print debug info')
     .option('--no-cache', 'Skip cache and regenerate all results')
     .option('--cache-dir <dir>', 'Custom cache directory (or set CHAT_TO_MAP_CACHE_DIR)')
+    .option('--config-file <path>', 'Config file path (or set CHAT_TO_MAP_CONFIG)')
 
   // ============ ANALYZE (full pipeline - most common) ============
   program
     .command('analyze')
     .description(
-      'Run the complete pipeline (parse → filter → scrape-urls → classify → geocode → fetch-image-urls → export)'
+      'Run the complete pipeline (parse → filter → scrape-urls → classify → geocode → export)'
     )
     .argument('<input>', 'Chat export (.zip, directory, or .txt file)')
     .option('-c, --home-country <name>', 'Your home country (auto-detected from IP if not set)')
@@ -84,6 +94,7 @@ function createProgram(): Command {
     )
     .option('--min-confidence <num>', 'Minimum confidence threshold', '0.5')
     .option('--skip-geocoding', 'Skip geocoding step')
+    .option('--images', 'Fetch images for activities (slower, uses external APIs)')
     .option('-m, --max-messages <num>', 'Max messages to process (for testing)')
     .option('--dry-run', 'Show stats without API calls')
 
@@ -198,6 +209,34 @@ function createProgram(): Command {
   // ============ LIST ============
   program.command('list').description('Show previously processed chats')
 
+  // ============ CONFIG ============
+  const configKeys = getValidConfigKeys()
+  const maxLen = Math.max(...configKeys.map((k) => `${k} (${getConfigType(k)})`.length))
+  const settingsHelp = configKeys
+    .map((key) => {
+      const label = `${key} (${getConfigType(key)})`
+      return `  ${label.padEnd(maxLen)}  ${getConfigDescription(key)}`
+    })
+    .join('\n')
+  program
+    .command('config')
+    .description('Manage persistent settings')
+    .argument('[action]', 'Action: list (default), set, unset')
+    .argument('[key]', 'Config key to set/unset')
+    .argument('[value]', 'Value to set')
+    .addHelpText(
+      'after',
+      `
+Available settings:
+${settingsHelp}
+
+Examples:
+  chat-to-map config                          List current settings
+  chat-to-map config set homeCountry "USA"    Set home country
+  chat-to-map config set fetchImages true     Enable image fetching
+  chat-to-map config unset cacheDir           Remove custom cache dir`
+    )
+
   return program as Command
 }
 
@@ -218,6 +257,7 @@ function buildCLIArgs(commandName: string, input: string, opts: Record<string, u
     formats: format.split(',').map((f) => f.trim()),
     minConfidence: Number.parseFloat(String(opts.minConfidence ?? '0.5')),
     skipGeocoding: opts.skipGeocoding === true,
+    fetchImages: opts.images === true,
     skipCdn: opts.imageCdn === false,
     skipPixabay: opts.skipPixabay === true,
     skipWikipedia: opts.skipWikipedia === true,
@@ -237,7 +277,33 @@ function buildCLIArgs(commandName: string, input: string, opts: Record<string, u
     scrapeTimeout: Number.parseInt(String(opts.timeout ?? '4000'), 10),
     noCache: opts.cache === false,
     cacheDir: typeof opts.cacheDir === 'string' ? opts.cacheDir : undefined,
-    showAll: opts.all === true
+    configFile: typeof opts.configFile === 'string' ? opts.configFile : undefined,
+    showAll: opts.all === true,
+    configAction: 'list',
+    configKey: undefined,
+    configValue: undefined
+  }
+}
+
+function parseConfigAction(action: string | undefined): 'list' | 'set' | 'unset' {
+  if (action === 'set' || action === 'unset') {
+    return action
+  }
+  return 'list'
+}
+
+function buildConfigCLIArgs(
+  action: string | undefined,
+  key: string | undefined,
+  value: string | undefined,
+  opts: Record<string, unknown>
+): CLIArgs {
+  const base = buildCLIArgs('config', '', opts)
+  return {
+    ...base,
+    configAction: parseConfigAction(action),
+    configKey: key,
+    configValue: value
   }
 }
 
@@ -263,6 +329,14 @@ export function parseCliArgs(): CLIArgs {
   if (listCmd) {
     listCmd.action(() => {
       result = buildCLIArgs('list', '', listCmd.optsWithGlobals())
+    })
+  }
+
+  // Handle config command with action, key, value arguments
+  const configCmd = program.commands.find((c) => c.name() === 'config')
+  if (configCmd) {
+    configCmd.action((action?: string, key?: string, value?: string) => {
+      result = buildConfigCLIArgs(action, key, value, configCmd.optsWithGlobals())
     })
   }
 
@@ -298,6 +372,13 @@ export function parseArgs(argv: string[], exitOnHelp = true): CLIArgs {
   if (listCmd) {
     listCmd.action(() => {
       result = buildCLIArgs('list', '', listCmd.optsWithGlobals())
+    })
+  }
+
+  const configCmd = program.commands.find((c) => c.name() === 'config')
+  if (configCmd) {
+    configCmd.action((action?: string, key?: string, value?: string) => {
+      result = buildConfigCLIArgs(action, key, value, configCmd.optsWithGlobals())
     })
   }
 

@@ -26,7 +26,7 @@ describe('analyze command', () => {
 
   it('runs full pipeline and exports all formats', { timeout: 120000 }, () => {
     const { stdout, exitCode } = runCli(
-      `analyze ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir} -c "New Zealand" -o ${outputDir}`
+      `analyze ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir} -c "New Zealand" -o ${outputDir} --images`
     )
 
     expect(exitCode).toBe(0)

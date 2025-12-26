@@ -49,6 +49,8 @@ interface ClassifyOptions {
   readonly homeCountry?: string | undefined
   /** Timezone for date context */
   readonly timezone?: string | undefined
+  /** Config file path for resolving user context */
+  readonly configFile?: string | undefined
   /** URL metadata from scrape step */
   readonly urlMetadata?: Map<string, ScrapedMetadata> | undefined
   /** Batch size for API calls (default 30) */
@@ -121,6 +123,7 @@ export async function stepClassify(
   const { homeCountry, timezone } = await resolveUserContext({
     argsHomeCountry: options?.homeCountry,
     argsTimezone: options?.timezone,
+    configFile: options?.configFile,
     cacheDir,
     logger
   })

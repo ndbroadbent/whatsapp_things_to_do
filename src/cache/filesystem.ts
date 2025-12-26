@@ -15,7 +15,7 @@ import type { CachedResponse, ResponseCache } from './types'
  * Tests must use isolated temp directories.
  */
 function guardAgainstUserCache(cacheDir: string): void {
-  const isTest = process.env['VITEST'] === 'true' || process.env['NODE_ENV'] === 'test'
+  const isTest = process.env.VITEST === 'true' || process.env.NODE_ENV === 'test'
   if (!isTest) return
 
   const realCacheDir = join(homedir(), '.cache', 'chat-to-map')

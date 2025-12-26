@@ -167,6 +167,7 @@ export class StepRunner {
     const result = await stepClassify(this.ctx, candidates, {
       homeCountry: this.args.homeCountry,
       timezone: this.args.timezone,
+      configFile: this.args.configFile,
       urlMetadata: metadataMap,
       batchSize: 30
     })
@@ -208,11 +209,15 @@ export class StepRunner {
   }
 
   private async runExport(): Promise<StepOutputs['export']> {
-    // Dependencies: geocode, fetchImages (which depends on fetchImageUrls)
-    const [{ activities }, { thumbnails }] = await Promise.all([
-      this.run('geocode'),
-      this.run('fetchImages')
-    ])
+    // Dependencies: geocode, and optionally fetchImages (if --images flag)
+    const { activities } = await this.run('geocode')
+
+    // Only fetch images if explicitly requested via --images flag
+    let thumbnails: Map<string, Buffer> = new Map()
+    if (this.args.fetchImages) {
+      const result = await this.run('fetchImages')
+      thumbnails = result.thumbnails
+    }
 
     const { stepExport } = await import('./export')
     const result = await stepExport(this.ctx, activities, {

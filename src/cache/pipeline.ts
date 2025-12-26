@@ -91,6 +91,46 @@ function findLatestRunDirByHash(inputDir: string, hash: string): string | null {
   return matchingRuns[0] ?? null
 }
 
+const STAGES_WITH_TIMESTAMPS: PipelineStage[] = [
+  'messages',
+  'candidates.heuristics',
+  'candidates.embeddings',
+  'candidates.all',
+  'classifications',
+  'geocodings'
+]
+
+function stageHasTimestamps(stage: PipelineStage): boolean {
+  return STAGES_WITH_TIMESTAMPS.includes(stage)
+}
+
+function restoreTimestamps(items: unknown[]): void {
+  for (const item of items) {
+    if (!item || typeof item !== 'object') continue
+    const record = item as Record<string, unknown>
+    if (typeof record.timestamp === 'string') {
+      record.timestamp = new Date(record.timestamp)
+    }
+    restoreContextTimestamps(record.contextBefore)
+    restoreContextTimestamps(record.contextAfter)
+  }
+}
+
+function restoreContextTimestamps(context: unknown): void {
+  if (!Array.isArray(context)) return
+  for (const ctx of context) {
+    if (
+      ctx &&
+      typeof ctx === 'object' &&
+      typeof (ctx as Record<string, unknown>).timestamp === 'string'
+    ) {
+      ;(ctx as Record<string, unknown>).timestamp = new Date(
+        (ctx as Record<string, unknown>).timestamp as string
+      )
+    }
+  }
+}
+
 /**
  * Pipeline cache for per-run stage outputs.
  */
@@ -205,39 +245,8 @@ export class PipelineCache {
     }
 
     const parsed = JSON.parse(content)
-
-    // Restore Date objects for stages that contain timestamps
-    if (Array.isArray(parsed)) {
-      const stagesWithTimestamps: PipelineStage[] = [
-        'messages',
-        'candidates.heuristics',
-        'candidates.embeddings',
-        'candidates.all',
-        'classifications',
-        'geocodings'
-      ]
-      if (stagesWithTimestamps.includes(stage)) {
-        for (const item of parsed) {
-          if (item && typeof item.timestamp === 'string') {
-            item.timestamp = new Date(item.timestamp)
-          }
-          // Restore timestamps in contextBefore/contextAfter for candidate stages
-          if (item && Array.isArray(item.contextBefore)) {
-            for (const ctx of item.contextBefore) {
-              if (ctx && typeof ctx.timestamp === 'string') {
-                ctx.timestamp = new Date(ctx.timestamp)
-              }
-            }
-          }
-          if (item && Array.isArray(item.contextAfter)) {
-            for (const ctx of item.contextAfter) {
-              if (ctx && typeof ctx.timestamp === 'string') {
-                ctx.timestamp = new Date(ctx.timestamp)
-              }
-            }
-          }
-        }
-      }
+    if (Array.isArray(parsed) && stageHasTimestamps(stage)) {
+      restoreTimestamps(parsed)
     }
 
     return parsed as T

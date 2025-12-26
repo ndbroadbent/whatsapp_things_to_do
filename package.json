@@ -53,7 +53,7 @@
     "build:binary": "bun build src/cli.ts --compile --outfile chat-to-map",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
-    "lint:fix": "biome check --write .",
+    "lint:fix": "biome check --write --unsafe .",
     "format": "biome format --write .",
     "duplication": "jscpd src/",
     "knip": "knip",

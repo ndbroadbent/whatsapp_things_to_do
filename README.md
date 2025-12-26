@@ -67,6 +67,75 @@ chat-to-map list
 export ANTHROPIC_API_KEY=sk-ant-...   # Required for classification
 export GOOGLE_MAPS_API_KEY=AIza...    # Required for geocoding
 export OPENAI_API_KEY=sk-...          # Optional for embeddings
+export PIXABAY_API_KEY=...            # Optional for images
+```
+
+### Images (Opt-In)
+
+Images are **not fetched by default**. Use `--images` to enable:
+
+```bash
+chat-to-map analyze <input> --images
+```
+
+Or fetch images separately for existing results:
+
+```bash
+chat-to-map fetch-images <input>
+```
+
+**Tip:** To always fetch images, set it in your config:
+
+```bash
+chat-to-map config set fetchImages true
+```
+
+**Why opt-in?**
+- Most external APIs don't allow automated scraping or rate-limit heavily
+- Fetching can take a long time with thousands of activities
+- Google Places photo lookups can be expensive
+- The CLI works perfectly without images
+
+**Where images are used:**
+- Interactive map HTML (pin details on hover)
+- Activity list view in map export
+- Thumbnails in exported PDFs
+
+### Configuration
+
+Configuration is managed in `~/.config/chat-to-map/config.json`. `homeCountry` and `timezone` are auto-detected from your system and persisted for future runs. Other settings can be set via the `config` command.
+
+**Available settings:**
+- `homeCountry` - Your home country (auto-detected from IP if not set)
+- `timezone` - Your timezone (auto-detected from system if not set)
+- `fetchImages` - Whether to fetch images by default
+- `cacheDir` - Custom cache directory
+- `outputDir` - Default output directory
+- `formats` - Default export formats
+
+**Manage settings with the `config` command:**
+
+```bash
+# List all settings
+chat-to-map config
+
+# Set a value
+chat-to-map config set homeCountry "New Zealand"
+chat-to-map config set fetchImages true
+chat-to-map config set formats csv,json,map
+
+# Unset a value
+chat-to-map config unset cacheDir
+```
+
+**Custom config file:**
+
+```bash
+# Use a different config file
+chat-to-map analyze <input> --config-file /path/to/config.json
+
+# Or via environment variable
+export CHAT_TO_MAP_CONFIG=/path/to/config.json
 ```
 
 ## Library Usage
