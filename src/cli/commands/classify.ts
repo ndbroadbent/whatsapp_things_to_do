@@ -87,10 +87,10 @@ export function buildClassifyOutput(
 }
 
 export async function cmdClassify(args: CLIArgs, logger: Logger): Promise<void> {
-  const { ctx } = await initCommandContext('Classify', args, logger)
+  const { ctx, config } = await initCommandContext('Classify', args, logger)
 
   // Use StepRunner to handle dependencies: filter → scrapeUrls → classify
-  const runner = new StepRunner(ctx, args, logger)
+  const runner = new StepRunner(ctx, args, config, logger)
 
   // Run filter step (which runs parse → scan → embed → filter)
   const { candidates } = await runner.run('filter')

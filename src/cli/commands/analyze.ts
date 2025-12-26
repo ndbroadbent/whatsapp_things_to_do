@@ -12,9 +12,9 @@ import type { Logger } from '../logger'
 import { StepRunner } from '../steps/runner'
 
 export async function cmdAnalyze(args: CLIArgs, logger: Logger): Promise<void> {
-  const { ctx } = await initCommandContext('Analyze', args, logger)
+  const { ctx, config } = await initCommandContext('Analyze', args, logger)
 
-  const runner = new StepRunner(ctx, args, logger)
+  const runner = new StepRunner(ctx, args, config, logger)
 
   // Run full pipeline through export
   const { exportedFiles } = await runner.run('export')

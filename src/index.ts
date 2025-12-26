@@ -52,7 +52,12 @@ export {
   exportToJSON,
   exportToMapHTML,
   exportToPDF,
-  parseJSON
+  type FilterOptions,
+  filterActivities as filterActivitiesForExport,
+  matchesSender,
+  normalizeCountry,
+  parseJSON,
+  type SortOrder
 } from './export/index'
 // Extraction module (heuristics + embeddings)
 export type { ExtractCandidatesConfig, ExtractCandidatesResult } from './extraction/index'

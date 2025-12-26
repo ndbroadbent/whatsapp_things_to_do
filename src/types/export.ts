@@ -17,14 +17,31 @@ export interface MapConfig {
   readonly imagePaths?: Map<string, string> | undefined
 }
 
+/** Sort order for export filtering. */
+export type SortOrder = 'score' | 'oldest' | 'newest'
+
 export interface PDFConfig {
   readonly title?: string
   readonly subtitle?: string
   readonly includeMap?: boolean
   readonly filterByCategory?: readonly ActivityCategory[]
-  readonly filterByRegion?: string
+  readonly filterByCountry?: readonly string[]
   /** Thumbnails keyed by activity ID (JPEG buffers, 225px square at 300 DPI) */
   readonly thumbnails?: Map<string, Buffer> | undefined
+  /** Include thumbnails in PDF (default: false to save ink) */
+  readonly includeThumbnails?: boolean
+  /** Max activities to include (0 or undefined = all) */
+  readonly maxActivities?: number
+  /** Sort order when limiting activities (default: score) */
+  readonly sortOrder?: SortOrder
+  /** Group activities by country (default: true) */
+  readonly groupByCountry?: boolean
+  /** Group activities by category (default: true) */
+  readonly groupByCategory?: boolean
+  /** Include score in activity output (default: false) */
+  readonly includeScore?: boolean
+  /** Page size: A4 or Letter (default: based on home country) */
+  readonly pageSize?: 'A4' | 'Letter'
 }
 
 export interface ExportMetadata {

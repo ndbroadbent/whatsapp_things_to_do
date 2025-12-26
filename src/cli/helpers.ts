@@ -8,6 +8,7 @@ import { basename } from 'node:path'
 import { VERSION } from '../index'
 import { type ActivityCategory, type ActivityMessage, CATEGORY_EMOJI } from '../types'
 import type { CLIArgs } from './args'
+import { type Config, loadConfig } from './config'
 import type { Logger } from './logger'
 import { initContext, type PipelineContext } from './steps/context'
 import { type ParseResult, stepParse } from './steps/parse'
@@ -63,11 +64,13 @@ export function truncate(text: string, maxLength: number): string {
 
 interface CommandInitResult {
   ctx: PipelineContext
+  config: Config | null
   parseResult: ParseResult
 }
 
 interface CommandInitContextOnly {
   ctx: PipelineContext
+  config: Config | null
 }
 
 /**
@@ -101,8 +104,9 @@ export async function initCommand(
   logger: Logger
 ): Promise<CommandInitResult> {
   const ctx = await initContextWithHeader(commandName, args, logger)
+  const config = await loadConfig(args.configFile)
   const parseResult = stepParse(ctx, { maxMessages: args.maxMessages })
-  return { ctx, parseResult }
+  return { ctx, config, parseResult }
 }
 
 /**
@@ -115,7 +119,8 @@ export async function initCommandContext(
   logger: Logger
 ): Promise<CommandInitContextOnly> {
   const ctx = await initContextWithHeader(commandName, args, logger)
-  return { ctx }
+  const config = await loadConfig(args.configFile)
+  return { ctx, config }
 }
 
 // ============================================================================

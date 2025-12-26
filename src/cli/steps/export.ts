@@ -12,9 +12,13 @@ import {
   exportToJSON,
   exportToMapHTML,
   exportToPDF,
+  filterActivitiesForExport,
   VERSION
 } from '../../index'
-import type { GeocodedActivity } from '../../types'
+import type { GeocodedActivity, PDFConfig } from '../../types'
+import type { CLIArgs } from '../args'
+import type { Config } from '../config'
+import { buildFilterOptions } from '../filter-options'
 import { ensureDir } from '../io'
 import type { PipelineContext } from './context'
 
@@ -27,6 +31,61 @@ interface ExportOptions {
   readonly formats: readonly ExportFormat[]
   /** Thumbnails keyed by activity ID for PDF export */
   readonly thumbnails?: Map<string, Buffer>
+  /** CLI args for building filter options per format */
+  readonly args: CLIArgs
+  /** Config for building filter options per format */
+  readonly config: Config | null
+}
+
+/**
+ * Build PDFConfig from CLI args and config.
+ * Filtering is handled separately by buildFilterOptions.
+ */
+function buildPdfConfig(
+  args: CLIArgs,
+  config: Config | null,
+  inputFile: string,
+  thumbnails?: Map<string, Buffer>
+): PDFConfig {
+  // Title: CLI arg → config → default
+  const title = args.pdfTitle ?? config?.pdfTitle ?? 'Things To Do'
+
+  // Subtitle: CLI arg → config → default from input file
+  const subtitle =
+    args.pdfSubtitle ?? config?.pdfSubtitle ?? `Generated from ${basename(inputFile)}`
+
+  // Include thumbnails: CLI arg → config → false
+  const includeThumbnails = args.pdfThumbnails || config?.pdfThumbnails || false
+
+  // Group by country: CLI arg → config → true (default)
+  // CLI uses negation flag, so we check if explicitly set to false
+  const groupByCountry = args.pdfGroupByCountry && (config?.pdfGroupByCountry ?? true)
+
+  // Group by category: CLI arg → config → true (default)
+  const groupByCategory = args.pdfGroupByCategory && (config?.pdfGroupByCategory ?? true)
+
+  // Include score: CLI arg → config → false
+  const includeScore = args.pdfIncludeScore || config?.pdfIncludeScore || false
+
+  // Page size: CLI arg → config → undefined (let PDF module decide based on defaults)
+  const pageSize = (args.pdfPageSize ?? config?.pdfPageSize) as 'A4' | 'Letter' | undefined
+
+  const result: PDFConfig = {
+    title,
+    subtitle,
+    thumbnails,
+    includeThumbnails,
+    groupByCountry,
+    groupByCategory,
+    includeScore
+  }
+
+  // Only include pageSize if explicitly set (exactOptionalPropertyTypes)
+  if (pageSize) {
+    ;(result as { pageSize: 'A4' | 'Letter' }).pageSize = pageSize
+  }
+
+  return result
 }
 
 interface ExportResult {
@@ -36,21 +95,29 @@ interface ExportResult {
 
 /**
  * Export activities to specified formats.
+ * Each format gets its own filter options (PDF can have different filters than others).
  */
 export async function stepExport(
   ctx: PipelineContext,
   activities: readonly GeocodedActivity[],
   options: ExportOptions
 ): Promise<ExportResult> {
-  const { outputDir, formats } = options
+  const { outputDir, formats, args, config, thumbnails } = options
   const inputFile = ctx.input
 
   await ensureDir(outputDir)
 
   const exportedFiles = new Map<ExportFormat, string>()
 
+  // Build PDF config once (only used if PDF format requested)
+  const pdfConfig = buildPdfConfig(args, config, inputFile, thumbnails)
+
   for (const format of formats) {
-    const path = await exportFormat(format, activities, outputDir, inputFile, options.thumbnails)
+    // Build filter options for this specific format (PDF can have different filters than others)
+    const filter = buildFilterOptions(format, args, config)
+    const filtered = filterActivitiesForExport(activities, filter)
+
+    const path = await exportFormat(format, filtered, outputDir, inputFile, thumbnails, pdfConfig)
     if (path) {
       exportedFiles.set(format, path)
     }
@@ -64,7 +131,8 @@ async function exportFormat(
   activities: readonly GeocodedActivity[],
   outputDir: string,
   inputFile: string,
-  thumbnails?: Map<string, Buffer>
+  thumbnails: Map<string, Buffer> | undefined,
+  pdfConfig: PDFConfig
 ): Promise<string | null> {
   switch (format) {
     case 'csv': {
@@ -109,11 +177,7 @@ async function exportFormat(
     }
 
     case 'pdf': {
-      const pdf = await exportToPDF(activities, {
-        title: 'Things To Do',
-        subtitle: `Generated from ${basename(inputFile)}`,
-        thumbnails
-      })
+      const pdf = await exportToPDF(activities, pdfConfig)
       const pdfPath = join(outputDir, 'activities.pdf')
       await writeFile(pdfPath, pdf)
       return pdfPath

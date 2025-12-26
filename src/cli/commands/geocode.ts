@@ -45,10 +45,10 @@ interface GeocodeOutput {
 }
 
 export async function cmdGeocode(args: CLIArgs, logger: Logger): Promise<void> {
-  const { ctx } = await initCommandContext('Geocode', args, logger)
+  const { ctx, config } = await initCommandContext('Geocode', args, logger)
 
   // Use StepRunner to handle dependencies: classify → geocode
-  const runner = new StepRunner(ctx, args, logger)
+  const runner = new StepRunner(ctx, args, config, logger)
 
   // Run classify step (which runs parse → scan → embed → filter → scrape → classify)
   const { activities: classifiedActivities } = await runner.run('classify')

@@ -14,6 +14,7 @@ import type {
   ParsedMessage
 } from '../../types'
 import type { CLIArgs } from '../args'
+import type { Config } from '../config'
 import type { Logger } from '../logger'
 import type { PipelineContext } from './context'
 import type { ExportFormat } from './export'
@@ -42,12 +43,14 @@ type StepName = keyof StepOutputs
 export class StepRunner {
   private readonly ctx: PipelineContext
   private readonly args: CLIArgs
+  private readonly config: Config | null
   private readonly outputs = new Map<StepName, StepOutputs[StepName]>()
   private readonly pending = new Map<StepName, Promise<StepOutputs[StepName]>>()
 
-  constructor(ctx: PipelineContext, args: CLIArgs, _logger: Logger) {
+  constructor(ctx: PipelineContext, args: CLIArgs, config: Config | null, _logger: Logger) {
     this.ctx = ctx
     this.args = args
+    this.config = config
   }
 
   /**
@@ -223,7 +226,9 @@ export class StepRunner {
     const result = await stepExport(this.ctx, activities, {
       outputDir: this.args.outputDir,
       formats: this.args.formats as ExportFormat[],
-      thumbnails
+      thumbnails,
+      args: this.args,
+      config: this.config
     })
     return { exportedFiles: result.exportedFiles }
   }

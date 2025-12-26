@@ -39,10 +39,10 @@ interface FetchImagesOutput {
 }
 
 export async function cmdFetchImageUrls(args: CLIArgs, logger: Logger): Promise<void> {
-  const { ctx } = await initCommandContext('Fetch Image URLs', args, logger)
+  const { ctx, config } = await initCommandContext('Fetch Image URLs', args, logger)
 
   // Use StepRunner to handle dependencies: geocode → fetch-image-urls
-  const runner = new StepRunner(ctx, args, logger)
+  const runner = new StepRunner(ctx, args, config, logger)
 
   // Run geocode step (which runs the full pipeline up to geocode)
   const { activities: geocodedActivities } = await runner.run('geocode')

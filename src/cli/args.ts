@@ -4,9 +4,9 @@
  * Uses commander for subcommand-based CLI with per-command options.
  */
 
-import { Command } from 'commander'
-import { VERSION } from '../index'
-import { getConfigDescription, getConfigType, getValidConfigKeys } from './config'
+import type { Command } from 'commander'
+import type { SortOrder } from '../export/filter'
+import { createProgram } from './commands'
 
 export type ExtractionMethod = 'heuristics' | 'embeddings' | 'both'
 
@@ -38,6 +38,75 @@ export interface CLIArgs {
   cacheDir: string | undefined
   configFile: string | undefined
   showAll: boolean
+
+  // === Common export settings (apply to ALL formats) ===
+  /** Filter ALL exports by categories */
+  exportCategories: string[]
+  /** Filter ALL exports by countries */
+  exportCountries: string[]
+  /** Filter ALL exports by sender names */
+  exportFrom: string[]
+  /** Filter ALL exports to on/after this date (YYYY-MM-DD) */
+  exportStartDate: string | undefined
+  /** Filter ALL exports to on/before this date (YYYY-MM-DD) */
+  exportEndDate: string | undefined
+  /** Min score threshold for ALL exports (0-3) */
+  exportMinScore: number | undefined
+  /** Only export activities with specific locations */
+  exportOnlyLocations: boolean
+  /** Only export generic activities without locations */
+  exportOnlyGeneric: boolean
+  /** Max activities in ALL exports (0 = all) */
+  exportMaxActivities: number
+  /** Sort order for ALL exports: score, oldest, newest */
+  exportSort: SortOrder
+
+  // === PDF-specific settings (override export* for PDF only) ===
+  /** Include thumbnails in PDF exports */
+  pdfThumbnails: boolean
+  /** Show score in PDF output */
+  pdfIncludeScore: boolean
+  /** Group by country in PDF */
+  pdfGroupByCountry: boolean
+  /** Group by category in PDF */
+  pdfGroupByCategory: boolean
+  /** PDF page size: A4 or Letter */
+  pdfPageSize: string | undefined
+  /** Custom PDF title */
+  pdfTitle: string | undefined
+  /** Custom PDF subtitle */
+  pdfSubtitle: string | undefined
+  /** Filter PDF by categories (overrides exportCategories) */
+  pdfCategories: string[]
+  /** Filter PDF by countries (overrides exportCountries) */
+  pdfCountries: string[]
+  /** Filter PDF by sender names (overrides exportFrom) */
+  pdfFrom: string[]
+  /** Filter PDF to on/after this date (overrides exportStartDate) */
+  pdfStartDate: string | undefined
+  /** Filter PDF to on/before this date (overrides exportEndDate) */
+  pdfEndDate: string | undefined
+  /** Min score for PDF (overrides exportMinScore) */
+  pdfMinScore: number | undefined
+  /** Only locations in PDF (overrides exportOnlyLocations) */
+  pdfOnlyLocations: boolean
+  /** Only generic in PDF (overrides exportOnlyGeneric) */
+  pdfOnlyGeneric: boolean
+  /** Max activities in PDF (overrides exportMaxActivities) */
+  pdfMaxActivities: number
+  /** Sort order for PDF (overrides exportSort) */
+  pdfSort: SortOrder
+
+  // === Map-specific settings ===
+  /** Default map tile style */
+  mapDefaultStyle: string | undefined
+
+  // === Export subcommand settings (unprefixed versions for subcommands) ===
+  /** For export subcommands: single output file path */
+  exportOutput: string | undefined
+  /** For export subcommands: format being exported (pdf, json, csv, excel, map) */
+  exportFormat: string | undefined
+
   /** For config command: action (list, set, unset) */
   configAction: 'list' | 'set' | 'unset'
   /** For config command: key name */
@@ -46,205 +115,47 @@ export interface CLIArgs {
   configValue: string | undefined
 }
 
-const DEFAULT_BASE_DIR = './chat-to-map'
-const DEFAULT_OUTPUT_DIR = `${DEFAULT_BASE_DIR}/output`
-
-const DESCRIPTION = `Transform chat exports into interactive maps of activities and places.
-
-Supported formats (auto-detected):
-  • WhatsApp iOS/Android (.zip export)
-  • iMessage (via imessage-exporter)
-
-Examples:
-  $ chat-to-map parse "WhatsApp Chat.zip"
-  $ chat-to-map scan ./imessage-export/
-  $ chat-to-map analyze "WhatsApp Chat.zip"
-  $ chat-to-map analyze ./imessage-export/
-
-For iMessage, use imessage-exporter (https://github.com/ReagentX/imessage-exporter)
-to export your chat, then point chat-to-map at the output directory.`
-
-function createProgram(): Command {
-  const program = new Command()
-    .name('chat-to-map')
-    .description(DESCRIPTION)
-    .version(VERSION, '-V, --version', 'Show version number')
-    // Global options inherited by all subcommands
-    .option('-q, --quiet', 'Minimal output')
-    .option('-v, --verbose', 'Verbose output')
-    .option('--debug', 'Print debug info')
-    .option('--no-cache', 'Skip cache and regenerate all results')
-    .option('--cache-dir <dir>', 'Custom cache directory (or set CHAT_TO_MAP_CACHE_DIR)')
-    .option('--config-file <path>', 'Config file path (or set CHAT_TO_MAP_CONFIG)')
-
-  // ============ ANALYZE (full pipeline - most common) ============
-  program
-    .command('analyze')
-    .description(
-      'Run the complete pipeline (parse → filter → scrape-urls → classify → geocode → export)'
-    )
-    .argument('<input>', 'Chat export (.zip, directory, or .txt file)')
-    .option('-c, --home-country <name>', 'Your home country (auto-detected from IP if not set)')
-    .option('--timezone <tz>', 'Your timezone (auto-detected from system if not set)')
-    .option('-o, --output-dir <dir>', 'Output directory', DEFAULT_OUTPUT_DIR)
-    .option(
-      '-f, --format <formats>',
-      'Output formats: csv,excel,json,map,pdf',
-      'csv,excel,json,map,pdf'
-    )
-    .option('--min-confidence <num>', 'Minimum confidence threshold', '0.5')
-    .option('--skip-geocoding', 'Skip geocoding step')
-    .option('--images', 'Fetch images for activities (slower, uses external APIs)')
-    .option('-m, --max-messages <num>', 'Max messages to process (for testing)')
-    .option('--dry-run', 'Show stats without API calls')
-
-  // ============ PARSE ============
-  program
-    .command('parse')
-    .description(
-      'Parse and validate a chat export: check format, count messages, list participants'
-    )
-    .argument('<input>', 'Chat export (.zip, directory, or .txt file)')
-    .option('--json [file]', 'Output as JSON (to file if specified, otherwise stdout)')
-    .option('-m, --max-messages <num>', 'Max messages to process')
-
-  // ============ SCAN (heuristics only, free) ============
-  program
-    .command('scan')
-    .description('Heuristic scan: show pattern matches (free, no API key)')
-    .argument('<input>', 'Chat export (.zip, directory, or .txt file)')
-    .option('-n, --max-results <num>', 'Max results to return', '10')
-    .option('-m, --max-messages <num>', 'Max messages to process (for testing)')
-
-  // ============ PREVIEW (AI on top heuristic candidates) ============
-  program
-    .command('preview')
-    .description('AI-powered preview: classify top candidates (~$0.01)')
-    .argument('<input>', 'Chat export (.zip, directory, or .txt file)')
-    .option('-c, --home-country <name>', 'Your home country (auto-detected from IP if not set)')
-    .option('--timezone <tz>', 'Your timezone (auto-detected from system if not set)')
-    .option('-n, --max-results <num>', 'Max results to return', '10')
-    .option('-m, --max-messages <num>', 'Max messages to process (for testing)')
-    .option('--dry-run', 'Show stats without API calls')
-
-  // ============ EMBED (embed all messages) ============
-  program
-    .command('embed')
-    .description('Embed all messages for semantic search using OpenAI API (~$0.001/1000 msgs)')
-    .argument('<input>', 'Chat export (.zip, directory, or .txt file)')
-    .option('-m, --max-messages <num>', 'Max messages to process (for testing)')
-    .option('--dry-run', 'Show cost estimate without API calls')
-
-  // ============ FILTER (heuristics + embeddings extraction) ============
-  program
-    .command('filter')
-    .description('Filter messages into candidates (heuristics and semantic search via embeddings)')
-    .argument('<input>', 'Chat export (.zip, directory, or .txt file)')
-    .option('--method <method>', 'Extraction method: heuristics, embeddings, both', 'both')
-    .option('--json [file]', 'Output as JSON (to file if specified, otherwise stdout)')
-    .option('--min-confidence <num>', 'Minimum confidence threshold', '0.5')
-    .option('-m, --max-messages <num>', 'Max messages to process (for testing)')
-    .option('-a, --all', 'Show all candidates (default: top 10)')
-    .option('--dry-run', 'Show cost estimate without API calls')
-
-  // ============ SCRAPE-URLS (scrape URLs for metadata) ============
-  program
-    .command('scrape-urls')
-    .description('Scrape URLs from candidates and cache metadata')
-    .argument('<input>', 'Chat export file (.txt or .zip) or candidates JSON file')
-    .option('--json [file]', 'Output as JSON (to file if specified, otherwise stdout)')
-    .option('--concurrency <num>', 'Max concurrent scrapes', '5')
-    .option('--timeout <ms>', 'Timeout per URL in ms', '4000')
-    .option('-m, --max-messages <num>', 'Max messages to process (for testing)')
-    .option('-a, --all', 'Show all enriched URLs (default: first 10)')
-    .option('--dry-run', 'Show URL count without scraping')
-
-  // ============ CLASSIFY ============
-  program
-    .command('classify')
-    .description('Classify candidates into activities using AI')
-    .argument('<input>', 'Chat export (.zip, directory, or .txt file)')
-    .option('-c, --home-country <name>', 'Your home country (auto-detected from IP if not set)')
-    .option('--timezone <tz>', 'Your timezone (auto-detected from system if not set)')
-    .option('--json [file]', 'Output as JSON (to file if specified, otherwise stdout)')
-    .option('-n, --max-results <num>', 'Max results to display', '10')
-    .option('-m, --max-messages <num>', 'Max messages to process (for testing)')
-    .option('-a, --all', 'Show all activities (default: top 10)')
-    .option('--dry-run', 'Show stats without API calls')
-
-  // ============ GEOCODE ============
-  program
-    .command('geocode')
-    .description('Geocode classified activities using Google Maps API')
-    .argument('<input>', 'Chat export (.zip, directory, or .txt file)')
-    .option('-c, --home-country <name>', 'Your home country (auto-detected from IP if not set)')
-    .option('--timezone <tz>', 'Your timezone (auto-detected from system if not set)')
-    .option('--json [file]', 'Output as JSON (to file if specified, otherwise stdout)')
-    .option('-n, --max-results <num>', 'Max results to display', '10')
-    .option('-m, --max-messages <num>', 'Max messages to process (for testing)')
-    .option('-a, --all', 'Show all geocoded activities (default: top 10)')
-    .option('--dry-run', 'Show stats without API calls')
-
-  // ============ FETCH-IMAGE-URLS ============
-  program
-    .command('fetch-image-urls')
-    .description('Fetch image URLs for geocoded activities')
-    .argument('<input>', 'Chat export file or directory')
-    .option('--json [file]', 'Output as JSON (to file if specified, otherwise stdout)')
-    .option('--no-image-cdn', 'Skip CDN default images (fetch all from APIs)')
-    .option('--skip-pixabay', 'Skip Pixabay image search')
-    .option('--skip-wikipedia', 'Skip Wikipedia image lookup')
-    .option('--skip-google-places', 'Skip Google Places photos')
-    .option('-n, --max-results <num>', 'Max results to display', '10')
-    .option('-a, --all', 'Show all activities with images')
-
-  // ============ FETCH-IMAGES ============
-  program
-    .command('fetch-images')
-    .description('Download and resize images to thumbnails for PDF export')
-    .argument('<input>', 'Chat export file or directory')
-    .option('-n, --max-results <num>', 'Max results to display', '10')
-    .option('-a, --all', 'Show all thumbnails')
-
-  // ============ LIST ============
-  program.command('list').description('Show previously processed chats')
-
-  // ============ CONFIG ============
-  const configKeys = getValidConfigKeys()
-  const maxLen = Math.max(...configKeys.map((k) => `${k} (${getConfigType(k)})`.length))
-  const settingsHelp = configKeys
-    .map((key) => {
-      const label = `${key} (${getConfigType(key)})`
-      return `  ${label.padEnd(maxLen)}  ${getConfigDescription(key)}`
-    })
-    .join('\n')
-  program
-    .command('config')
-    .description('Manage persistent settings')
-    .argument('[action]', 'Action: list (default), set, unset')
-    .argument('[key]', 'Config key to set/unset')
-    .argument('[value]', 'Value to set')
-    .addHelpText(
-      'after',
-      `
-Available settings:
-${settingsHelp}
-
-Examples:
-  chat-to-map config                          List current settings
-  chat-to-map config set homeCountry "USA"    Set home country
-  chat-to-map config set fetchImages true     Enable image fetching
-  chat-to-map config unset cacheDir           Remove custom cache dir`
-    )
-
-  return program as Command
-}
+const DEFAULT_OUTPUT_DIR = './chat-to-map/output'
 
 function parseMethod(value: unknown): ExtractionMethod {
   if (value === 'heuristics' || value === 'embeddings' || value === 'both') {
     return value
   }
   return 'both'
+}
+
+function parseSortOrder(value: unknown): SortOrder {
+  if (value === 'oldest' || value === 'newest') {
+    return value
+  }
+  return 'score'
+}
+
+function parseOptionalNumber(value: unknown): number | undefined {
+  if (value === undefined || value === null) return undefined
+  const num = Number.parseFloat(String(value))
+  return Number.isNaN(num) ? undefined : num
+}
+
+function parseBooleanWithNegation(positive: unknown, negative: unknown): boolean {
+  if (negative === true) return false
+  if (positive === true) return true
+  return true // Default to true (for groupBy options)
+}
+
+function parseCommaSeparated(value: unknown): string[] {
+  if (typeof value !== 'string' || !value) return []
+  return value
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
+function parseConfigAction(action: string | undefined): 'list' | 'set' | 'unset' {
+  if (action === 'set' || action === 'unset') {
+    return action
+  }
+  return 'list'
 }
 
 function buildCLIArgs(commandName: string, input: string, opts: Record<string, unknown>): CLIArgs {
@@ -279,17 +190,125 @@ function buildCLIArgs(commandName: string, input: string, opts: Record<string, u
     cacheDir: typeof opts.cacheDir === 'string' ? opts.cacheDir : undefined,
     configFile: typeof opts.configFile === 'string' ? opts.configFile : undefined,
     showAll: opts.all === true,
+
+    // Common export settings
+    exportCategories: parseCommaSeparated(opts.exportCategories),
+    exportCountries: parseCommaSeparated(opts.exportCountries),
+    exportFrom: parseCommaSeparated(opts.exportFrom),
+    exportStartDate: typeof opts.exportStartDate === 'string' ? opts.exportStartDate : undefined,
+    exportEndDate: typeof opts.exportEndDate === 'string' ? opts.exportEndDate : undefined,
+    exportMinScore: parseOptionalNumber(opts.exportMinScore),
+    exportOnlyLocations: opts.exportOnlyLocations === true,
+    exportOnlyGeneric: opts.exportOnlyGeneric === true,
+    exportMaxActivities: Number.parseInt(String(opts.exportMaxActivities ?? '0'), 10),
+    exportSort: parseSortOrder(opts.exportSort),
+
+    // PDF-specific settings
+    pdfThumbnails: opts.pdfThumbnails === true,
+    pdfIncludeScore: opts.pdfIncludeScore === true,
+    pdfGroupByCountry: parseBooleanWithNegation(opts.pdfGroupByCountry, opts.pdfNoGroupByCountry),
+    pdfGroupByCategory: parseBooleanWithNegation(
+      opts.pdfGroupByCategory,
+      opts.pdfNoGroupByCategory
+    ),
+    pdfPageSize: typeof opts.pdfPageSize === 'string' ? opts.pdfPageSize : undefined,
+    pdfTitle: typeof opts.pdfTitle === 'string' ? opts.pdfTitle : undefined,
+    pdfSubtitle: typeof opts.pdfSubtitle === 'string' ? opts.pdfSubtitle : undefined,
+    pdfCategories: parseCommaSeparated(opts.pdfCategories),
+    pdfCountries: parseCommaSeparated(opts.pdfCountries),
+    pdfFrom: parseCommaSeparated(opts.pdfFrom),
+    pdfStartDate: typeof opts.pdfStartDate === 'string' ? opts.pdfStartDate : undefined,
+    pdfEndDate: typeof opts.pdfEndDate === 'string' ? opts.pdfEndDate : undefined,
+    pdfMinScore: parseOptionalNumber(opts.pdfMinScore),
+    pdfOnlyLocations: opts.pdfOnlyLocations === true,
+    pdfOnlyGeneric: opts.pdfOnlyGeneric === true,
+    pdfMaxActivities: Number.parseInt(String(opts.pdfMaxActivities ?? '0'), 10),
+    pdfSort: parseSortOrder(opts.pdfSort),
+
+    // Map-specific settings
+    mapDefaultStyle: typeof opts.mapDefaultStyle === 'string' ? opts.mapDefaultStyle : undefined,
+
+    // Export subcommand settings
+    exportOutput: typeof opts.output === 'string' ? opts.output : undefined,
+    exportFormat: undefined,
+
     configAction: 'list',
     configKey: undefined,
     configValue: undefined
   }
 }
 
-function parseConfigAction(action: string | undefined): 'list' | 'set' | 'unset' {
-  if (action === 'set' || action === 'unset') {
-    return action
+/**
+ * Parse unprefixed export options from subcommand.
+ */
+function parseUnprefixedExportOpts(opts: Record<string, unknown>) {
+  return {
+    categories: parseCommaSeparated(opts.categories),
+    countries: parseCommaSeparated(opts.countries),
+    from: parseCommaSeparated(opts.from),
+    startDate: typeof opts.startDate === 'string' ? opts.startDate : undefined,
+    endDate: typeof opts.endDate === 'string' ? opts.endDate : undefined,
+    minScore: parseOptionalNumber(opts.minScore),
+    onlyLocations: opts.onlyLocations === true,
+    onlyGeneric: opts.onlyGeneric === true,
+    maxActivities: opts.maxActivities ? Number.parseInt(String(opts.maxActivities), 10) : 0,
+    sort: parseSortOrder(opts.sort)
   }
-  return 'list'
+}
+
+/**
+ * Parse PDF-specific unprefixed options from subcommand.
+ */
+function parsePdfSubcommandOpts(opts: Record<string, unknown>) {
+  return {
+    thumbnails: opts.thumbnails === true,
+    includeScore: opts.includeScore === true,
+    groupByCountry: parseBooleanWithNegation(opts.groupByCountry, opts.noGroupByCountry),
+    groupByCategory: parseBooleanWithNegation(opts.groupByCategory, opts.noGroupByCategory),
+    pageSize: typeof opts.pageSize === 'string' ? opts.pageSize : undefined,
+    title: typeof opts.title === 'string' ? opts.title : undefined,
+    subtitle: typeof opts.subtitle === 'string' ? opts.subtitle : undefined
+  }
+}
+
+/**
+ * Build CLIArgs from export subcommand options (unprefixed args).
+ */
+function buildExportSubcommandArgs(
+  format: string,
+  input: string,
+  opts: Record<string, unknown>
+): CLIArgs {
+  const base = buildCLIArgs(`export-${format}`, input, opts)
+  const exp = parseUnprefixedExportOpts(opts)
+  const pdf = format === 'pdf' ? parsePdfSubcommandOpts(opts) : null
+  const mapStyle =
+    format === 'map' && typeof opts.defaultStyle === 'string' ? opts.defaultStyle : undefined
+
+  return {
+    ...base,
+    formats: [format],
+    exportCategories: exp.categories.length > 0 ? exp.categories : base.exportCategories,
+    exportCountries: exp.countries.length > 0 ? exp.countries : base.exportCountries,
+    exportFrom: exp.from.length > 0 ? exp.from : base.exportFrom,
+    exportStartDate: exp.startDate ?? base.exportStartDate,
+    exportEndDate: exp.endDate ?? base.exportEndDate,
+    exportMinScore: exp.minScore ?? base.exportMinScore,
+    exportOnlyLocations: exp.onlyLocations || base.exportOnlyLocations,
+    exportOnlyGeneric: exp.onlyGeneric || base.exportOnlyGeneric,
+    exportMaxActivities: exp.maxActivities > 0 ? exp.maxActivities : base.exportMaxActivities,
+    exportSort: exp.sort !== 'score' ? exp.sort : base.exportSort,
+    pdfThumbnails: (pdf?.thumbnails ?? false) || base.pdfThumbnails,
+    pdfIncludeScore: (pdf?.includeScore ?? false) || base.pdfIncludeScore,
+    pdfGroupByCountry: pdf?.groupByCountry ?? true,
+    pdfGroupByCategory: pdf?.groupByCategory ?? true,
+    pdfPageSize: pdf?.pageSize ?? base.pdfPageSize,
+    pdfTitle: pdf?.title ?? base.pdfTitle,
+    pdfSubtitle: pdf?.subtitle ?? base.pdfSubtitle,
+    mapDefaultStyle: mapStyle ?? base.mapDefaultStyle,
+    exportOutput: typeof opts.output === 'string' ? opts.output : undefined,
+    exportFormat: format
+  }
 }
 
 function buildConfigCLIArgs(
@@ -308,19 +327,36 @@ function buildConfigCLIArgs(
 }
 
 /**
- * Parse CLI arguments and return structured args.
- * Exits on --help or --version.
+ * Attach action handlers for export command and its subcommands.
  */
-export function parseCliArgs(): CLIArgs {
-  const program = createProgram()
+function attachExportHandlers(program: Command, setResult: (args: CLIArgs) => void): void {
+  const exportCmd = program.commands.find((c) => c.name() === 'export')
+  if (!exportCmd) return
 
-  let result: CLIArgs | null = null
+  // Handle export command without subcommand (acts as analyze alias)
+  exportCmd.action((input?: string) => {
+    if (input) {
+      setResult(buildCLIArgs('export', input, exportCmd.optsWithGlobals()))
+    }
+  })
 
+  // Handle export subcommands (pdf, json, csv, excel, map)
+  for (const subCmd of exportCmd.commands) {
+    const format = subCmd.name()
+    subCmd.action((input: string) => {
+      setResult(buildExportSubcommandArgs(format, input, subCmd.optsWithGlobals()))
+    })
+  }
+}
+
+/**
+ * Attach action handlers for all commands.
+ */
+function attachActionHandlers(program: Command, setResult: (args: CLIArgs) => void): void {
   // Attach action handlers to capture parsed args
-  // Use optsWithGlobals() to include global options from parent program
   for (const cmd of program.commands) {
     cmd.action((input: string) => {
-      result = buildCLIArgs(cmd.name(), input ?? '', cmd.optsWithGlobals())
+      setResult(buildCLIArgs(cmd.name(), input ?? '', cmd.optsWithGlobals()))
     })
   }
 
@@ -328,7 +364,7 @@ export function parseCliArgs(): CLIArgs {
   const listCmd = program.commands.find((c) => c.name() === 'list')
   if (listCmd) {
     listCmd.action(() => {
-      result = buildCLIArgs('list', '', listCmd.optsWithGlobals())
+      setResult(buildCLIArgs('list', '', listCmd.optsWithGlobals()))
     })
   }
 
@@ -336,9 +372,25 @@ export function parseCliArgs(): CLIArgs {
   const configCmd = program.commands.find((c) => c.name() === 'config')
   if (configCmd) {
     configCmd.action((action?: string, key?: string, value?: string) => {
-      result = buildConfigCLIArgs(action, key, value, configCmd.optsWithGlobals())
+      setResult(buildConfigCLIArgs(action, key, value, configCmd.optsWithGlobals()))
     })
   }
+
+  // Handle export command and its subcommands
+  attachExportHandlers(program, setResult)
+}
+
+/**
+ * Parse CLI arguments and return structured args.
+ * Exits on --help or --version.
+ */
+export function parseCliArgs(): CLIArgs {
+  const program = createProgram()
+
+  let result: CLIArgs | null = null
+  attachActionHandlers(program, (args) => {
+    result = args
+  })
 
   program.parse()
 
@@ -361,26 +413,9 @@ export function parseArgs(argv: string[], exitOnHelp = true): CLIArgs {
   }
 
   let result: CLIArgs | null = null
-
-  for (const cmd of program.commands) {
-    cmd.action((input: string) => {
-      result = buildCLIArgs(cmd.name(), input ?? '', cmd.optsWithGlobals())
-    })
-  }
-
-  const listCmd = program.commands.find((c) => c.name() === 'list')
-  if (listCmd) {
-    listCmd.action(() => {
-      result = buildCLIArgs('list', '', listCmd.optsWithGlobals())
-    })
-  }
-
-  const configCmd = program.commands.find((c) => c.name() === 'config')
-  if (configCmd) {
-    configCmd.action((action?: string, key?: string, value?: string) => {
-      result = buildConfigCLIArgs(action, key, value, configCmd.optsWithGlobals())
-    })
-  }
+  attachActionHandlers(program, (args) => {
+    result = args
+  })
 
   try {
     program.parse(argv, { from: 'user' })

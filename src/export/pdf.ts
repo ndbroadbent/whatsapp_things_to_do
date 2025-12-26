@@ -45,6 +45,22 @@ function groupByCategory(
   return groups
 }
 
+/**
+ * Group activities by country for organized display.
+ */
+function groupByCountry(activities: readonly GeocodedActivity[]): Map<string, GeocodedActivity[]> {
+  const groups = new Map<string, GeocodedActivity[]>()
+
+  for (const a of activities) {
+    const country = a.country ?? 'Unknown'
+    const existing = groups.get(country) ?? []
+    existing.push(a)
+    groups.set(country, existing)
+  }
+
+  return groups
+}
+
 /** Thumbnail size in PDF points (0.5" at 72 DPI) */
 const THUMBNAIL_WIDTH = 36
 const THUMBNAIL_HEIGHT = 36
@@ -78,17 +94,30 @@ const CATEGORY_NAMES: Record<ActivityCategory, string> = {
   other: 'Other'
 }
 
+interface RenderOptions {
+  /** Show thumbnail if available */
+  readonly includeThumbnails: boolean
+  /** Show score in details */
+  readonly includeScore: boolean
+  /** Show category in details (when not grouped by category) */
+  readonly showCategory: boolean
+  /** Show country in details (when not grouped by country) */
+  readonly showCountry: boolean
+}
+
 /**
  * Render a single activity item with optional thumbnail.
  */
 function renderActivityItem(
   doc: PDFKit.PDFDocument,
   item: GeocodedActivity,
-  thumbnail: Buffer | undefined
+  thumbnail: Buffer | undefined,
+  options: RenderOptions
 ): void {
   const startY = doc.y
-  const textX = thumbnail ? 50 + THUMBNAIL_WIDTH + 8 : 50
-  const textWidth = 500 - (thumbnail ? THUMBNAIL_WIDTH + 8 : 0)
+  const showThumbnail = options.includeThumbnails && thumbnail
+  const textX = showThumbnail ? 50 + THUMBNAIL_WIDTH + 8 : 50
+  const textWidth = 500 - (showThumbnail ? THUMBNAIL_WIDTH + 8 : 0)
 
   // Build details string
   const details: string[] = []
@@ -96,12 +125,21 @@ function renderActivityItem(
   if (location) {
     details.push(`Location: ${location}`)
   }
+  if (options.showCountry && item.country) {
+    details.push(`Country: ${item.country}`)
+  }
+  if (options.showCategory) {
+    details.push(`Category: ${CATEGORY_NAMES[item.category]}`)
+  }
   const firstMessage = item.messages[0]
   const senderName = firstMessage?.sender.split(' ')[0] ?? 'Unknown'
   const dateStr = firstMessage ? formatDate(firstMessage.timestamp) : ''
   const mentionCount = item.messages.length
   const mentionSuffix = mentionCount > 1 ? ` (${mentionCount} mentions)` : ''
   details.push(`From: ${senderName} on ${dateStr}${mentionSuffix}`)
+  if (options.includeScore) {
+    details.push(`Score: ${item.score.toFixed(1)}`)
+  }
   const detailsText = details.join(' | ')
 
   // Calculate text height for vertical centering
@@ -116,10 +154,10 @@ function renderActivityItem(
   const totalTextHeight = titleHeight + detailsHeight
   // Center text vertically with thumbnail, nudged down slightly
   const offset = (THUMBNAIL_HEIGHT - totalTextHeight) / 2 + 2
-  const textY = thumbnail ? startY + offset : startY
+  const textY = showThumbnail ? startY + offset : startY
 
-  // Render thumbnail if available
-  if (thumbnail) {
+  // Render thumbnail if available and enabled
+  if (showThumbnail) {
     doc.image(thumbnail, 50, startY, {
       width: THUMBNAIL_WIDTH,
       height: THUMBNAIL_HEIGHT
@@ -141,7 +179,7 @@ function renderActivityItem(
     .text(detailsText, textX, doc.y, { width: textWidth })
 
   // Move past thumbnail if it's taller than text
-  if (thumbnail && doc.y < startY + THUMBNAIL_HEIGHT + 4) {
+  if (showThumbnail && doc.y < startY + THUMBNAIL_HEIGHT + 4) {
     doc.y = startY + THUMBNAIL_HEIGHT + 4
   }
 
@@ -179,6 +217,161 @@ function renderHeader(
 }
 
 /**
+ * Render a list of activities with pagination.
+ */
+function renderActivityList(
+  doc: PDFKit.PDFDocument,
+  items: readonly GeocodedActivity[],
+  config: PDFConfig,
+  renderOptions: RenderOptions,
+  sortBy: 'confidence' | 'score' = 'confidence'
+): void {
+  const sorted =
+    sortBy === 'confidence'
+      ? [...items].sort((a, b) => b.confidence - a.confidence)
+      : [...items].sort((a, b) => b.score - a.score)
+
+  for (const item of sorted) {
+    const hasThumbnail = config.thumbnails?.has(item.activityId)
+    const rowHeight = hasThumbnail && renderOptions.includeThumbnails ? THUMBNAIL_HEIGHT + 8 : 40
+    if (doc.y > 750 - rowHeight) doc.addPage()
+
+    const thumbnail = config.thumbnails?.get(item.activityId)
+    renderActivityItem(doc, item, thumbnail, renderOptions)
+  }
+}
+
+/**
+ * Render activities as a flat list (no grouping).
+ */
+function renderFlatList(
+  doc: PDFKit.PDFDocument,
+  activities: readonly GeocodedActivity[],
+  config: PDFConfig,
+  renderOptions: RenderOptions
+): void {
+  renderActivityList(doc, activities, config, renderOptions, 'score')
+}
+
+/**
+ * Render a category section with heading.
+ */
+function renderCategorySection(
+  doc: PDFKit.PDFDocument,
+  category: ActivityCategory,
+  items: readonly GeocodedActivity[],
+  config: PDFConfig,
+  renderOptions: RenderOptions,
+  options: { moveDown: number; fontSize: number }
+): void {
+  if (doc.y > 700) doc.addPage()
+
+  doc.moveDown(options.moveDown)
+  doc
+    .fontSize(options.fontSize)
+    .font('Helvetica-Bold')
+    .text(`${CATEGORY_NAMES[category]} (${items.length})`)
+  doc.moveDown(0.5)
+
+  renderActivityList(doc, items, config, renderOptions, 'confidence')
+}
+
+/**
+ * Render activities grouped by category only.
+ */
+function renderGroupedByCategory(
+  doc: PDFKit.PDFDocument,
+  activities: readonly GeocodedActivity[],
+  config: PDFConfig,
+  renderOptions: RenderOptions
+): void {
+  const grouped = groupByCategory(activities)
+
+  for (const category of VALID_CATEGORIES) {
+    const items = grouped.get(category)
+    if (!items || items.length === 0) continue
+
+    renderCategorySection(doc, category, items, config, renderOptions, {
+      moveDown: 1.5,
+      fontSize: 14
+    })
+  }
+}
+
+/**
+ * Render activities grouped by country only.
+ */
+function renderGroupedByCountry(
+  doc: PDFKit.PDFDocument,
+  activities: readonly GeocodedActivity[],
+  config: PDFConfig,
+  renderOptions: RenderOptions
+): void {
+  const grouped = groupByCountry(activities)
+  const countries = [...grouped.keys()].sort()
+
+  for (const country of countries) {
+    const items = grouped.get(country)
+    if (!items || items.length === 0) continue
+
+    if (doc.y > 700) doc.addPage()
+
+    doc.moveDown(1.5)
+    doc.fontSize(16).font('Helvetica-Bold').text(`${country} (${items.length})`)
+    doc.moveDown(0.5)
+
+    renderActivityList(doc, items, config, renderOptions, 'score')
+  }
+}
+
+/**
+ * Render categories within a country section.
+ */
+function renderCategoriesInCountry(
+  doc: PDFKit.PDFDocument,
+  countryItems: readonly GeocodedActivity[],
+  config: PDFConfig,
+  renderOptions: RenderOptions
+): void {
+  const byCategory = groupByCategory(countryItems)
+
+  for (const category of VALID_CATEGORIES) {
+    const items = byCategory.get(category)
+    if (!items || items.length === 0) continue
+
+    renderCategorySection(doc, category, items, config, renderOptions, {
+      moveDown: 1,
+      fontSize: 14
+    })
+  }
+}
+
+/**
+ * Render activities grouped by country, then by category within each country.
+ */
+function renderGroupedByCountryAndCategory(
+  doc: PDFKit.PDFDocument,
+  activities: readonly GeocodedActivity[],
+  config: PDFConfig,
+  renderOptions: RenderOptions
+): void {
+  const byCountry = groupByCountry(activities)
+  const countries = [...byCountry.keys()].sort()
+
+  for (const country of countries) {
+    const countryItems = byCountry.get(country)
+    if (!countryItems || countryItems.length === 0) continue
+
+    if (doc.y > 680) doc.addPage()
+
+    doc.moveDown(1.5)
+    doc.fontSize(18).font('Helvetica-Bold').text(`${country} (${countryItems.length})`)
+
+    renderCategoriesInCountry(doc, countryItems, config, renderOptions)
+  }
+}
+
+/**
  * Export activities to PDF format.
  *
  * @param activities Geocoded activities to export
@@ -192,14 +385,22 @@ export async function exportToPDF(
   const PDF = await loadPDFKit()
 
   // Filter by category if specified
-  let filtered = activities
+  let filtered = [...activities]
   if (config.filterByCategory && config.filterByCategory.length > 0) {
     const allowedCategories = new Set(config.filterByCategory)
-    filtered = activities.filter((a) => allowedCategories.has(a.category))
+    filtered = filtered.filter((a) => allowedCategories.has(a.category))
   }
 
-  // Group by category
-  const grouped = groupByCategory(filtered)
+  // Filter by country if specified
+  if (config.filterByCountry && config.filterByCountry.length > 0) {
+    const allowedCountries = new Set(config.filterByCountry.map((c) => c.toLowerCase()))
+    filtered = filtered.filter((a) => a.country && allowedCountries.has(a.country.toLowerCase()))
+  }
+
+  // Sort and limit if maxActivities is set
+  if (config.maxActivities && config.maxActivities > 0 && filtered.length > config.maxActivities) {
+    filtered = [...filtered].sort((a, b) => b.score - a.score).slice(0, config.maxActivities)
+  }
 
   // Count statistics
   const stats = {
@@ -208,9 +409,13 @@ export async function exportToPDF(
     senders: new Set(filtered.flatMap((a) => a.messages.map((m) => m.sender))).size
   }
 
-  // Create PDF document
+  // Determine grouping options (default to true for both)
+  const doGroupByCountry = config.groupByCountry ?? true
+  const doGroupByCategory = config.groupByCategory ?? true
+
+  // Create PDF document with configured page size
   const doc = new PDF({
-    size: 'A4',
+    size: config.pageSize ?? 'A4',
     margin: 50,
     info: {
       Title: config.title ?? 'ChatToMap Activities',
@@ -241,29 +446,23 @@ export async function exportToPDF(
   // Render header
   renderHeader(doc, config, stats)
 
-  // Render categories
-  const categoryOrder: ActivityCategory[] = [...VALID_CATEGORIES]
+  // Build render options based on grouping mode
+  const renderOptions: RenderOptions = {
+    includeThumbnails: config.includeThumbnails ?? false,
+    includeScore: config.includeScore ?? false,
+    showCategory: !doGroupByCategory,
+    showCountry: !doGroupByCountry
+  }
 
-  for (const category of categoryOrder) {
-    const items = grouped.get(category)
-    if (!items || items.length === 0) continue
-
-    if (doc.y > 700) doc.addPage()
-
-    doc.moveDown(1.5)
-    doc.fontSize(14).font('Helvetica-Bold').text(`${CATEGORY_NAMES[category]} (${items.length})`)
-    doc.moveDown(0.5)
-
-    const sortedItems = [...items].sort((a, b) => b.confidence - a.confidence)
-
-    for (const item of sortedItems) {
-      const hasThumbnail = config.thumbnails?.has(item.activityId)
-      const rowHeight = hasThumbnail ? Math.max(THUMBNAIL_HEIGHT + 8, 40) : 40
-      if (doc.y > 750 - rowHeight) doc.addPage()
-
-      const thumbnail = config.thumbnails?.get(item.activityId)
-      renderActivityItem(doc, item, thumbnail)
-    }
+  // Render activities based on grouping configuration
+  if (doGroupByCountry && doGroupByCategory) {
+    renderGroupedByCountryAndCategory(doc, filtered, config, renderOptions)
+  } else if (doGroupByCountry) {
+    renderGroupedByCountry(doc, filtered, config, renderOptions)
+  } else if (doGroupByCategory) {
+    renderGroupedByCategory(doc, filtered, config, renderOptions)
+  } else {
+    renderFlatList(doc, filtered, config, renderOptions)
   }
 
   doc.end()

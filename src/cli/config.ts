@@ -26,6 +26,69 @@ export interface Config {
   outputDir?: string | undefined
   /** Export formats (csv,excel,json,map,pdf) */
   formats?: string[] | undefined
+
+  // === Common export settings (apply to ALL formats) ===
+  /** Filter ALL exports by categories */
+  exportCategories?: string[] | undefined
+  /** Filter ALL exports by countries */
+  exportCountries?: string[] | undefined
+  /** Filter ALL exports by sender names */
+  exportFrom?: string[] | undefined
+  /** Filter ALL exports to on/after this date (YYYY-MM-DD) */
+  exportStartDate?: string | undefined
+  /** Filter ALL exports to on/before this date (YYYY-MM-DD) */
+  exportEndDate?: string | undefined
+  /** Min score threshold for ALL exports (0-3) */
+  exportMinScore?: number | undefined
+  /** Only export activities with specific locations */
+  exportOnlyLocations?: boolean | undefined
+  /** Only export generic activities without locations */
+  exportOnlyGeneric?: boolean | undefined
+  /** Max activities in ALL exports (0 = all) */
+  exportMaxActivities?: number | undefined
+  /** Sort order for ALL exports: score, oldest, newest */
+  exportSort?: string | undefined
+
+  // === PDF-specific settings (override export* for PDF only) ===
+  /** Include thumbnails in PDF exports */
+  pdfThumbnails?: boolean | undefined
+  /** Show score in PDF output */
+  pdfIncludeScore?: boolean | undefined
+  /** Group by country in PDF (default: true) */
+  pdfGroupByCountry?: boolean | undefined
+  /** Group by category in PDF (default: true) */
+  pdfGroupByCategory?: boolean | undefined
+  /** PDF page size: A4 or Letter (default: based on home country) */
+  pdfPageSize?: string | undefined
+  /** Custom PDF title */
+  pdfTitle?: string | undefined
+  /** Custom PDF subtitle */
+  pdfSubtitle?: string | undefined
+  /** Filter PDF by categories (overrides exportCategories) */
+  pdfCategories?: string[] | undefined
+  /** Filter PDF by countries (overrides exportCountries) */
+  pdfCountries?: string[] | undefined
+  /** Filter PDF by sender names (overrides exportFrom) */
+  pdfFrom?: string[] | undefined
+  /** Filter PDF to on/after this date (overrides exportStartDate) */
+  pdfStartDate?: string | undefined
+  /** Filter PDF to on/before this date (overrides exportEndDate) */
+  pdfEndDate?: string | undefined
+  /** Min score for PDF (overrides exportMinScore) */
+  pdfMinScore?: number | undefined
+  /** Only locations in PDF (overrides exportOnlyLocations) */
+  pdfOnlyLocations?: boolean | undefined
+  /** Only generic in PDF (overrides exportOnlyGeneric) */
+  pdfOnlyGeneric?: boolean | undefined
+  /** Max activities in PDF (overrides exportMaxActivities) */
+  pdfMaxActivities?: number | undefined
+  /** Sort order for PDF (overrides exportSort) */
+  pdfSort?: string | undefined
+
+  // === Map-specific settings ===
+  /** Default map tile style */
+  mapDefaultStyle?: string | undefined
+
   /** When settings were last updated */
   updatedAt?: string | undefined
 }
@@ -34,20 +97,104 @@ export interface Config {
 export type ConfigKey = keyof Omit<Config, 'updatedAt'>
 
 /** Config keys that accept string values */
-const STRING_KEYS: ConfigKey[] = ['homeCountry', 'timezone', 'cacheDir', 'outputDir']
+const STRING_KEYS: ConfigKey[] = [
+  'homeCountry',
+  'timezone',
+  'cacheDir',
+  'outputDir',
+  // Common export
+  'exportStartDate',
+  'exportEndDate',
+  'exportSort',
+  // PDF-specific
+  'pdfPageSize',
+  'pdfTitle',
+  'pdfSubtitle',
+  'pdfStartDate',
+  'pdfEndDate',
+  'pdfSort',
+  // Map-specific
+  'mapDefaultStyle'
+]
 /** Config keys that accept boolean values */
-const BOOLEAN_KEYS: ConfigKey[] = ['fetchImages']
+const BOOLEAN_KEYS: ConfigKey[] = [
+  'fetchImages',
+  // Common export
+  'exportOnlyLocations',
+  'exportOnlyGeneric',
+  // PDF-specific
+  'pdfThumbnails',
+  'pdfIncludeScore',
+  'pdfGroupByCountry',
+  'pdfGroupByCategory',
+  'pdfOnlyLocations',
+  'pdfOnlyGeneric'
+]
+/** Config keys that accept number values */
+const NUMBER_KEYS: ConfigKey[] = [
+  // Common export
+  'exportMinScore',
+  'exportMaxActivities',
+  // PDF-specific
+  'pdfMinScore',
+  'pdfMaxActivities'
+]
 /** Config keys that accept array values */
-const ARRAY_KEYS: ConfigKey[] = ['formats']
+const ARRAY_KEYS: ConfigKey[] = [
+  'formats',
+  // Common export
+  'exportCategories',
+  'exportCountries',
+  'exportFrom',
+  // PDF-specific
+  'pdfCategories',
+  'pdfCountries',
+  'pdfFrom'
+]
 
 /** Descriptions for config keys (for help output) */
 const CONFIG_DESCRIPTIONS: Record<ConfigKey, string> = {
-  homeCountry: 'Your home country for location context (default: detected from IP)',
-  timezone: 'Your timezone (e.g. Pacific/Auckland) (default: detected from system)',
-  fetchImages: 'Fetch images by default (default: false)',
+  // General
   cacheDir: 'Cache directory path (default: ~/.cache/chat-to-map)',
+  fetchImages: 'Fetch images by default (default: false)',
+  formats: 'Export formats (default: csv,excel,json,map,pdf)',
+  homeCountry: 'Your home country for location context (default: detected from IP)',
   outputDir: 'Output directory for exports (default: ./output)',
-  formats: 'Export formats (default: csv,excel,json,map,pdf)'
+  timezone: 'Your timezone (e.g. Pacific/Auckland) (default: detected from system)',
+
+  // Common export settings
+  exportCategories: 'Filter ALL exports by categories (comma-separated)',
+  exportCountries: 'Filter ALL exports by countries (comma-separated)',
+  exportFrom: 'Filter ALL exports by sender names (comma-separated)',
+  exportStartDate: 'Filter ALL exports to on/after this date (YYYY-MM-DD)',
+  exportEndDate: 'Filter ALL exports to on/before this date (YYYY-MM-DD)',
+  exportMinScore: 'Min score for ALL exports (0-3)',
+  exportOnlyLocations: 'Only export activities with specific locations',
+  exportOnlyGeneric: 'Only export generic activities without locations',
+  exportMaxActivities: 'Max activities in ALL exports, 0 for all (default: 0)',
+  exportSort: 'Sort order for ALL exports: score, oldest, newest (default: score)',
+
+  // PDF-specific settings
+  pdfThumbnails: 'Include thumbnails in PDF (default: false)',
+  pdfIncludeScore: 'Show score in PDF output (default: false)',
+  pdfGroupByCountry: 'Group by country in PDF (default: true)',
+  pdfGroupByCategory: 'Group by category in PDF (default: true)',
+  pdfPageSize: 'PDF page size: A4 or Letter (default: based on country)',
+  pdfTitle: 'Custom PDF title',
+  pdfSubtitle: 'Custom PDF subtitle',
+  pdfCategories: 'Filter PDF by categories (overrides exportCategories)',
+  pdfCountries: 'Filter PDF by countries (overrides exportCountries)',
+  pdfFrom: 'Filter PDF by sender names (overrides exportFrom)',
+  pdfStartDate: 'Filter PDF to on/after date (overrides exportStartDate)',
+  pdfEndDate: 'Filter PDF to on/before date (overrides exportEndDate)',
+  pdfMinScore: 'Min score for PDF (overrides exportMinScore)',
+  pdfOnlyLocations: 'Only locations in PDF (overrides exportOnlyLocations)',
+  pdfOnlyGeneric: 'Only generic in PDF (overrides exportOnlyGeneric)',
+  pdfMaxActivities: 'Max activities in PDF (overrides exportMaxActivities)',
+  pdfSort: 'Sort order for PDF (overrides exportSort)',
+
+  // Map-specific settings
+  mapDefaultStyle: 'Default map tile style (e.g. osm, satellite, terrain)'
 }
 
 /**
@@ -56,6 +203,7 @@ const CONFIG_DESCRIPTIONS: Record<ConfigKey, string> = {
  */
 export function getConfigType(key: ConfigKey): string {
   if (BOOLEAN_KEYS.includes(key)) return 'boolean'
+  if (NUMBER_KEYS.includes(key)) return 'number'
   if (ARRAY_KEYS.includes(key)) return 'comma-separated'
   return 'string'
 }
@@ -123,9 +271,15 @@ export async function saveConfig(config: Config, configFile?: string): Promise<v
 /**
  * Parse a string value into the appropriate type for a config key.
  */
-export function parseConfigValue(key: ConfigKey, value: string): string | boolean | string[] {
+export function parseConfigValue(
+  key: ConfigKey,
+  value: string
+): string | boolean | number | string[] {
   if (BOOLEAN_KEYS.includes(key)) {
     return value === 'true' || value === '1' || value === 'yes'
+  }
+  if (NUMBER_KEYS.includes(key)) {
+    return Number.parseInt(value, 10)
   }
   if (ARRAY_KEYS.includes(key)) {
     return value.split(',').map((v) => v.trim())
@@ -153,15 +307,16 @@ export function isValidConfigKey(key: string): key is ConfigKey {
   return (
     STRING_KEYS.includes(key as ConfigKey) ||
     BOOLEAN_KEYS.includes(key as ConfigKey) ||
+    NUMBER_KEYS.includes(key as ConfigKey) ||
     ARRAY_KEYS.includes(key as ConfigKey)
   )
 }
 
 /**
- * Get all valid config keys.
+ * Get all valid config keys (sorted alphabetically).
  */
 export function getValidConfigKeys(): ConfigKey[] {
-  return [...STRING_KEYS, ...BOOLEAN_KEYS, ...ARRAY_KEYS]
+  return [...STRING_KEYS, ...BOOLEAN_KEYS, ...NUMBER_KEYS, ...ARRAY_KEYS].sort()
 }
 
 /**
@@ -169,7 +324,7 @@ export function getValidConfigKeys(): ConfigKey[] {
  */
 export async function setConfigValue(
   key: ConfigKey,
-  value: string | boolean | string[],
+  value: string | boolean | number | string[],
   configFile?: string
 ): Promise<void> {
   const config = (await loadConfig(configFile)) ?? {}

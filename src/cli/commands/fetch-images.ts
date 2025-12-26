@@ -12,9 +12,9 @@ import type { Logger } from '../logger'
 import { StepRunner } from '../steps/runner'
 
 export async function cmdFetchImages(args: CLIArgs, logger: Logger): Promise<void> {
-  const { ctx } = await initCommandContext('Fetch Images', args, logger)
+  const { ctx, config } = await initCommandContext('Fetch Images', args, logger)
 
-  const runner = new StepRunner(ctx, args, logger)
+  const runner = new StepRunner(ctx, args, config, logger)
 
   // Run fetchImages step (which runs the full pipeline including fetchImageUrls)
   const { thumbnails } = await runner.run('fetchImages')
