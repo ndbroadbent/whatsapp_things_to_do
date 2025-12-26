@@ -8,7 +8,7 @@
  * Rules:
  * - Minimum 280 chars before and 280 chars after
  * - Minimum 2 messages on each side
- * - Each message truncated to max 280 chars with "[truncated to 280 chars]" suffix
+ * - Messages are already chunked at parse time (≤280 chars each), no truncation needed
  * - Snaps to message boundaries
  * - Messages include timestamps in WhatsApp format so AI understands time gaps
  */
@@ -17,8 +17,6 @@ import type { CandidateMessage, ContextMessage, ParsedMessage } from '../types'
 
 const MIN_CONTEXT_CHARS = 280
 export const MIN_CONTEXT_MESSAGES = 2
-export const MAX_MESSAGE_CHARS = 280
-export const TRUNCATION_MARKER = ' [truncated to 280 chars]'
 
 export interface MessageContext {
   /** Context messages before target */
@@ -34,21 +32,14 @@ export interface MessageContext {
 }
 
 /**
- * Truncate content to max chars with marker.
- */
-export function truncateContent(content: string): string {
-  if (content.length <= MAX_MESSAGE_CHARS) return content
-  return content.slice(0, MAX_MESSAGE_CHARS) + TRUNCATION_MARKER
-}
-
-/**
- * Convert a ParsedMessage to a ContextMessage with truncated content.
+ * Convert a ParsedMessage to a ContextMessage.
+ * No truncation needed - messages are already chunked at parse time.
  */
 function toContextMessage(msg: ParsedMessage): ContextMessage {
   return {
     id: msg.id,
     sender: msg.sender,
-    content: truncateContent(msg.content),
+    content: msg.content,
     timestamp: msg.timestamp
   }
 }

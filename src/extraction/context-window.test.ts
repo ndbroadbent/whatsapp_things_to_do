@@ -4,14 +4,7 @@
 
 import { describe, expect, it } from 'vitest'
 import type { ParsedMessage } from '../types'
-import {
-  getMessageContext,
-  isInContextWindow,
-  MAX_MESSAGE_CHARS,
-  MIN_CONTEXT_MESSAGES,
-  TRUNCATION_MARKER,
-  truncateContent
-} from './context-window'
+import { getMessageContext, isInContextWindow, MIN_CONTEXT_MESSAGES } from './context-window'
 
 function createMessage(id: number, content: string, sender = 'User'): ParsedMessage {
   return {
@@ -24,24 +17,6 @@ function createMessage(id: number, content: string, sender = 'User'): ParsedMess
     source: 'whatsapp'
   }
 }
-
-describe('truncateContent', () => {
-  it('returns short messages unchanged', () => {
-    const msg = 'Hello world'
-    expect(truncateContent(msg)).toBe(msg)
-  })
-
-  it('truncates messages over 280 chars', () => {
-    const longMsg = 'x'.repeat(300)
-    const result = truncateContent(longMsg)
-    expect(result).toBe('x'.repeat(MAX_MESSAGE_CHARS) + TRUNCATION_MARKER)
-  })
-
-  it('returns exactly 280 chars unchanged', () => {
-    const msg = 'x'.repeat(280)
-    expect(truncateContent(msg)).toBe(msg)
-  })
-})
 
 describe('getMessageContext', () => {
   it('throws for invalid index', () => {

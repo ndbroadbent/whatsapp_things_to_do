@@ -4,12 +4,137 @@
  * Parse WhatsApp and iMessage exports into structured messages.
  */
 
-import type { ChatSource, ParsedMessage, ParseResult, ParserOptions } from '../types'
+import type { ChatSource, MediaType, ParsedMessage, ParseResult, ParserOptions } from '../types'
 import { parseIMessageChat, parseIMessageChatStream } from './imessage'
 import { parseWhatsAppChat, parseWhatsAppChatStream } from './whatsapp'
 
 export { parseIMessageChat, parseIMessageChatStream } from './imessage'
 export { detectFormat, parseWhatsAppChat, parseWhatsAppChatStream } from './whatsapp'
+
+/** Maximum characters per message chunk */
+export const MAX_CHUNK_LENGTH = 280
+
+/** Minimum characters for a chunk to be worth splitting */
+export const MIN_CHUNK_LENGTH = 32
+
+/** Common fields for creating chunked messages */
+interface ChunkableMessageData {
+  readonly startId: number
+  readonly timestamp: Date
+  readonly sender: string
+  readonly rawLine: string
+  readonly source: ChatSource
+  readonly urls: readonly string[]
+  readonly hasMedia: boolean
+  readonly mediaType?: MediaType | undefined
+}
+
+/**
+ * Create ParsedMessage array from chunked content.
+ * Shared logic used by both WhatsApp and iMessage parsers.
+ */
+export function createChunkedMessages(
+  chunks: readonly string[],
+  data: ChunkableMessageData
+): ParsedMessage[] {
+  return chunks.map((chunk, index) => ({
+    id: data.startId + index,
+    timestamp: data.timestamp,
+    sender: data.sender,
+    content: chunk,
+    rawLine: index === 0 ? data.rawLine : '',
+    hasMedia: data.hasMedia,
+    mediaType: data.mediaType,
+    urls: index === 0 && data.urls.length > 0 ? data.urls : undefined,
+    source: data.source,
+    chunkIndex: chunks.length > 1 ? index : undefined
+  }))
+}
+
+/**
+ * Split a long message into chunks of ≤280 characters.
+ *
+ * Chunk format:
+ * - Single chunk (≤280 chars): returns content as-is
+ * - First chunk: "message start…"
+ * - Middle chunks: "…middle content…"
+ * - Last chunk: "…message end"
+ *
+ * Splits at word boundaries when possible to avoid cutting words mid-stream.
+ * Won't split if the result would create a chunk smaller than MIN_CHUNK_LENGTH.
+ */
+export function chunkMessage(
+  content: string,
+  maxLen: number = MAX_CHUNK_LENGTH,
+  minLen: number = MIN_CHUNK_LENGTH
+): string[] {
+  if (content.length <= maxLen) {
+    return [content]
+  }
+
+  const ellipsis = '…'
+  const chunks: string[] = []
+
+  // Account for ellipsis in chunk sizes
+  // First chunk: content + ellipsis (1 char)
+  // Middle chunks: ellipsis + content + ellipsis (2 chars)
+  // Last chunk: ellipsis + content (1 char)
+  const firstMaxLen = maxLen - 1
+  const middleMaxLen = maxLen - 2
+  const lastMaxLen = maxLen - 1
+
+  let remaining = content
+  let isFirst = true
+
+  while (remaining.length > 0) {
+    const effectiveMaxLen = isFirst ? firstMaxLen : middleMaxLen
+
+    // Check if remaining content would create a too-small final chunk
+    // If so, don't split - just include it in the current chunk (may exceed maxLen slightly)
+    if (remaining.length <= lastMaxLen) {
+      // Last chunk: add leading ellipsis (unless it's also the first)
+      if (isFirst) {
+        chunks.push(remaining)
+      } else {
+        chunks.push(`${ellipsis}${remaining}`)
+      }
+      break
+    }
+
+    // Check if splitting would leave a too-small remainder
+    // Find a good break point (prefer word boundary)
+    let breakPoint = effectiveMaxLen
+    const spaceIndex = remaining.lastIndexOf(' ', effectiveMaxLen)
+    if (spaceIndex > effectiveMaxLen * 0.5) {
+      // Use word boundary if it's not too far back
+      breakPoint = spaceIndex
+    }
+
+    const remainderAfterSplit = remaining.slice(breakPoint).trimStart()
+    // If remainder would be too small, don't split - return what we have plus remainder
+    if (remainderAfterSplit.length < minLen) {
+      if (isFirst) {
+        chunks.push(content) // Just return original, don't split
+      } else {
+        // Include remainder in current chunk even if it exceeds maxLen
+        chunks.push(`${ellipsis}${remaining}`)
+      }
+      break
+    }
+
+    const chunk = remaining.slice(0, breakPoint).trimEnd()
+    remaining = remainderAfterSplit
+
+    if (isFirst) {
+      chunks.push(`${chunk}${ellipsis}`)
+      isFirst = false
+    } else {
+      chunks.push(`${ellipsis}${chunk}${ellipsis}`)
+    }
+  }
+
+  return chunks
+}
 
 /**
  * Normalize apostrophe variants to straight apostrophe (U+0027).

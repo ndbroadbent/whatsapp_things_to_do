@@ -4,8 +4,8 @@
  * Rules:
  * - Minimum 280 chars before and 280 chars after
  * - Minimum 2 messages on each side
- * - Each message truncated to max 280 chars with "[truncated to 280 chars]" suffix
- * - For prior context: snap to message boundaries, then truncate
+ * - Messages are chunked at parse time (≤280 chars each), no truncation in context
+ * - For prior context: snap to message boundaries
  */
 
 import { readFileSync } from 'node:fs'
@@ -58,7 +58,7 @@ describe('Context Window', () => {
     expect(visitCandidate.contextAfter.length).toBeGreaterThanOrEqual(2)
   })
 
-  it('should truncate long messages with marker', async () => {
+  it('should preserve long messages when remainder would be too small to chunk', async () => {
     const chat = readFileSync(join(FIXTURES_DIR, 'context-window.txt'), 'utf-8')
     const messages = parseWhatsAppChat(chat)
     const result = await extractCandidatesByHeuristics(messages)
@@ -71,11 +71,10 @@ describe('Context Window', () => {
       ...candidate.contextAfter.map((m) => m.content)
     ].join('\n')
 
-    // Long message about The Golden Fork should be truncated
-    expect(allContext).toContain('[truncated to 280 chars]')
+    // Long message about The Golden Fork is NOT chunked because remainder < 32 chars
+    // All content is preserved in a single message
     expect(allContext).toContain('Golden Fork')
-    // Should not contain text beyond 280 chars (the end of the message)
-    expect(allContext).not.toContain('with friends and family')
+    expect(allContext).toContain('friends and family')
   })
 
   it('should get at least 280 chars of context before', async () => {

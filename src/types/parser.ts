@@ -20,6 +20,8 @@ export interface ParsedMessage {
   readonly mediaType?: MediaType | undefined
   readonly urls?: readonly string[] | undefined
   readonly source: ChatSource
+  /** Chunk index when a long message is split (0 = first/only, 1+ = continuation) */
+  readonly chunkIndex?: number | undefined
 }
 
 export type UrlType =

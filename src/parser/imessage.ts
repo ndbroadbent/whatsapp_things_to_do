@@ -16,7 +16,7 @@
  */
 
 import type { ParsedMessage } from '../types'
-import { normalizeApostrophes } from './index'
+import { chunkMessage, createChunkedMessages, normalizeApostrophes } from './index'
 
 // Timestamp line pattern: Apr 02, 2025  8:52:29 AM (optional read receipt)
 const TIMESTAMP_PATTERN =
@@ -100,23 +100,26 @@ interface MessageBuilder {
 type ParserState = 'timestamp' | 'sender' | 'content'
 
 /**
- * Finalize a message builder into a ParsedMessage.
+ * Finalize a message builder into ParsedMessage(s), chunking long content.
+ * Returns an array of messages (multiple if content was chunked).
  */
-function finalizeBuilder(builder: MessageBuilder, messageId: number): ParsedMessage | null {
+function finalizeBuilder(builder: MessageBuilder, startId: number): ParsedMessage[] {
   const content = builder.contentLines.join('\n').trim()
-  if (content.length === 0) return null
+  if (content.length === 0) return []
 
   const urls = extractUrls(content)
-  return {
-    id: messageId,
+  const rawLine = builder.rawLines.join('\n')
+  const chunks = chunkMessage(content)
+
+  return createChunkedMessages(chunks, {
+    startId,
     timestamp: builder.timestamp,
     sender: builder.sender,
-    content,
-    rawLine: builder.rawLines.join('\n'),
-    hasMedia: false,
-    urls: urls.length > 0 ? urls : undefined,
-    source: 'imessage'
-  }
+    rawLine,
+    source: 'imessage',
+    urls,
+    hasMedia: false
+  })
 }
 
 interface IMessageParserState {
@@ -138,12 +141,12 @@ function createInitialState(): IMessageParserState {
 function handleTimestampLine(
   timestampMatch: RegExpExecArray,
   parserState: IMessageParserState
-): ParsedMessage | null {
-  let message: ParsedMessage | null = null
+): ParsedMessage[] {
+  let messages: ParsedMessage[] = []
 
   if (parserState.currentBuilder && parserState.currentBuilder.contentLines.length > 0) {
-    message = finalizeBuilder(parserState.currentBuilder, parserState.messageId)
-    if (message) parserState.messageId++
+    messages = finalizeBuilder(parserState.currentBuilder, parserState.messageId)
+    parserState.messageId += messages.length
   }
 
   const [, dateStr, timeStr] = timestampMatch
@@ -153,7 +156,7 @@ function handleTimestampLine(
   parserState.state = 'sender'
   parserState.currentBuilder = null
 
-  return message
+  return messages
 }
 
 function handleSenderLine(
@@ -185,9 +188,9 @@ function handleContentLine(
 }
 
 /**
- * Process a single line and return a message if a complete one was found.
+ * Process a single line and return messages if a complete one was found.
  */
-function processLine(line: string, parserState: IMessageParserState): ParsedMessage | null {
+function processLine(line: string, parserState: IMessageParserState): ParsedMessage[] {
   const trimmedLine = line.trim()
   const timestampMatch = TIMESTAMP_PATTERN.exec(trimmedLine)
 
@@ -201,17 +204,17 @@ function processLine(line: string, parserState: IMessageParserState): ParsedMess
     handleContentLine(line, trimmedLine, parserState)
   }
 
-  return null
+  return []
 }
 
 /**
- * Finalize the parser state and return any remaining message.
+ * Finalize the parser state and return any remaining messages.
  */
-function finalizeParserState(parserState: IMessageParserState): ParsedMessage | null {
+function finalizeParserState(parserState: IMessageParserState): ParsedMessage[] {
   if (parserState.currentBuilder && parserState.currentBuilder.contentLines.length > 0) {
     return finalizeBuilder(parserState.currentBuilder, parserState.messageId)
   }
-  return null
+  return []
 }
 
 /**
@@ -225,12 +228,12 @@ export function parseIMessageChat(raw: string): ParsedMessage[] {
   const parserState = createInitialState()
 
   for (const line of lines) {
-    const msg = processLine(line, parserState)
-    if (msg) messages.push(msg)
+    const parsed = processLine(line, parserState)
+    messages.push(...parsed)
   }
 
-  const finalMsg = finalizeParserState(parserState)
-  if (finalMsg) messages.push(finalMsg)
+  const finalized = finalizeParserState(parserState)
+  messages.push(...finalized)
 
   return messages
 }
@@ -246,10 +249,14 @@ export async function* parseIMessageChatStream(
   for await (const rawLine of lines) {
     // Normalize apostrophe variants (curly → straight) for regex matching
     const line = normalizeApostrophes(rawLine)
-    const msg = processLine(line, parserState)
-    if (msg) yield msg
+    const parsed = processLine(line, parserState)
+    for (const msg of parsed) {
+      yield msg
+    }
   }
 
-  const finalMsg = finalizeParserState(parserState)
-  if (finalMsg) yield finalMsg
+  const finalized = finalizeParserState(parserState)
+  for (const msg of finalized) {
+    yield msg
+  }
 }

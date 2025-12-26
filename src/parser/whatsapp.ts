@@ -8,7 +8,7 @@
  */
 
 import type { MediaType, ParsedMessage, ParserOptions, WhatsAppFormat } from '../types'
-import { normalizeApostrophes } from './index'
+import { chunkMessage, createChunkedMessages, normalizeApostrophes } from './index'
 
 // WhatsApp iOS format: [MM/DD/YY, H:MM:SS AM/PM] Sender: Message
 // Notes:
@@ -188,31 +188,32 @@ interface MessageBuilder {
 }
 
 /**
- * Finalize a message by detecting media type and extracting URLs.
+ * Finalize a message by detecting media type, extracting URLs, and chunking long content.
+ * Returns an array of messages (multiple if content was chunked).
  */
-function finalizeMessage(builder: MessageBuilder, id: number): ParsedMessage | null {
+function finalizeMessages(builder: MessageBuilder, startId: number): ParsedMessage[] {
   const content = builder.content.trim()
 
   // Skip system messages
   if (isSystemMessage(content)) {
-    return null
+    return []
   }
 
   const mediaType = detectMediaType(content)
   const hasMedia = mediaType !== undefined
   const urls = extractUrls(content)
+  const chunks = chunkMessage(content)
 
-  return {
-    id,
+  return createChunkedMessages(chunks, {
+    startId,
     timestamp: builder.timestamp,
     sender: builder.sender,
-    content,
     rawLine: builder.rawLine,
+    source: 'whatsapp',
+    urls,
     hasMedia,
-    mediaType,
-    urls: urls.length > 0 ? urls : undefined,
-    source: 'whatsapp'
-  }
+    mediaType
+  })
 }
 
 interface FormatConfig {
@@ -276,11 +277,9 @@ export function parseWhatsAppChat(raw: string, options?: ParserOptions): ParsedM
 
     if (match) {
       if (currentBuilder) {
-        const msg = finalizeMessage(currentBuilder, messageId)
-        if (msg) {
-          messages.push(msg)
-          messageId++
-        }
+        const finalized = finalizeMessages(currentBuilder, messageId)
+        messages.push(...finalized)
+        messageId += finalized.length
       }
       currentBuilder = createBuilderFromMatch(match, line, parseTimestamp)
     } else if (currentBuilder) {
@@ -289,15 +288,15 @@ export function parseWhatsAppChat(raw: string, options?: ParserOptions): ParsedM
   }
 
   if (currentBuilder) {
-    const msg = finalizeMessage(currentBuilder, messageId)
-    if (msg) messages.push(msg)
+    const finalized = finalizeMessages(currentBuilder, messageId)
+    messages.push(...finalized)
   }
 
   return messages
 }
 
 interface ProcessLineResult {
-  message: ParsedMessage | null
+  messages: ParsedMessage[]
   builder: MessageBuilder | null
 }
 
@@ -310,16 +309,16 @@ function processLine(
   const match = config.pattern.exec(line)
 
   if (match) {
-    const message = currentBuilder ? finalizeMessage(currentBuilder, messageId) : null
+    const messages = currentBuilder ? finalizeMessages(currentBuilder, messageId) : []
     const builder = createBuilderFromMatch(match, line, config.parseTimestamp)
-    return { message, builder }
+    return { messages, builder }
   }
 
   if (currentBuilder) {
     appendToBuilder(currentBuilder, line)
   }
 
-  return { message: null, builder: currentBuilder }
+  return { messages: [], builder: currentBuilder }
 }
 
 interface StreamState {
@@ -334,10 +333,10 @@ function* processBufferedLines(state: StreamState): Generator<ParsedMessage, voi
 
   for (const line of state.lineBuffer) {
     const result = processLine(line, state.config, state.currentBuilder, state.messageId)
-    if (result.message) {
-      yield result.message
-      state.messageId++
+    for (const msg of result.messages) {
+      yield msg
     }
+    state.messageId += result.messages.length
     state.currentBuilder = result.builder
   }
   state.lineBuffer.length = 0
@@ -371,10 +370,10 @@ export async function* parseWhatsAppChatStream(
     }
 
     const result = processLine(line, state.config, state.currentBuilder, state.messageId)
-    if (result.message) {
-      yield result.message
-      state.messageId++
+    for (const msg of result.messages) {
+      yield msg
     }
+    state.messageId += result.messages.length
     state.currentBuilder = result.builder
   }
 
@@ -387,7 +386,9 @@ export async function* parseWhatsAppChatStream(
 
   // Finalize last message
   if (state.currentBuilder) {
-    const msg = finalizeMessage(state.currentBuilder, state.messageId)
-    if (msg) yield msg
+    const finalized = finalizeMessages(state.currentBuilder, state.messageId)
+    for (const msg of finalized) {
+      yield msg
+    }
   }
 }
