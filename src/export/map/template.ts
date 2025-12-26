@@ -4,8 +4,8 @@
  * Generates the HTML shell that loads data.js and app.js.
  */
 
-import HTML_TEMPLATE from './index.html?raw'
-import MAP_STYLES from './styles.css?raw'
+import HTML_TEMPLATE from './index.html.template' with { type: 'text' }
+import MAP_STYLES from './styles.css.template' with { type: 'text' }
 
 /**
  * Generate the HTML template.

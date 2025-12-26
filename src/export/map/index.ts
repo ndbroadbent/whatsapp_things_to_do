@@ -6,7 +6,7 @@
 
 import type { GeocodedActivity, MapConfig } from '../../types'
 import { generateListOnlyHTML } from '../map-list-html'
-import APP_JS from './app.js?raw'
+import APP_JS from './app.js.template' with { type: 'text' }
 import { toMapData } from './data'
 import { generateMapHTML } from './template'
 import type { MapData } from './types'
