@@ -52,7 +52,7 @@ function groupByCountry(activities: readonly GeocodedActivity[]): Map<string, Ge
   const groups = new Map<string, GeocodedActivity[]>()
 
   for (const a of activities) {
-    const country = a.country ?? 'Unknown'
+    const country = a.country ?? 'General'
     const existing = groups.get(country) ?? []
     existing.push(a)
     groups.set(country, existing)
@@ -250,6 +250,7 @@ function renderFlatList(
   config: PDFConfig,
   renderOptions: RenderOptions
 ): void {
+  doc.moveDown(2)
   renderActivityList(doc, activities, config, renderOptions, 'score')
 }
 
@@ -267,9 +268,11 @@ function renderCategorySection(
   if (doc.y > 700) doc.addPage()
 
   doc.moveDown(options.moveDown)
+  doc.x = 50 // Reset to left margin (thumbnails shift X position)
   doc
     .fontSize(options.fontSize)
     .font('Helvetica-Bold')
+    .fillColor('#000000')
     .text(`${CATEGORY_NAMES[category]} (${items.length})`)
   doc.moveDown(0.5)
 
@@ -299,6 +302,41 @@ function renderGroupedByCategory(
 }
 
 /**
+ * Render a horizontal divider line.
+ */
+function renderDivider(doc: PDFKit.PDFDocument): void {
+  const y = doc.y + 32
+  doc.strokeColor('#cccccc').lineWidth(0.5).moveTo(50, y).lineTo(545, y).stroke()
+  doc.y = y + 8
+}
+
+/**
+ * Render a country section with heading and divider.
+ */
+function renderCountrySection(
+  doc: PDFKit.PDFDocument,
+  country: string,
+  items: readonly GeocodedActivity[],
+  _config: PDFConfig,
+  _renderOptions: RenderOptions,
+  options: { fontSize: number; renderContent: () => void }
+): void {
+  if (doc.y > 680) doc.addPage()
+
+  renderDivider(doc)
+
+  doc.moveDown(0.5)
+  doc.x = 50 // Reset to left margin (thumbnails shift X position)
+  doc
+    .fontSize(options.fontSize)
+    .font('Helvetica-Bold')
+    .fillColor('#000000')
+    .text(`${country} (${items.length})`)
+
+  options.renderContent()
+}
+
+/**
  * Render activities grouped by country only.
  */
 function renderGroupedByCountry(
@@ -308,40 +346,17 @@ function renderGroupedByCountry(
   renderOptions: RenderOptions
 ): void {
   const grouped = groupByCountry(activities)
-  const countries = [...grouped.keys()].sort()
 
-  for (const country of countries) {
+  for (const country of [...grouped.keys()].sort()) {
     const items = grouped.get(country)
     if (!items || items.length === 0) continue
 
-    if (doc.y > 700) doc.addPage()
-
-    doc.moveDown(1.5)
-    doc.fontSize(16).font('Helvetica-Bold').text(`${country} (${items.length})`)
-    doc.moveDown(0.5)
-
-    renderActivityList(doc, items, config, renderOptions, 'score')
-  }
-}
-
-/**
- * Render categories within a country section.
- */
-function renderCategoriesInCountry(
-  doc: PDFKit.PDFDocument,
-  countryItems: readonly GeocodedActivity[],
-  config: PDFConfig,
-  renderOptions: RenderOptions
-): void {
-  const byCategory = groupByCategory(countryItems)
-
-  for (const category of VALID_CATEGORIES) {
-    const items = byCategory.get(category)
-    if (!items || items.length === 0) continue
-
-    renderCategorySection(doc, category, items, config, renderOptions, {
-      moveDown: 1,
-      fontSize: 14
+    renderCountrySection(doc, country, items, config, renderOptions, {
+      fontSize: 16,
+      renderContent: () => {
+        doc.moveDown(0.5)
+        renderActivityList(doc, items, config, renderOptions, 'score')
+      }
     })
   }
 }
@@ -356,18 +371,27 @@ function renderGroupedByCountryAndCategory(
   renderOptions: RenderOptions
 ): void {
   const byCountry = groupByCountry(activities)
-  const countries = [...byCountry.keys()].sort()
 
-  for (const country of countries) {
+  for (const country of [...byCountry.keys()].sort()) {
     const countryItems = byCountry.get(country)
     if (!countryItems || countryItems.length === 0) continue
 
-    if (doc.y > 680) doc.addPage()
+    const byCategory = groupByCategory(countryItems)
 
-    doc.moveDown(1.5)
-    doc.fontSize(18).font('Helvetica-Bold').text(`${country} (${countryItems.length})`)
+    renderCountrySection(doc, country, countryItems, config, renderOptions, {
+      fontSize: 18,
+      renderContent: () => {
+        for (const category of VALID_CATEGORIES) {
+          const items = byCategory.get(category)
+          if (!items || items.length === 0) continue
 
-    renderCategoriesInCountry(doc, countryItems, config, renderOptions)
+          renderCategorySection(doc, category, items, config, renderOptions, {
+            moveDown: 1,
+            fontSize: 14
+          })
+        }
+      }
+    })
   }
 }
 

@@ -133,7 +133,7 @@ function addExportCommand(program: Command): void {
       .command('pdf')
       .description('Export activities to PDF')
       .argument('<input>', 'Chat export (.zip, directory, or .txt file)')
-      .option('-o, --output <file>', 'Output file path', './output/activities.pdf')
+      .option('-o, --output <file>', 'Output file path')
   )
     .option('--thumbnails', 'Include thumbnails in PDF')
     .option('--include-score', 'Show score in PDF output')
@@ -151,7 +151,7 @@ function addExportCommand(program: Command): void {
       .command('json')
       .description('Export activities to JSON')
       .argument('<input>', 'Chat export (.zip, directory, or .txt file)')
-      .option('-o, --output <file>', 'Output file path', './output/activities.json')
+      .option('-o, --output <file>', 'Output file path')
   )
 
   // export csv
@@ -160,7 +160,7 @@ function addExportCommand(program: Command): void {
       .command('csv')
       .description('Export activities to CSV')
       .argument('<input>', 'Chat export (.zip, directory, or .txt file)')
-      .option('-o, --output <file>', 'Output file path', './output/activities.csv')
+      .option('-o, --output <file>', 'Output file path')
   )
 
   // export excel
@@ -169,7 +169,7 @@ function addExportCommand(program: Command): void {
       .command('excel')
       .description('Export activities to Excel')
       .argument('<input>', 'Chat export (.zip, directory, or .txt file)')
-      .option('-o, --output <file>', 'Output file path', './output/activities.xlsx')
+      .option('-o, --output <file>', 'Output file path')
   )
 
   // export map - with map-specific options
@@ -178,7 +178,7 @@ function addExportCommand(program: Command): void {
       .command('map')
       .description('Export activities to interactive HTML map')
       .argument('<input>', 'Chat export (.zip, directory, or .txt file)')
-      .option('-o, --output <file>', 'Output file path', './output/map.html')
+      .option('-o, --output <file>', 'Output file path')
   ).option('--default-style <style>', 'Default map tile style (e.g. osm, satellite, terrain)')
 }
 

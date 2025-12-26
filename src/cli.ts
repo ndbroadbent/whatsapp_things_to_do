@@ -13,6 +13,7 @@ import { cmdAnalyze } from './cli/commands/analyze'
 import { cmdClassify } from './cli/commands/classify'
 import { cmdConfig } from './cli/commands/config'
 import { cmdEmbed } from './cli/commands/embed'
+import { cmdExport } from './cli/commands/export'
 import { cmdFetchImageUrls } from './cli/commands/fetch-image-urls'
 import { cmdFetchImages } from './cli/commands/fetch-images'
 import { cmdFilter } from './cli/commands/filter'
@@ -31,7 +32,16 @@ async function main(): Promise<void> {
   try {
     switch (args.command) {
       case 'analyze':
+      case 'export':
         await cmdAnalyze(args, logger)
+        break
+
+      case 'export-pdf':
+      case 'export-json':
+      case 'export-csv':
+      case 'export-excel':
+      case 'export-map':
+        await cmdExport(args, logger)
         break
 
       case 'parse':

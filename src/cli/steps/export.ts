@@ -41,7 +41,7 @@ interface ExportOptions {
  * Build PDFConfig from CLI args and config.
  * Filtering is handled separately by buildFilterOptions.
  */
-function buildPdfConfig(
+export function buildPdfConfig(
   args: CLIArgs,
   config: Config | null,
   inputFile: string,
