@@ -106,7 +106,6 @@ describe('Classifier Prompt', () => {
       expect(prompt).toContain('"venue"')
       expect(prompt).toContain('"city"')
       expect(prompt).toContain('"country"')
-      expect(prompt).toContain('"gen"')
       expect(prompt).toContain('"com"')
     })
 
@@ -261,7 +260,6 @@ describe('Classifier Prompt', () => {
       expect(parsed[0]?.fun).toBe(0.9)
       expect(parsed[0]?.cat).toBe('restaurant')
       expect(parsed[0]?.conf).toBe(0.95)
-      expect(parsed[0]?.gen).toBe(false)
       expect(parsed[0]?.com).toBe(true)
       expect(parsed[0]?.act).toBe('eat')
       expect(parsed[0]?.venue).toBe('Italian place')
@@ -271,8 +269,8 @@ describe('Classifier Prompt', () => {
 
     it('parses multiple items', () => {
       const response = `[
-        {"msg": 1, "title": "Hiking", "fun": 0.8, "int": 0.6, "cat": "hike", "conf": 0.9, "gen": true, "com": true, "act": "hike", "act_orig": "hiking", "obj": null, "obj_orig": null, "venue": null, "city": "Mountains", "region": null, "country": null},
-        {"msg": 2, "title": "Vet visit", "fun": 0.1, "int": 0.2, "cat": "other", "conf": 0.85, "gen": false, "com": true, "act": "visit", "act_orig": "visit", "obj": "vet", "obj_orig": "vet", "venue": null, "city": null, "region": null, "country": null}
+        {"msg": 1, "title": "Hiking", "fun": 0.8, "int": 0.6, "cat": "hike", "conf": 0.9, "com": true, "act": "hike", "act_orig": "hiking", "obj": null, "obj_orig": null, "venue": null, "city": "Mountains", "region": null, "country": null},
+        {"msg": 2, "title": "Vet visit", "fun": 0.1, "int": 0.2, "cat": "other", "conf": 0.85, "com": true, "act": "visit", "act_orig": "visit", "obj": "vet", "obj_orig": "vet", "venue": null, "city": null, "region": null, "country": null}
       ]`
 
       const parsed = parseClassificationResponse(response)
@@ -283,7 +281,7 @@ describe('Classifier Prompt', () => {
 
     it('handles response with markdown code block', () => {
       const response = `\`\`\`json
-[{"msg": 1, "title": "Beach day", "fun": 0.9, "int": 0.5, "cat": "nature", "conf": 0.95, "gen": true, "com": true, "act": "beach", "act_orig": "beach", "obj": null, "obj_orig": null, "venue": null, "city": "Malibu", "region": "California", "country": "USA"}]
+[{"msg": 1, "title": "Beach day", "fun": 0.9, "int": 0.5, "cat": "nature", "conf": 0.95, "com": true, "act": "beach", "act_orig": "beach", "obj": null, "obj_orig": null, "venue": null, "city": "Malibu", "region": "California", "country": "USA"}]
 \`\`\``
 
       const parsed = parseClassificationResponse(response)
@@ -295,7 +293,7 @@ describe('Classifier Prompt', () => {
     it('handles response with extra text around JSON', () => {
       const response = `Here is the classification:
 
-[{"msg": 1, "title": "Concert", "fun": 0.85, "int": 0.5, "cat": "concert", "conf": 0.9, "gen": false, "com": true, "act": "attend", "act_orig": "concert", "obj": "concert", "obj_orig": "concert", "venue": "Madison Square Garden", "city": "New York", "region": "NY", "country": "USA"}]
+[{"msg": 1, "title": "Concert", "fun": 0.85, "int": 0.5, "cat": "concert", "conf": 0.9, "com": true, "act": "attend", "act_orig": "concert", "obj": "concert", "obj_orig": "concert", "venue": "Madison Square Garden", "city": "New York", "region": "NY", "country": "USA"}]
 
 Hope this helps!`
 
@@ -306,7 +304,7 @@ Hope this helps!`
     })
 
     it('handles null location fields', () => {
-      const response = `[{"msg": 1, "title": "Something fun", "fun": 0.7, "int": 0.5, "cat": "other", "conf": 0.8, "gen": true, "com": true, "act": "do", "act_orig": "do", "obj": null, "obj_orig": null, "venue": null, "city": null, "region": null, "country": null}]`
+      const response = `[{"msg": 1, "title": "Something fun", "fun": 0.7, "int": 0.5, "cat": "other", "conf": 0.8, "com": true, "act": "do", "act_orig": "do", "obj": null, "obj_orig": null, "venue": null, "city": null, "region": null, "country": null}]`
 
       const parsed = parseClassificationResponse(response)
 
@@ -321,28 +319,27 @@ Hope this helps!`
       const parsed = parseClassificationResponse(response)
 
       // Defaults: gen=true, com=true
-      expect(parsed[0]?.gen).toBe(true)
       expect(parsed[0]?.com).toBe(true)
     })
 
     it('parses string-typed numbers (gpt-5-nano compatibility)', () => {
-      // Some models return numbers as strings
-      const response = `[{"msg": "168", "title": "Test", "fun": "0.85", "int": "0.5", "cat": "other", "conf": "0.9", "gen": true, "com": true}]`
+      // Some models return numbers as strings. Scores are 0-5 scale.
+      const response = `[{"msg": "168", "title": "Test", "fun": "4.25", "int": "3.5", "cat": "other", "conf": "0.9", "com": true}]`
 
       const parsed = parseClassificationResponse(response)
 
       expect(parsed[0]?.msg).toBe(168)
-      expect(parsed[0]?.fun).toBe(0.85)
+      expect(parsed[0]?.fun).toBe(4.3) // 4.25 rounds to 4.3
+      expect(parsed[0]?.int).toBe(3.5)
       expect(parsed[0]?.conf).toBe(0.9)
     })
 
     it('parses string-typed booleans', () => {
-      // Some models return booleans as strings
-      const response = `[{"msg": 1, "title": "Test", "fun": 0.5, "int": 0.5, "cat": "other", "conf": 0.5, "gen": "false", "com": "true"}]`
+      // Some models return booleans as strings. Scores are 0-5 scale.
+      const response = `[{"msg": 1, "title": "Test", "fun": 3.5, "int": 2.5, "cat": "other", "conf": 0.5, "gen": "false", "com": "true"}]`
 
       const parsed = parseClassificationResponse(response)
 
-      expect(parsed[0]?.gen).toBe(false)
       expect(parsed[0]?.com).toBe(true)
     })
 

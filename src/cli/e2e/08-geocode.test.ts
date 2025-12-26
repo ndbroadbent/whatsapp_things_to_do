@@ -100,7 +100,10 @@ describe('geocode command', () => {
     expect(yellowstone?.formattedAddress).toMatch(/USA|United States/)
 
     // Check Turkey hot air balloon is geocoded correctly - NOT biased to New Zealand
-    const turkey = activities.find((a) => a.activity.toLowerCase().includes('balloon'))
+    const turkey = activities.find(
+      (a) =>
+        a.activity.toLowerCase().includes('hot air') || a.activity.toLowerCase().includes('balloon')
+    )
     expect(turkey).toBeDefined()
     expect(turkey?.latitude).toBeDefined()
     expect(turkey?.longitude).toBeDefined()

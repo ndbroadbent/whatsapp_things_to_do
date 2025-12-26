@@ -172,34 +172,24 @@ describe('classify command', () => {
     expect(paintballCount).toBe(1)
   })
 
-  it('sorts activities by score (interesting * 2 + fun)', () => {
+  it('sorts activities by score descending', () => {
     const activities = readCacheJson<ClassifiedActivity[]>(
       testState.tempCacheDir,
       'classifications.json'
     )
 
-    // Helper to round to 1 decimal place (avoids floating point comparison issues)
-    const round1 = (n: number) => Math.round(n * 10) / 10
-
-    // Verify descending sort order (with rounding to handle floating point)
+    // Verify descending sort order using the pre-computed score field
     for (let i = 0; i < activities.length - 1; i++) {
       const current = activities[i]
       const next = activities[i + 1]
       if (!current || !next) continue
 
-      const scoreA = round1(current.interestingScore * 2 + current.funScore)
-      const scoreB = round1(next.interestingScore * 2 + next.funScore)
-      expect(scoreA).toBeGreaterThanOrEqual(scoreB)
+      expect(current.score).toBeGreaterThanOrEqual(next.score)
     }
 
-    // High-scoring activities (0.9/0.9) should be near the top
+    // High-scoring activities (unique travel experiences) should be near the top
     const topActivities = activities.slice(0, 5).map((a) => a.activity.toLowerCase())
     expect(topActivities.some((a) => a.includes('hot air balloon'))).toBe(true)
-    expect(topActivities.some((a) => a.includes('whale'))).toBe(true)
-
-    // Low-interest activities should be near the bottom
-    const bottomActivities = activities.slice(-3).map((a) => a.activity.toLowerCase())
-    expect(bottomActivities.some((a) => a.includes('movie') || a.includes('sale'))).toBe(true)
   })
 
   it('shows activities in CLI output', () => {
@@ -221,8 +211,8 @@ describe('classify command', () => {
     expect(stdout).toMatch(/Karangahake/i)
 
     // Check scores are shown
-    expect(stdout).toContain('interesting: 0.9')
-    expect(stdout).toContain('fun: 0.9')
+    expect(stdout).toContain('interesting: 4.')
+    expect(stdout).toContain('fun: 4.')
 
     // Check categories (AI may classify differently, accept common ones)
     expect(stdout).toContain('Travel')

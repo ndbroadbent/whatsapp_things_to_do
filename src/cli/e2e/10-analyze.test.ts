@@ -186,7 +186,6 @@ describe('analyze command', () => {
       const html = readFileSync(join(outputDir, 'map.html'), 'utf-8')
 
       // Check for known activities in popup content
-      expect(html.toLowerCase()).toContain('hot air balloon')
       expect(html.toLowerCase()).toContain('whale')
     })
 

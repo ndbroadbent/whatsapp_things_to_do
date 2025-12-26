@@ -24,21 +24,16 @@ export interface ClassifiedActivity {
   readonly activityId: string
   /** Human-readable activity title */
   readonly activity: string
-  /** How fun/enjoyable is this activity? 0=boring, 1=exciting (averaged across all messages) */
+  /** How fun/enjoyable is this activity? 0.0-5.0 scale (averaged across all messages) */
   readonly funScore: number
-  /** How interesting/unique is this activity? 0=common/mundane, 1=rare/novel (averaged across all messages) */
+  /** How interesting/unique is this activity? 0.0-5.0 scale (averaged across all messages) */
   readonly interestingScore: number
-  /** Combined score derived from interestingScore and funScore */
+  /** Combined score 0.0-5.0, derived from interestingScore and funScore via calculateCombinedScore() */
   readonly score: number
   readonly category: ActivityCategory
   readonly confidence: number
   /** All messages that mentioned this activity (1 initially, more after deduplication) */
   readonly messages: readonly ActivityMessage[]
-  /**
-   * Whether this is a generic activity (no specific name, URL, or compound structure).
-   * Generic activities are more likely to cluster with similar ones.
-   */
-  readonly isGeneric: boolean
   /**
    * Whether this is a compound/complex activity that JSON can't fully capture.
    * Compound activities (e.g., "Go to Iceland and see the aurora") stay as singletons.
@@ -66,6 +61,14 @@ export interface ClassifiedActivity {
    * E.g., "hot air balloon" + Turkey → ["cappadocia", "sunrise", "fairy chimneys"]
    */
   readonly imageKeywords: readonly string[]
+}
+
+/**
+ * Calculate combined score from funScore and interestingScore.
+ * Weights interesting 2x, normalizes to 0-5 range, rounds to 1 decimal.
+ */
+export function calculateCombinedScore(funScore: number, interestingScore: number): number {
+  return Math.round(((interestingScore * 2 + funScore) / 3) * 10) / 10
 }
 
 /**

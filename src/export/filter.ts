@@ -31,7 +31,7 @@ export interface FilterOptions {
   readonly startDate?: Date
   /** Only activities on or before this date */
   readonly endDate?: Date
-  /** Minimum score threshold (0-3, using interestingScore*2 + funScore) */
+  /** Minimum score threshold (0-5, derived from interestingScore and funScore) */
   readonly minScore?: number
   /** Only activities with specific venue/location (at least region + country) */
   readonly onlyLocations?: boolean
@@ -146,7 +146,7 @@ function matchesDateRange(activity: GeocodedActivity, startDate?: Date, endDate?
 
 /**
  * Check if an activity meets the minimum score threshold.
- * Uses the pre-computed score field (interestingScore * 2 + funScore, range 0-3).
+ * Uses the pre-computed score field (0-5 range, from calculateCombinedScore).
  */
 function matchesMinScore(activity: GeocodedActivity, minScore: number): boolean {
   return activity.score >= minScore

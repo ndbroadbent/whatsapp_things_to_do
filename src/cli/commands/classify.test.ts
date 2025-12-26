@@ -31,7 +31,6 @@ describe('toOutputActivity', () => {
           message: 'We should do the Karangahake Gorge hike!'
         }
       ],
-      isGeneric: false,
       isCompound: false,
       action: 'hike',
       actionOriginal: 'hike',
@@ -60,7 +59,6 @@ describe('toOutputActivity', () => {
     expect(output.city).toBeNull()
     expect(output.region).toBeNull()
     expect(output.country).toBe('New Zealand')
-    expect(output.isGeneric).toBe(false)
     expect(output.isCompound).toBe(false)
     expect(output.interestingScore).toBe(0.8)
     expect(output.funScore).toBe(0.9)
@@ -152,7 +150,6 @@ describe('buildClassifyOutput', () => {
             message: "Let's go hiking"
           }
         ],
-        isGeneric: false,
         action: 'hike',
         actionOriginal: 'hiking',
         region: 'Alps',
@@ -188,7 +185,6 @@ describe('buildClassifyOutput', () => {
         activity: 'activity two',
         category: 'food',
         messages: [{ id: 2, sender: 'B', timestamp: new Date(), message: 'msg 2' }],
-        isGeneric: false,
         action: 'eat',
         actionOriginal: 'eat',
         venue: 'Some Restaurant',

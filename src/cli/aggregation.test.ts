@@ -292,37 +292,39 @@ describe('Aggregation Module', () => {
     })
 
     it('averages funScore and interestingScore across merged activities', () => {
+      // Scores are 0-5 scale
       const act1 = createActivity({
         id: 1,
         activity: 'pottery class',
         action: 'take',
         object: 'class',
-        funScore: 0.8,
-        interestingScore: 0.6
+        funScore: 4.0,
+        interestingScore: 3.0
       })
       const act2 = createActivity({
         id: 2,
         activity: 'Pottery Class',
         action: 'take',
         object: 'class',
-        funScore: 0.6,
-        interestingScore: 0.4
+        funScore: 3.0,
+        interestingScore: 2.0
       })
       const act3 = createActivity({
         id: 3,
         activity: 'pottery classes',
         action: 'take',
         object: 'class',
-        funScore: 0.7,
-        interestingScore: 0.5
+        funScore: 3.5,
+        interestingScore: 2.5
       })
 
       const result = aggregateActivities([act1, act2, act3])
 
       expect(result).toHaveLength(1)
-      expect(result[0]?.funScore).toBe(0.7) // (0.8 + 0.6 + 0.7) / 3 = 0.7
-      expect(result[0]?.interestingScore).toBe(0.5) // (0.6 + 0.4 + 0.5) / 3 = 0.5
-      expect(result[0]?.score).toBe(1.7) // 0.5 * 2 + 0.7 = 1.7
+      expect(result[0]?.funScore).toBe(3.5) // (4.0 + 3.0 + 3.5) / 3 = 3.5
+      expect(result[0]?.interestingScore).toBe(2.5) // (3.0 + 2.0 + 2.5) / 3 = 2.5
+      // Combined score = (int * 2 + fun) / 3 = (2.5 * 2 + 3.5) / 3 = 2.8
+      expect(result[0]?.score).toBe(2.8)
     })
 
     it('keeps first occurrence as primary when merging', () => {

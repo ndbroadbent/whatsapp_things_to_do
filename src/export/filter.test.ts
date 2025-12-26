@@ -9,11 +9,12 @@ import { filterActivities, matchesSender, normalizeCountry } from './filter'
 function createTestActivity(
   overrides: Partial<GeocodedActivity> & { activity: string }
 ): GeocodedActivity {
+  // Scores are 0-5 scale
   return createGeocodedActivity({
     category: 'food',
     confidence: 0.9,
-    funScore: 0.5,
-    interestingScore: 0.5,
+    funScore: 2.5,
+    interestingScore: 2.5,
     messages: [
       {
         id: 1,
@@ -311,26 +312,27 @@ describe('Filter Module', () => {
     })
 
     describe('score filter', () => {
+      // Scores are 0-5 scale, combined score = (int*2 + fun)/3
       const activities = [
         createTestActivity({
           activity: 'Low Score',
-          funScore: 0.2,
-          interestingScore: 0.2
-        }), // 0.6
+          funScore: 1.0,
+          interestingScore: 1.0
+        }), // combined: 1.0
         createTestActivity({
           activity: 'Mid Score',
-          funScore: 0.5,
-          interestingScore: 0.5
-        }), // 1.5
+          funScore: 2.5,
+          interestingScore: 2.5
+        }), // combined: 2.5
         createTestActivity({
           activity: 'High Score',
-          funScore: 0.9,
-          interestingScore: 0.9
-        }) // 2.7
+          funScore: 4.5,
+          interestingScore: 4.5
+        }) // combined: 4.5
       ]
 
       it('filters by minimum score', () => {
-        const result = filterActivities(activities, { minScore: 1.5 })
+        const result = filterActivities(activities, { minScore: 2.0 })
         expect(result).toHaveLength(2)
         expect(result.map((a) => a.activity)).toEqual(
           expect.arrayContaining(['Mid Score', 'High Score'])
@@ -338,7 +340,7 @@ describe('Filter Module', () => {
       })
 
       it('excludes activities below threshold', () => {
-        const result = filterActivities(activities, { minScore: 2.0 })
+        const result = filterActivities(activities, { minScore: 3.0 })
         expect(result).toHaveLength(1)
         expect(result[0]?.activity).toBe('High Score')
       })
@@ -396,11 +398,12 @@ describe('Filter Module', () => {
     })
 
     describe('sorting', () => {
+      // Scores are 0-5 scale
       const activities = [
         createTestActivity({
           activity: 'Mid Score Early',
-          funScore: 0.5,
-          interestingScore: 0.5,
+          funScore: 2.5,
+          interestingScore: 2.5,
           messages: [
             {
               id: 1,
@@ -412,8 +415,8 @@ describe('Filter Module', () => {
         }),
         createTestActivity({
           activity: 'High Score Late',
-          funScore: 0.9,
-          interestingScore: 0.9,
+          funScore: 4.5,
+          interestingScore: 4.5,
           messages: [
             {
               id: 2,
@@ -425,8 +428,8 @@ describe('Filter Module', () => {
         }),
         createTestActivity({
           activity: 'Low Score Mid',
-          funScore: 0.2,
-          interestingScore: 0.2,
+          funScore: 1.0,
+          interestingScore: 1.0,
           messages: [
             {
               id: 3,
@@ -476,11 +479,12 @@ describe('Filter Module', () => {
     })
 
     describe('maxActivities', () => {
+      // Scores are 0-5 scale: Activity 1 = 5.0, Activity 2 = 4.5, ... Activity 10 = 0.5
       const activities = Array.from({ length: 10 }, (_, i) =>
         createTestActivity({
           activity: `Activity ${i + 1}`,
-          funScore: (10 - i) / 10,
-          interestingScore: (10 - i) / 10
+          funScore: (10 - i) / 2,
+          interestingScore: (10 - i) / 2
         })
       )
 
@@ -513,13 +517,14 @@ describe('Filter Module', () => {
     })
 
     describe('combined filters', () => {
+      // Scores are 0-5 scale
       const activities = [
         createTestActivity({
           activity: 'NZ Food High Score',
           category: 'food',
           country: 'New Zealand',
-          funScore: 0.9,
-          interestingScore: 0.9,
+          funScore: 4.5,
+          interestingScore: 4.5,
           messages: [
             {
               id: 1,
@@ -533,8 +538,8 @@ describe('Filter Module', () => {
           activity: 'NZ Food Low Score',
           category: 'food',
           country: 'New Zealand',
-          funScore: 0.3,
-          interestingScore: 0.3,
+          funScore: 1.5,
+          interestingScore: 1.5,
           messages: [
             {
               id: 2,
@@ -548,8 +553,8 @@ describe('Filter Module', () => {
           activity: 'AU Music',
           category: 'music',
           country: 'Australia',
-          funScore: 0.8,
-          interestingScore: 0.8,
+          funScore: 4.0,
+          interestingScore: 4.0,
           messages: [
             {
               id: 3,
@@ -563,8 +568,8 @@ describe('Filter Module', () => {
           activity: 'Generic Activity',
           category: 'other',
           country: null,
-          funScore: 0.5,
-          interestingScore: 0.5,
+          funScore: 2.5,
+          interestingScore: 2.5,
           messages: [
             {
               id: 4,
@@ -580,7 +585,7 @@ describe('Filter Module', () => {
         const result = filterActivities(activities, {
           categories: ['food'],
           countries: ['NZ'],
-          minScore: 1.5
+          minScore: 2.0
         })
         expect(result).toHaveLength(1)
         expect(result[0]?.activity).toBe('NZ Food High Score')

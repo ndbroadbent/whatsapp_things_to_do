@@ -31,7 +31,6 @@ export interface ClassifyOutputActivity {
   city: string | null
   region: string | null
   country: string | null
-  isGeneric: boolean
   isCompound: boolean
   interestingScore: number
   funScore: number
@@ -62,7 +61,6 @@ export function toOutputActivity(a: ClassifiedActivity): ClassifyOutputActivity 
     city: a.city,
     region: a.region,
     country: a.country,
-    isGeneric: a.isGeneric,
     isCompound: a.isCompound,
     interestingScore: a.interestingScore,
     funScore: a.funScore

@@ -177,11 +177,10 @@ Return JSON array with ONLY activities worth saving. Skip non-activities entirel
   {
     "msg": <message_id>,
 ${offsetField}    "title": "<activity description, under 100 chars, fix any typos (e.g., 'ballon'→'balloon')>",
-    "fun": <0.0-1.0 how fun/enjoyable>,
-    "int": <0.0-1.0 how interesting/unique>,
+    "fun": <0.0-5.0 how fun/enjoyable>,
+    "int": <0.0-5.0 how interesting/unique>,
     "cat": "<category>",
     "conf": <0.0-1.0 your confidence>,
-    "gen": <true if generic, no specific venue/URL>,
     "com": <true if compound/complex activity that one JSON object can't fully represent>,
     "act": "<normalized action: go, hike, eat, watch, play, visit, etc. (always required)>",
     "act_orig": "<original action word>",
@@ -205,7 +204,7 @@ const SHARED_KEYWORDS_SECTION = `KEYWORDS (kw): Include up to 3 keywords for sto
 - DO NOT include any generic terms that may dilute the search query. For example, "play paintball" is a much better query WITHOUT generic keywords like "action, game, team" (which return images of football and basketball.) Include no keywords at all if the act/obj/venue are already specific.`
 
 function buildLocationSection(homeCountry: string): string {
-  return `LOCATION: Fill city/region/country if mentioned or obvious from context. For ambiguous names (e.g., "Omaha"), assume the user's home country (${homeCountry}). Venue can only be a specific place and not a general region.`
+  return `LOCATION: Only fill venue/city/region/country if explicitly mentioned or strongly implied. Do NOT default to the user's home country for generic activities like "watch a movie" or "play tennis". For ambiguous place names (e.g., "Omaha"), assume the user's home country (${homeCountry}). Venue can only be a specific place and not a general region.`
 }
 
 const SHARED_CATEGORIES_SECTION = `CATEGORIES: ${VALID_CATEGORIES.join(', ')}
@@ -266,9 +265,10 @@ ${SHARED_CATEGORIES_SECTION}
 ${SHARED_NORMALIZATION}
 
 EXAMPLES:
-- "Go tramping in Queenstown" → act:"hike", city:"Queenstown", gen:false
-- "Watch a movie" → act:"watch", obj:"movie", gen:true
-- "Go to Coffee Lab" → act:"visit", venue:"Coffee Lab", gen:false
+- "Go tramping in Queenstown" → act:"hike", city:"Queenstown"
+- "Take a cable car ride in San Francisco" → act:"ride", obj:"cable car", city:"San Francisco"
+- "Watch a movie" → act:"watch", obj:"movie"
+- "Go to Coffee Lab" → act:"visit", venue:"Coffee Lab"
 - "Let's visit Omaha" (user in NZ) → city:"Omaha", country:"New Zealand"
 - "Go to Iceland and see the aurora" → act:"travel", country:"Iceland", com:true (two activities: travel + aurora viewing)
 

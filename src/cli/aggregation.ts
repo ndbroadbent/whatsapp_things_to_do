@@ -7,7 +7,7 @@
  * This is an orchestrator concern (CLI), not core library.
  */
 
-import type { ClassifiedActivity } from '../types'
+import { type ClassifiedActivity, calculateCombinedScore } from '../types'
 
 /**
  * Normalize a string for comparison (lowercase, trim, collapse whitespace).
@@ -173,13 +173,13 @@ export function aggregateActivities(
       // Merge duplicates
       const allMessages = matches.flatMap((a) => a.messages)
 
-      // Average scores across all matches
-      const avgFunScore = round(matches.reduce((sum, a) => sum + a.funScore, 0) / matches.length, 2)
+      // Average scores across all matches (1 decimal place)
+      const avgFunScore = round(matches.reduce((sum, a) => sum + a.funScore, 0) / matches.length, 1)
       const avgInterestingScore = round(
         matches.reduce((sum, a) => sum + a.interestingScore, 0) / matches.length,
-        2
+        1
       )
-      const newScore = round(avgInterestingScore * 2 + avgFunScore, 1)
+      const newScore = calculateCombinedScore(avgFunScore, avgInterestingScore)
 
       // Create merged activity (primary keeps its fields, just update messages/scores)
       result.push({

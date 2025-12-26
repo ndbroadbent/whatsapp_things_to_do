@@ -9,13 +9,12 @@ export interface ParsedClassification {
   /** Message offset - 0 for suggestions, negative for agreements pointing to earlier messages */
   off: number
   title: string | null
-  /** How fun/enjoyable is this activity? 0=boring, 1=exciting */
+  /** How fun/enjoyable is this activity? 0.0-5.0 scale */
   fun: number
-  /** How interesting/unique is this activity? 0=common/mundane, 1=rare/novel */
+  /** How interesting/unique is this activity? 0.0-5.0 scale */
   int: number
   cat: string
   conf: number
-  gen: boolean
   com: boolean
   act: string | null
   act_orig: string | null
@@ -47,17 +46,23 @@ function parseString(val: unknown): string | null {
   return typeof val === 'string' && val.trim() ? val : null
 }
 
-function parseNumber(val: unknown, fallback: number, clamp = true): number {
+/** Round to N decimal places */
+function roundTo(n: number, decimals: number): number {
+  const factor = 10 ** decimals
+  return Math.round(n * factor) / factor
+}
+
+function parseNumber(val: unknown, fallback: number, max = 1, roundDecimals?: number): number {
+  let result = fallback
   if (typeof val === 'number') {
-    return clamp ? Math.max(0, Math.min(1, val)) : val
-  }
-  if (typeof val === 'string') {
+    result = Math.max(0, Math.min(max, val))
+  } else if (typeof val === 'string') {
     const parsed = Number.parseFloat(val)
     if (!Number.isNaN(parsed)) {
-      return clamp ? Math.max(0, Math.min(1, parsed)) : parsed
+      result = Math.max(0, Math.min(max, parsed))
     }
   }
-  return fallback
+  return roundDecimals !== undefined ? roundTo(result, roundDecimals) : result
 }
 
 function parseBoolean(val: unknown, fallback: boolean): boolean {
@@ -76,14 +81,13 @@ function parseStringArray(val: unknown): string[] {
 
 function parseItem(obj: Record<string, unknown>): ParsedClassification {
   return {
-    msg: parseNumber(obj.msg, 0, false), // msg is an ID, not clamped to 0-1
-    off: parseNumber(obj.off, 0, false), // offset, not clamped (usually 0 or negative)
+    msg: parseNumber(obj.msg, 0, Number.MAX_VALUE), // msg is an ID, not clamped
+    off: parseNumber(obj.off, 0, Number.MAX_VALUE), // offset, not clamped (usually 0 or negative)
     title: parseString(obj.title),
-    fun: parseNumber(obj.fun, 0.5),
-    int: parseNumber(obj.int, 0.5),
+    fun: parseNumber(obj.fun, 2.5, 5, 1), // 0-5 scale, 1 decimal
+    int: parseNumber(obj.int, 2.5, 5, 1), // 0-5 scale, 1 decimal
     cat: typeof obj.cat === 'string' ? obj.cat : 'other',
-    conf: parseNumber(obj.conf, 0.5),
-    gen: parseBoolean(obj.gen, true),
+    conf: parseNumber(obj.conf, 0.5, 1, 2), // 0-1 scale, 2 decimals (percentage)
     com: parseBoolean(obj.com, true),
     act: parseString(obj.act),
     act_orig: parseString(obj.act_orig),

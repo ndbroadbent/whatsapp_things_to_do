@@ -4,11 +4,12 @@
  * Utilities for testing that require special handling of external dependencies.
  */
 
-import type {
-  ActivityCategory,
-  ActivityMessage,
-  CandidateMessage,
-  ClassifiedActivity
+import {
+  type ActivityCategory,
+  type ActivityMessage,
+  type CandidateMessage,
+  type ClassifiedActivity,
+  calculateCombinedScore
 } from '../types'
 import { generateActivityId } from '../types/activity-id'
 import type { GeocodedActivity } from '../types/geocoder'
@@ -49,9 +50,12 @@ export function createActivity(
 ): ClassifiedActivity {
   const { activity, activityId: providedId, messages: providedMessages, ...rest } = overrides
 
-  const funScore = (rest as Partial<ClassifiedActivity>).funScore ?? 0.7
-  const interestingScore = (rest as Partial<ClassifiedActivity>).interestingScore ?? 0.5
-  const score = (rest as Partial<ClassifiedActivity>).score ?? interestingScore * 2 + funScore
+  // Scores are 0-5 scale
+  const funScore = (rest as Partial<ClassifiedActivity>).funScore ?? 3.5
+  const interestingScore = (rest as Partial<ClassifiedActivity>).interestingScore ?? 2.5
+  const score =
+    (rest as Partial<ClassifiedActivity>).score ??
+    calculateCombinedScore(funScore, interestingScore)
 
   // Use provided messages or create a default single-message array
   const messages: readonly ActivityMessage[] = providedMessages ?? [
@@ -71,7 +75,6 @@ export function createActivity(
     category: 'other' as ActivityCategory,
     confidence: 0.9,
     messages,
-    isGeneric: false,
     isCompound: false,
     action: 'do',
     actionOriginal: 'do',

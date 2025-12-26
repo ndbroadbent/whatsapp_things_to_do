@@ -7,12 +7,13 @@
 
 import { generateClassifierCacheKey } from '../cache/key'
 import type { ResponseCache } from '../cache/types'
-import type {
-  ActivityCategory,
-  CandidateMessage,
-  ClassifiedActivity,
-  ClassifierConfig,
-  Result
+import {
+  type ActivityCategory,
+  type CandidateMessage,
+  type ClassifiedActivity,
+  type ClassifierConfig,
+  calculateCombinedScore,
+  type Result
 } from '../types'
 import { DEFAULT_MODELS } from './models'
 import {
@@ -75,9 +76,10 @@ function toClassifiedActivity(
   const capitalizedTitle = title.charAt(0).toUpperCase() + title.slice(1)
 
   // Build activity without ID first
+  // Scores are 0-5 scale from the AI
   const funScore = response.fun
   const interestingScore = response.int
-  const score = interestingScore * 2 + funScore
+  const score = calculateCombinedScore(funScore, interestingScore)
 
   const activity = {
     activity: capitalizedTitle,
@@ -94,7 +96,6 @@ function toClassifiedActivity(
         message: resolvedMessage.content
       }
     ],
-    isGeneric: response.gen,
     isCompound: response.com,
     action: response.act,
     actionOriginal: response.act_orig,
