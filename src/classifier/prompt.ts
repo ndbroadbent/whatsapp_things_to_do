@@ -210,7 +210,16 @@ function buildLocationSection(homeCountry: string): string {
 const SHARED_CATEGORIES_SECTION = `CATEGORIES: ${VALID_CATEGORIES.join(', ')}
 ("other" should be used only as a last resort. Only use it if no other category applies.)`
 
-const SHARED_NORMALIZATION = `NORMALIZATION: tramping→hike, cycling→bike, film→movie. But keep distinct: cafe≠restaurant, bar≠restaurant.`
+const SHARED_NORMALIZATION = `NORMALIZATION:
+- Normalize to common/informal variants: tramping→hike, cycling→bike, film→movie
+- Keep distinct categories: cafe≠restaurant, bar≠restaurant
+- DISAMBIGUATION: Some words have multiple meanings - use context to pick the right one:
+  - "play pool" or "shoot pool" → obj:"billiards" (the cue game, NOT swimming pool)
+  - "swim in pool" or "go to pool" → obj:"swimming pool"
+- Regional terms are handled by our system - just normalize to the most common variant:
+  - kebab, doner, shawarma, gyro → use whichever term appears in the message (we map regionally)
+  - football → use "football" (we show gridiron images in US, soccer elsewhere)
+  - hockey → use "hockey" (we show ice hockey in US/Canada, field hockey elsewhere)`
 
 const SHARED_COMPOUND_SECTION = `COMPOUND vs MULTIPLE: For com:true, still emit ONE object - it just flags that the JSON is lossy so that we prevent activity aggregation errors. If a message lists truly separate activities ("Try Kazuya, also check out the Botanic Gardens"), emit multiple objects.`
 
