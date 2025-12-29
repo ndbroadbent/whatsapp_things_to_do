@@ -13,14 +13,12 @@ function createMarkers(markersLayer) {
     var imageHtml = ''
     var popupImage = p.mediumImagePath || p.imagePath
     if (popupImage) {
-      imageHtml = '<img src="' +
-        escapeHtml(popupImage) +
-        '" style="display:block;width:100%;max-width:200px;border-radius:4px;margin-bottom:4px;" />'
-      if (p.imageAttribution) {
-        imageHtml += '<a href="' + escapeHtml(p.imageAttribution.url) +
-          '" target="_blank" class="img-attribution">' +
-          escapeHtml(p.imageAttribution.text) + '</a>'
-      }
+      var attrOverlay = p.imageAttribution
+        ? '<div class="img-attr-overlay">' + formatAttributionHtml(p.imageAttribution) + '</div>'
+        : ''
+      imageHtml = '<div class="img-container">' +
+        '<img src="' + escapeHtml(popupImage) + '" />' +
+        attrOverlay + '</div>'
     }
 
     var mapsUrl = p.placeId
@@ -99,7 +97,7 @@ function createMarkers(markersLayer) {
   return geocodedPoints
 }
 
-function setupPopupTooltips() {
+function setupPopupTooltips(map) {
   map.on('popupopen', function () {
     var triggers = document.querySelectorAll('.leaflet-popup .sender-trigger[data-messages]')
     triggers.forEach(function (trigger) {

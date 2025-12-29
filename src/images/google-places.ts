@@ -84,7 +84,7 @@ export async function fetchGooglePlacesPhoto(
         url: `https://www.google.com/maps/place/?q=place_id:${placeId}`,
         attribution: {
           name: attributionName,
-          url: `https://www.google.com/maps/place/?q=place_id:${placeId}`
+          url: '' // Google Places has no author profile URL
         }
       }
     }

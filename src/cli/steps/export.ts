@@ -161,7 +161,7 @@ function parseMapStyle(style: string | undefined): MapStyle | undefined {
 
 /**
  * Extract image attributions from ImageResult objects.
- * Converts ImageResult.meta.attribution to ImageAttribution format.
+ * Converts ImageResult.meta to ImageAttribution format.
  *
  * Only sources with meaningful attribution are included:
  * - wikipedia, pixabay, unsplash
@@ -179,16 +179,13 @@ function extractImageAttributions(
       // Only include sources that have meaningful artist attribution
       const source = mapToAttributionSource(result.meta.source)
       if (source) {
-        const attr: ImageAttribution = {
+        attributions.set(activityId, {
           name: result.meta.attribution.name,
-          url: result.meta.attribution.url,
+          photoUrl: result.meta.url, // URL to the photo/place page
+          authorUrl: result.meta.attribution.url || undefined, // Empty string → undefined
+          license: source === 'wikipedia' ? result.meta.license : undefined, // Only show license for Wikipedia
           source
-        }
-        // Only add license if defined (exactOptionalPropertyTypes)
-        if (result.meta.license !== undefined) {
-          ;(attr as { license: string }).license = result.meta.license
-        }
-        attributions.set(activityId, attr)
+        })
       }
     }
   }
@@ -206,16 +203,15 @@ function mapToAttributionSource(
   switch (source) {
     case 'wikipedia':
     case 'pixabay':
-      return source
     case 'unsplash':
-      return 'unsplash'
     case 'google_places':
+      return source
     case 'user_upload':
     case 'unsplash+':
       // These sources don't have artist attribution to display
       return null
     default:
-      return 'other'
+      return null
   }
 }
 

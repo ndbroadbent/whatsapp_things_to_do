@@ -7,6 +7,31 @@ function escapeHtml(str) {
   return escapeDiv.innerHTML
 }
 
+var SERVICE_INFO = {
+  wikipedia: { name: 'Wikipedia', url: 'https://wikipedia.org' },
+  unsplash: { name: 'Unsplash', url: 'https://unsplash.com' },
+  pixabay: { name: 'Pixabay', url: 'https://pixabay.com' },
+  google_places: { name: 'Google', url: 'https://maps.google.com' }
+}
+
+function formatAttributionHtml(attr) {
+  var service = SERVICE_INFO[attr.source] || { name: attr.source, url: '#' }
+
+  var authorHtml = attr.authorUrl
+    ? '<a href="' + escapeHtml(attr.authorUrl) + '" target="_blank">' + escapeHtml(attr.name) + '</a>'
+    : escapeHtml(attr.name)
+
+  var html = '<a href="' + escapeHtml(attr.photoUrl) + '" target="_blank">Photo</a> by ' +
+    authorHtml + ' on ' +
+    '<a href="' + escapeHtml(service.url) + '" target="_blank">' + service.name + '</a>'
+
+  if (attr.license) {
+    html += ' (' + escapeHtml(attr.license) + ')'
+  }
+
+  return html
+}
+
 function formatSenders(messages) {
   var uniqueSenders = []
   var seen = {}
@@ -50,10 +75,19 @@ function showTooltip(trigger, messages) {
   positionTooltip(trigger, false)
 }
 
-function showAttributionTooltip(trigger, text) {
+function showAttributionTooltip(trigger, attr) {
   floatingTooltip.className = 'tooltip-simple'
-  floatingTooltip.innerHTML = '<div style="color:#e5e7eb;">' + escapeHtml(text) + '</div>'
+  floatingTooltip.innerHTML = '<div style="color:#e5e7eb;">' + formatAttributionText(attr) + '</div>'
   positionTooltip(trigger, true)
+}
+
+function formatAttributionText(attr) {
+  var service = SERVICE_INFO[attr.source] || { name: attr.source }
+  var text = 'Photo by ' + escapeHtml(attr.name) + ' on ' + service.name
+  if (attr.license) {
+    text += ' (' + escapeHtml(attr.license) + ')'
+  }
+  return text
 }
 
 function positionTooltip(trigger, center) {

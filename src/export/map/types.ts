@@ -14,12 +14,14 @@ interface MapMessage {
 export interface MapImageAttribution {
   /** Artist/photographer name */
   name: string
-  /** Link to source page */
-  url: string
-  /** License (e.g., "CC-BY-SA 4.0") */
+  /** Link to the photo page */
+  photoUrl: string
+  /** Link to the author's profile (may be undefined for Google Places) */
+  authorUrl: string | undefined
+  /** License (only for Wikipedia) */
   license: string | undefined
-  /** Formatted attribution text (e.g., "Photo by X on Unsplash") */
-  text: string
+  /** Source platform */
+  source: 'wikipedia' | 'unsplash' | 'pixabay' | 'google_places'
 }
 
 export interface MapActivity {

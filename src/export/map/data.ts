@@ -106,33 +106,13 @@ function toMapActivities(
 
 /**
  * Format attribution info for display.
- * Creates user-friendly text like "Photo by X on Unsplash" or "Photo by X via Wikipedia (CC-BY-SA)"
  */
 function formatAttribution(attr: ImageAttribution): MapImageAttribution {
-  let text: string
-
-  switch (attr.source) {
-    case 'unsplash':
-      text = `Photo by ${attr.name} on Unsplash`
-      break
-    case 'wikipedia':
-      text = attr.license ? `Photo by ${attr.name} (${attr.license})` : `Photo by ${attr.name}`
-      break
-    case 'pixabay':
-      text = `Photo by ${attr.name} on Pixabay`
-      break
-    case 'media_library':
-      // Media library images may have various sources
-      text = attr.name
-      break
-    default:
-      text = `Photo by ${attr.name}`
-  }
-
   return {
     name: attr.name,
-    url: attr.url,
+    photoUrl: attr.photoUrl,
+    authorUrl: attr.authorUrl,
     license: attr.license,
-    text
+    source: attr.source
   }
 }

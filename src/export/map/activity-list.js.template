@@ -97,12 +97,13 @@ function attachLightboxHandlers(sorted) {
       window.openLightbox(lightboxImage, a.activity, a.imageAttribution)
     })
 
-    if (a.imageAttribution) {
-      thumb.addEventListener('mouseenter', function () {
-        showAttributionTooltip(thumb, a.imageAttribution.text)
-      })
-      thumb.addEventListener('mouseleave', hideTooltip)
-    }
+    // Attribution shown in lightbox - tooltip too noisy
+    // if (a.imageAttribution) {
+    //   thumb.addEventListener('mouseenter', function () {
+    //     showAttributionTooltip(thumb, a.imageAttribution)
+    //   })
+    //   thumb.addEventListener('mouseleave', hideTooltip)
+    // }
   })
 }
 

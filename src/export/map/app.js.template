@@ -7,10 +7,10 @@
     return
   }
 
-  // Initialize map
-  var map = L.map('map').setView([mapData.center.lat, mapData.center.lng], mapData.zoom)
+  // Initialize map (map and currentTileLayer are global for setMapStyle)
+  map = L.map('map').setView([mapData.center.lat, mapData.center.lng], mapData.zoom)
 
-  var currentTileLayer = L.tileLayer(tileStyles[currentStyle].url, {
+  currentTileLayer = L.tileLayer(tileStyles[currentStyle].url, {
     attribution: tileStyles[currentStyle].attribution
   }).addTo(map)
 
@@ -36,7 +36,7 @@
   }
 
   // Setup popup tooltip handlers
-  setupPopupTooltips()
+  setupPopupTooltips(map)
 
   // Render info box
   document.getElementById('infoTitle').textContent = mapData.title

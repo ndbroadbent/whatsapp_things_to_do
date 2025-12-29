@@ -1,4 +1,7 @@
 /* Tile layer styles */
+var map = null
+var currentTileLayer = null
+
 var tileStyles = {
   osm: {
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',

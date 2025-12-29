@@ -13,12 +13,14 @@ export type MapStyle = 'osm' | 'satellite' | 'terrain'
 export interface ImageAttribution {
   /** Artist/photographer name */
   readonly name: string
-  /** Link to source page */
-  readonly url: string
-  /** License short name (e.g., "CC-BY-SA 4.0") */
-  readonly license?: string
-  /** Source platform (for formatting display text) */
-  readonly source: 'wikipedia' | 'unsplash' | 'pixabay' | 'media_library' | 'other'
+  /** Link to the photo page */
+  readonly photoUrl: string
+  /** Link to the author's profile (may be undefined for Google Places) */
+  readonly authorUrl: string | undefined
+  /** License (only for Wikipedia) */
+  readonly license: string | undefined
+  /** Source platform */
+  readonly source: 'wikipedia' | 'unsplash' | 'pixabay' | 'google_places'
 }
 
 export interface MapConfig {
