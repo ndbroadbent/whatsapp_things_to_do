@@ -113,6 +113,17 @@ export {
   parseWhatsAppChat,
   parseWhatsAppChatStream
 } from './parser/index'
+// Processor module - interface and real implementation
+export type {
+  ChatProcessor,
+  ProcessingStageResults,
+  ProcessorCandidateResult,
+  ProcessorClassifyResult,
+  ProcessorConfig,
+  ProcessorGeocodeResult,
+  ProcessorParseResult
+} from './processor'
+export { RealChatProcessor } from './processor'
 // Scanner module (zero API cost heuristic scanning)
 export type { QuickScanOptions, QuickScanResult } from './scanner/index'
 export { quickScan, quickScanMessages } from './scanner/index'
