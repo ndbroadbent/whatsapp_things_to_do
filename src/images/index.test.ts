@@ -2,11 +2,11 @@
  * Images Module Tests
  */
 
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import type { CachedResponse, ResponseCache } from '../cache/types'
 import { createGeocodedActivity } from '../test-support'
 import type { GeocodedActivity } from '../types/geocoder'
-import { fetchImageForActivity, fetchImagesForActivities } from './index'
+import { clearMediaIndexCache, fetchImageForActivity, fetchImagesForActivities } from './index'
 import type { ImageFetchConfig } from './types'
 
 function createMockCache(): ResponseCache {
@@ -32,6 +32,10 @@ function createMockActivity(overrides: Partial<GeocodedActivity> = {}): Geocoded
 }
 
 describe('Images Module', () => {
+  beforeEach(() => {
+    clearMediaIndexCache()
+  })
+
   describe('fetchImageForActivity', () => {
     it('returns null when no sources available', async () => {
       const cache = createMockCache()
@@ -39,7 +43,9 @@ describe('Images Module', () => {
       const config: ImageFetchConfig = {
         skipGooglePlaces: true,
         skipWikipedia: true,
-        skipPixabay: true
+        skipPixabay: true,
+        skipCdn: true,
+        skipMediaLibrary: true
       }
 
       const result = await fetchImageForActivity(activity, config, cache)
@@ -54,6 +60,8 @@ describe('Images Module', () => {
         skipGooglePlaces: true,
         skipWikipedia: true,
         skipPixabay: true,
+        skipCdn: true,
+        skipMediaLibrary: true,
         googlePlacesApiKey: 'test-key'
       }
 
@@ -68,7 +76,9 @@ describe('Images Module', () => {
       const config: ImageFetchConfig = {
         skipGooglePlaces: true,
         skipWikipedia: true,
-        skipPixabay: true
+        skipPixabay: true,
+        skipCdn: true,
+        skipMediaLibrary: true
       }
 
       const result = await fetchImageForActivity(activity, config, cache)
@@ -83,6 +93,8 @@ describe('Images Module', () => {
         skipGooglePlaces: true,
         skipWikipedia: true,
         skipPixabay: true,
+        skipCdn: true,
+        skipMediaLibrary: true,
         pixabayApiKey: 'test-key'
       }
 
@@ -96,7 +108,9 @@ describe('Images Module', () => {
       const activity = createMockActivity({ action: 'hiking' })
       const config: ImageFetchConfig = {
         skipGooglePlaces: true,
-        skipWikipedia: true
+        skipWikipedia: true,
+        skipCdn: true,
+        skipMediaLibrary: true
         // No pixabayApiKey
       }
 
@@ -110,7 +124,9 @@ describe('Images Module', () => {
       const activity = createMockActivity({ placeId: 'ChIJ123' })
       const config: ImageFetchConfig = {
         skipWikipedia: true,
-        skipPixabay: true
+        skipPixabay: true,
+        skipCdn: true,
+        skipMediaLibrary: true
         // No googlePlacesApiKey
       }
 
@@ -130,7 +146,9 @@ describe('Images Module', () => {
       const config: ImageFetchConfig = {
         skipGooglePlaces: true,
         skipWikipedia: true,
-        skipPixabay: true
+        skipPixabay: true,
+        skipCdn: true,
+        skipMediaLibrary: true
       }
 
       const results = await fetchImagesForActivities(activities, config, cache)
@@ -150,7 +168,9 @@ describe('Images Module', () => {
       const config: ImageFetchConfig = {
         skipGooglePlaces: true,
         skipWikipedia: true,
-        skipPixabay: true
+        skipPixabay: true,
+        skipCdn: true,
+        skipMediaLibrary: true
       }
       const progressCalls: Array<{ current: number; total: number }> = []
 
@@ -167,7 +187,10 @@ describe('Images Module', () => {
 
     it('handles empty activities array', async () => {
       const cache = createMockCache()
-      const config: ImageFetchConfig = {}
+      const config: ImageFetchConfig = {
+        skipCdn: true,
+        skipMediaLibrary: true
+      }
 
       const results = await fetchImagesForActivities([], config, cache)
 

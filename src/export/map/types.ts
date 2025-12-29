@@ -10,6 +10,18 @@ interface MapMessage {
   message: string
 }
 
+/** Attribution info for display in map popups */
+export interface MapImageAttribution {
+  /** Artist/photographer name */
+  name: string
+  /** Link to source page */
+  url: string
+  /** License (e.g., "CC-BY-SA 4.0") */
+  license: string | undefined
+  /** Formatted attribution text (e.g., "Photo by X on Unsplash") */
+  text: string
+}
+
 export interface MapActivity {
   lat: number | null
   lng: number | null
@@ -23,6 +35,8 @@ export interface MapActivity {
   url: string | null
   color: string
   imagePath: string | null
+  /** Image attribution (for Wikipedia, Unsplash, etc.) */
+  imageAttribution: MapImageAttribution | null
   placeId: string | null
   messages: MapMessage[]
 }

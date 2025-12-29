@@ -18,15 +18,19 @@ import type { Logger } from '../logger'
 import { stepFetchImageUrls } from '../steps/fetch-image-urls'
 import { StepRunner } from '../steps/runner'
 
-interface FetchImagesOutput {
+interface FetchImagesStats {
   activitiesProcessed: number
   imagesFound: number
+  fromMediaLibrary: number
   fromCdn: number
   fromWikipedia: number
   fromPixabay: number
   fromGooglePlaces: number
   fromUserUpload: number
   failed: number
+}
+
+interface FetchImagesOutput extends FetchImagesStats {
   activities: Array<{
     activityId: string
     activity: string
@@ -36,6 +40,19 @@ interface FetchImagesOutput {
     country: string | null
     image: ImageResult | null
   }>
+}
+
+function logStatsSummary(stats: FetchImagesStats, logger: Logger): void {
+  logger.log('\n📊 Image Fetch Results')
+  logger.log(`   Processed: ${stats.activitiesProcessed}`)
+  logger.log(`   Found: ${stats.imagesFound}`)
+  if (stats.fromMediaLibrary > 0) logger.log(`   From Media Library: ${stats.fromMediaLibrary}`)
+  if (stats.fromCdn > 0) logger.log(`   From CDN: ${stats.fromCdn}`)
+  if (stats.fromUserUpload > 0) logger.log(`   From user uploads: ${stats.fromUserUpload}`)
+  if (stats.fromWikipedia > 0) logger.log(`   From Wikipedia: ${stats.fromWikipedia}`)
+  if (stats.fromPixabay > 0) logger.log(`   From Pixabay: ${stats.fromPixabay}`)
+  if (stats.fromGooglePlaces > 0) logger.log(`   From Google Places: ${stats.fromGooglePlaces}`)
+  if (stats.failed > 0) logger.log(`   Not found: ${stats.failed}`)
 }
 
 export async function cmdFetchImageUrls(args: CLIArgs, logger: Logger): Promise<void> {
@@ -68,27 +85,18 @@ export async function cmdFetchImageUrls(args: CLIArgs, logger: Logger): Promise<
   }
 
   // Run fetch-image-urls step
+  // Media library path can come from CLI arg or config
+  const mediaLibraryPath = args.mediaLibraryPath ?? config?.mediaLibraryPath
   const fetchResult = await stepFetchImageUrls(ctx, geocodedActivities, {
     skipCdn: args.skipCdn,
     skipPixabay: args.skipPixabay,
     skipWikipedia: args.skipWikipedia,
-    skipGooglePlaces: args.skipGooglePlaces
+    skipGooglePlaces: args.skipGooglePlaces,
+    mediaLibraryPath
   })
 
   // Summary
-  logger.log('\n📊 Image Fetch Results')
-  logger.log(`   Processed: ${fetchResult.stats.activitiesProcessed}`)
-  logger.log(`   Found: ${fetchResult.stats.imagesFound}`)
-  if (fetchResult.stats.fromCdn > 0) logger.log(`   From CDN: ${fetchResult.stats.fromCdn}`)
-  if (fetchResult.stats.fromUserUpload > 0)
-    logger.log(`   From user uploads: ${fetchResult.stats.fromUserUpload}`)
-  if (fetchResult.stats.fromWikipedia > 0)
-    logger.log(`   From Wikipedia: ${fetchResult.stats.fromWikipedia}`)
-  if (fetchResult.stats.fromPixabay > 0)
-    logger.log(`   From Pixabay: ${fetchResult.stats.fromPixabay}`)
-  if (fetchResult.stats.fromGooglePlaces > 0)
-    logger.log(`   From Google Places: ${fetchResult.stats.fromGooglePlaces}`)
-  if (fetchResult.stats.failed > 0) logger.log(`   Not found: ${fetchResult.stats.failed}`)
+  logStatsSummary(fetchResult.stats, logger)
 
   const output: FetchImagesOutput = {
     ...fetchResult.stats,

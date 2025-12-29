@@ -192,12 +192,16 @@ export class StepRunner {
     // Dependency: geocode
     const { activities } = await this.run('geocode')
 
+    // Media library path can come from CLI arg or config
+    const mediaLibraryPath = this.args.mediaLibraryPath ?? this.config?.mediaLibraryPath
+
     const { stepFetchImageUrls } = await import('./fetch-image-urls')
     const result = await stepFetchImageUrls(this.ctx, activities, {
       skipCdn: this.args.skipCdn,
       skipPixabay: this.args.skipPixabay,
       skipWikipedia: this.args.skipWikipedia,
-      skipGooglePlaces: this.args.skipGooglePlaces
+      skipGooglePlaces: this.args.skipGooglePlaces,
+      mediaLibraryPath
     })
     return { images: result.images }
   }

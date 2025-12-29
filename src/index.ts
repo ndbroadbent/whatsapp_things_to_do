@@ -93,13 +93,35 @@ export {
   geocodeLocation
 } from './geocoder/index'
 // Images module
-export type { ImageFetchConfig, ImageResult, ImageSource } from './images/index'
+export type {
+  ImageFetchConfig,
+  ImageMetadata,
+  ImageResult,
+  ImageSize,
+  ImageSource,
+  LicenseCheckResult,
+  MediaIndexOptions,
+  PixabayImageCandidate,
+  PixabayImageMatch,
+  WikipediaImageCandidate,
+  WikipediaImageMatch
+} from './images/index'
 export {
+  buildImageUrl,
   fetchGooglePlacesPhoto,
   fetchImageForActivity,
   fetchImagesForActivities,
   fetchPixabayImage,
-  fetchWikipediaImage
+  fetchWikipediaImage,
+  filterPixabayImages,
+  filterWikipediaImages,
+  findActionFallbackImage,
+  findCategoryFallbackImage,
+  findObjectImage,
+  hasAllowedLicense,
+  IMAGE_SIZES,
+  isLicenseAllowed,
+  loadMediaIndex
 } from './images/index'
 // Parser module
 export {

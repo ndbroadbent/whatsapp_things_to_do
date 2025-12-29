@@ -108,6 +108,10 @@ function addPipelineOptions(cmd: Command): Command {
     .option('--min-confidence <num>', 'Minimum confidence threshold', '0.5')
     .option('--skip-geocoding', 'Skip geocoding step')
     .option('--images', 'Fetch images for activities (slower, uses external APIs)')
+    .option(
+      '--media-library-path <path>',
+      'Local path to media library images (development/offline)'
+    )
     .option('--map-default-style <style>', 'Default map tile style (e.g. osm, satellite, terrain)')
     .option('-m, --max-messages <num>', 'Max messages to process (for testing)')
     .option('--dry-run', 'Show stats without API calls')
@@ -318,6 +322,10 @@ export function createProgram(): Command {
     .option('--skip-pixabay', 'Skip Pixabay image search')
     .option('--skip-wikipedia', 'Skip Wikipedia image lookup')
     .option('--skip-google-places', 'Skip Google Places photos')
+    .option(
+      '--media-library-path <path>',
+      'Local path to media library images (development/offline)'
+    )
     .option('-n, --max-results <num>', 'Max results to display', '10')
     .option('-a, --all', 'Show all activities with images')
 

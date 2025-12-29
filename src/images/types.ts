@@ -16,7 +16,8 @@
  * OG images can only be displayed as link previews within message context.
  */
 export type ImageSource =
-  | 'cdn' // ChatToMap CDN default image
+  | 'media_library' // ChatToMap media library (curated images)
+  | 'cdn' // ChatToMap CDN default image (deprecated, use media_library)
   | 'google_places' // Google Places Photos API
   | 'wikipedia' // Wikipedia/Wikimedia Commons
   | 'pixabay' // Pixabay stock photos
@@ -42,8 +43,14 @@ export interface ImageResult {
   /** Attribution info (required for some sources) */
   readonly attribution?:
     | {
+        /** Artist/photographer name */
         readonly name: string
+        /** Link to source page (Wikimedia Commons, Unsplash, etc.) */
         readonly url: string
+        /** License short name (e.g., "CC-BY-SA 4.0") - required for Wikipedia */
+        readonly license?: string | undefined
+        /** Link to license text */
+        readonly licenseUrl?: string | undefined
       }
     | undefined
 
@@ -55,8 +62,11 @@ export interface ImageResult {
  * Configuration for image fetching.
  */
 export interface ImageFetchConfig {
-  /** Skip CDN default images (--no-image-cdn) */
+  /** Skip CDN default images (--no-image-cdn) - deprecated, use skipMediaLibrary */
   readonly skipCdn?: boolean | undefined
+
+  /** Skip media library (curated images from media.chattomap.com) */
+  readonly skipMediaLibrary?: boolean | undefined
 
   /** Skip Pixabay image search */
   readonly skipPixabay?: boolean | undefined
@@ -72,4 +82,51 @@ export interface ImageFetchConfig {
 
   /** Google Places API key */
   readonly googlePlacesApiKey?: string | undefined
+
+  /**
+   * Local path to media library images directory.
+   * If provided, images are loaded from disk instead of CDN.
+   * Example: "/path/to/media_library/images"
+   */
+  readonly mediaLibraryPath?: string | undefined
+
+  /**
+   * Country code for regional synonym overrides.
+   * Example: "US", "AU", "NZ"
+   */
+  readonly countryCode?: string | undefined
+}
+
+/**
+ * Metadata for an image in the media library.
+ */
+export interface ImageMetadata {
+  /** Original filename before SHA256 rename */
+  readonly original_filename?: string | undefined
+
+  /** Image dimensions */
+  readonly width?: number | undefined
+  readonly height?: number | undefined
+  readonly file_size?: number | undefined
+  readonly format?: string | undefined
+
+  /** Source platform */
+  readonly source?: 'unsplash' | 'pixabay' | 'pexels' | 'wikimedia' | 'other' | undefined
+  readonly url?: string | undefined
+
+  /** License info */
+  readonly license?: string | undefined
+  readonly license_url?: string | undefined
+
+  /** Attribution */
+  readonly attribution?:
+    | {
+        readonly name?: string | undefined
+        readonly url?: string | undefined
+      }
+    | undefined
+
+  /** Content metadata */
+  readonly description?: string | undefined
+  readonly keywords?: readonly string[] | undefined
 }

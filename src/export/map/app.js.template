@@ -173,11 +173,17 @@
     var mentionCount = p.messages.length
     var mentionText = mentionCount > 1 ? ' (' + mentionCount + ' mentions)' : ''
 
-    var imageHtml = p.imagePath
-      ? '<img src="' +
+    var imageHtml = ''
+    if (p.imagePath) {
+      imageHtml = '<img src="' +
         escapeHtml(p.imagePath) +
-        '" style="display:block;width:100%;max-width:200px;border-radius:4px;margin-bottom:8px;" />'
-      : ''
+        '" style="display:block;width:100%;max-width:200px;border-radius:4px;margin-bottom:4px;" />'
+      if (p.imageAttribution) {
+        imageHtml += '<a href="' + escapeHtml(p.imageAttribution.url) +
+          '" target="_blank" class="img-attribution">' +
+          escapeHtml(p.imageAttribution.text) + '</a>'
+      }
+    }
 
     var mapsUrl = p.placeId
       ? 'https://www.google.com/maps/search/?api=1&query=' +
@@ -308,6 +314,7 @@
       date: p.date,
       score: p.score,
       imagePath: p.imagePath,
+      imageAttribution: p.imageAttribution,
       placeId: p.placeId,
       url: p.url,
       messages: p.messages
@@ -327,8 +334,14 @@
         var badge = mentionCount > 1 ? '<span class="mention-badge">' + mentionCount + '</span>' : ''
 
         var thumbContent
+        var thumbAttribution = ''
         if (mapData.hasImages && a.imagePath) {
           thumbContent = '<img src="' + a.imagePath + '" class="activity-thumb" alt="" />'
+          if (a.imageAttribution) {
+            thumbAttribution = '<a href="' + escapeHtml(a.imageAttribution.url) +
+              '" target="_blank" class="thumb-attribution">' +
+              escapeHtml(a.imageAttribution.text) + '</a>'
+          }
         } else {
           var icon = mapData.categoryIcons[a.category] || mapData.categoryIcons.other
           var color = mapData.categoryColors[a.category] || mapData.categoryColors.other
@@ -339,7 +352,7 @@
             icon +
             '</div>'
         }
-        var thumb = '<div class="activity-thumb-wrapper">' + thumbContent + badge + '</div>'
+        var thumb = '<div class="activity-thumb-wrapper">' + thumbContent + badge + thumbAttribution + '</div>'
         var links =
           (mapsUrl ? '<a href="' + mapsUrl + '" target="_blank">Google Maps</a>' : '') +
           (a.url ? '<a href="' + a.url + '" target="_blank">Source</a>' : '')

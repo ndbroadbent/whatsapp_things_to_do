@@ -26,6 +26,8 @@ export interface Config {
   outputDir?: string | undefined
   /** Export formats (csv,excel,json,map,pdf) */
   formats?: string[] | undefined
+  /** Local path to media library images (for development/offline use) */
+  mediaLibraryPath?: string | undefined
 
   // === Common export settings (apply to ALL formats) ===
   /** Filter ALL exports by categories */
@@ -102,6 +104,7 @@ const STRING_KEYS: ConfigKey[] = [
   'timezone',
   'cacheDir',
   'outputDir',
+  'mediaLibraryPath',
   // Common export
   'exportStartDate',
   'exportEndDate',
@@ -159,6 +162,7 @@ const CONFIG_DESCRIPTIONS: Record<ConfigKey, string> = {
   fetchImages: 'Fetch images by default (default: false)',
   formats: 'Export formats (default: csv,excel,json,map,pdf)',
   homeCountry: 'Your home country for location context (default: detected from IP)',
+  mediaLibraryPath: 'Local path to media library images (for development/offline use)',
   outputDir: 'Output directory for exports (default: ./output)',
   timezone: 'Your timezone (e.g. Pacific/Auckland) (default: detected from system)',
 

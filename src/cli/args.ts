@@ -22,6 +22,7 @@ export interface CLIArgs {
   skipPixabay: boolean
   skipWikipedia: boolean
   skipGooglePlaces: boolean
+  mediaLibraryPath: string | undefined
   quiet: boolean
   verbose: boolean
   dryRun: boolean
@@ -151,6 +152,10 @@ function parseCommaSeparated(value: unknown): string[] {
     .filter(Boolean)
 }
 
+function parseOptionalString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined
+}
+
 function parseConfigAction(action: string | undefined): 'list' | 'set' | 'unset' {
   if (action === 'set' || action === 'unset') {
     return action
@@ -173,6 +178,7 @@ function buildCLIArgs(commandName: string, input: string, opts: Record<string, u
     skipPixabay: opts.skipPixabay === true,
     skipWikipedia: opts.skipWikipedia === true,
     skipGooglePlaces: opts.skipGooglePlaces === true,
+    mediaLibraryPath: parseOptionalString(opts.mediaLibraryPath),
     quiet: opts.quiet === true,
     verbose: opts.verbose === true,
     dryRun: opts.dryRun === true,
@@ -180,23 +186,22 @@ function buildCLIArgs(commandName: string, input: string, opts: Record<string, u
     maxResults: Number.parseInt(String(opts.maxResults ?? '10'), 10),
     maxMessages: opts.maxMessages ? Number.parseInt(String(opts.maxMessages), 10) : undefined,
     method: parseMethod(opts.method),
-    jsonOutput:
-      opts.json === true ? 'stdout' : typeof opts.json === 'string' ? opts.json : undefined,
-    homeCountry: typeof opts.homeCountry === 'string' ? opts.homeCountry : undefined,
-    timezone: typeof opts.timezone === 'string' ? opts.timezone : undefined,
+    jsonOutput: opts.json === true ? 'stdout' : parseOptionalString(opts.json),
+    homeCountry: parseOptionalString(opts.homeCountry),
+    timezone: parseOptionalString(opts.timezone),
     scrapeConcurrency: Number.parseInt(String(opts.concurrency ?? '5'), 10),
     scrapeTimeout: Number.parseInt(String(opts.timeout ?? '4000'), 10),
     noCache: opts.cache === false,
-    cacheDir: typeof opts.cacheDir === 'string' ? opts.cacheDir : undefined,
-    configFile: typeof opts.configFile === 'string' ? opts.configFile : undefined,
+    cacheDir: parseOptionalString(opts.cacheDir),
+    configFile: parseOptionalString(opts.configFile),
     showAll: opts.all === true,
 
     // Common export settings
     exportCategories: parseCommaSeparated(opts.exportCategories),
     exportCountries: parseCommaSeparated(opts.exportCountries),
     exportFrom: parseCommaSeparated(opts.exportFrom),
-    exportStartDate: typeof opts.exportStartDate === 'string' ? opts.exportStartDate : undefined,
-    exportEndDate: typeof opts.exportEndDate === 'string' ? opts.exportEndDate : undefined,
+    exportStartDate: parseOptionalString(opts.exportStartDate),
+    exportEndDate: parseOptionalString(opts.exportEndDate),
     exportMinScore: parseOptionalNumber(opts.exportMinScore),
     exportOnlyLocations: opts.exportOnlyLocations === true,
     exportOnlyGeneric: opts.exportOnlyGeneric === true,
@@ -211,14 +216,14 @@ function buildCLIArgs(commandName: string, input: string, opts: Record<string, u
       opts.pdfGroupByCategory,
       opts.pdfNoGroupByCategory
     ),
-    pdfPageSize: typeof opts.pdfPageSize === 'string' ? opts.pdfPageSize : undefined,
-    pdfTitle: typeof opts.pdfTitle === 'string' ? opts.pdfTitle : undefined,
-    pdfSubtitle: typeof opts.pdfSubtitle === 'string' ? opts.pdfSubtitle : undefined,
+    pdfPageSize: parseOptionalString(opts.pdfPageSize),
+    pdfTitle: parseOptionalString(opts.pdfTitle),
+    pdfSubtitle: parseOptionalString(opts.pdfSubtitle),
     pdfCategories: parseCommaSeparated(opts.pdfCategories),
     pdfCountries: parseCommaSeparated(opts.pdfCountries),
     pdfFrom: parseCommaSeparated(opts.pdfFrom),
-    pdfStartDate: typeof opts.pdfStartDate === 'string' ? opts.pdfStartDate : undefined,
-    pdfEndDate: typeof opts.pdfEndDate === 'string' ? opts.pdfEndDate : undefined,
+    pdfStartDate: parseOptionalString(opts.pdfStartDate),
+    pdfEndDate: parseOptionalString(opts.pdfEndDate),
     pdfMinScore: parseOptionalNumber(opts.pdfMinScore),
     pdfOnlyLocations: opts.pdfOnlyLocations === true,
     pdfOnlyGeneric: opts.pdfOnlyGeneric === true,
@@ -226,10 +231,10 @@ function buildCLIArgs(commandName: string, input: string, opts: Record<string, u
     pdfSort: parseSortOrder(opts.pdfSort),
 
     // Map-specific settings
-    mapDefaultStyle: typeof opts.mapDefaultStyle === 'string' ? opts.mapDefaultStyle : undefined,
+    mapDefaultStyle: parseOptionalString(opts.mapDefaultStyle),
 
     // Export subcommand settings
-    exportOutput: typeof opts.output === 'string' ? opts.output : undefined,
+    exportOutput: parseOptionalString(opts.output),
     exportFormat: undefined,
 
     configAction: 'list',

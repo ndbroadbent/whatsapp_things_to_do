@@ -5,9 +5,14 @@
  */
 
 import { CATEGORY_COLORS, CATEGORY_ICONS } from '../../categories'
-import { formatLocation, type GeocodedActivity, type MapConfig } from '../../types'
+import {
+  formatLocation,
+  type GeocodedActivity,
+  type ImageAttribution,
+  type MapConfig
+} from '../../types'
 import { formatDate } from '../utils'
-import type { MapActivity, MapData } from './types'
+import type { MapActivity, MapData, MapImageAttribution } from './types'
 import { calculateCenter, DEFAULT_ZOOM, extractUrl, MARKER_COLORS } from './utils'
 
 /**
@@ -69,6 +74,8 @@ function toMapActivities(
     const sender = firstMessage?.sender ?? 'Unknown'
     const color = config.colorBySender !== false ? (senderColors.get(sender) ?? 'blue') : 'blue'
 
+    const attribution = config.imageAttributions?.get(s.activityId)
+
     result.push({
       lat: s.latitude ?? null,
       lng: s.longitude ?? null,
@@ -82,6 +89,7 @@ function toMapActivities(
       url: firstMessage ? extractUrl(firstMessage.message) : null,
       color,
       imagePath: config.imagePaths?.get(s.activityId) ?? null,
+      imageAttribution: attribution ? formatAttribution(attribution) : null,
       placeId: s.placeId ?? null,
       messages: s.messages.map((m) => ({
         sender: m.sender,
@@ -92,4 +100,37 @@ function toMapActivities(
   }
 
   return { activities: result, senderColors }
+}
+
+/**
+ * Format attribution info for display.
+ * Creates user-friendly text like "Photo by X on Unsplash" or "Photo by X via Wikipedia (CC-BY-SA)"
+ */
+function formatAttribution(attr: ImageAttribution): MapImageAttribution {
+  let text: string
+
+  switch (attr.source) {
+    case 'unsplash':
+      text = `Photo by ${attr.name} on Unsplash`
+      break
+    case 'wikipedia':
+      text = attr.license ? `Photo by ${attr.name} (${attr.license})` : `Photo by ${attr.name}`
+      break
+    case 'pixabay':
+      text = `Photo by ${attr.name} on Pixabay`
+      break
+    case 'media_library':
+      // Media library images may have various sources
+      text = attr.name
+      break
+    default:
+      text = `Photo by ${attr.name}`
+  }
+
+  return {
+    name: attr.name,
+    url: attr.url,
+    license: attr.license,
+    text
+  }
 }

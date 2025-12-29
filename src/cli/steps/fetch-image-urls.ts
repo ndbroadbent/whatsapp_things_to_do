@@ -25,12 +25,26 @@ const DEFAULT_CONCURRENCY = 10
 interface FetchImagesStats {
   readonly activitiesProcessed: number
   readonly imagesFound: number
+  readonly fromMediaLibrary: number
   readonly fromCdn: number
   readonly fromGooglePlaces: number
   readonly fromWikipedia: number
   readonly fromPixabay: number
   readonly fromUserUpload: number
   readonly failed: number
+}
+
+/** Mutable version for accumulation */
+interface MutableStats {
+  activitiesProcessed: number
+  imagesFound: number
+  fromMediaLibrary: number
+  fromCdn: number
+  fromGooglePlaces: number
+  fromWikipedia: number
+  fromPixabay: number
+  fromUserUpload: number
+  failed: number
 }
 
 /**
@@ -63,6 +77,8 @@ interface FetchImagesOptions {
   readonly googlePlacesApiKey?: string | undefined
   /** Number of concurrent image fetches (default 10) */
   readonly concurrency?: number | undefined
+  /** Local path to media library images (for development/offline use) */
+  readonly mediaLibraryPath?: string | undefined
 }
 
 /** Serializable version of image results for caching */
@@ -71,29 +87,13 @@ interface CachedImageData {
 }
 
 /**
- * Count source from image result.
- */
-function countSource(result: ImageResult): keyof Omit<FetchImagesStats, 'activitiesProcessed'> {
-  const sourceMap: Record<
-    ImageResult['source'],
-    keyof Omit<FetchImagesStats, 'activitiesProcessed'>
-  > = {
-    cdn: 'fromCdn',
-    google_places: 'fromGooglePlaces',
-    wikipedia: 'fromWikipedia',
-    pixabay: 'fromPixabay',
-    user_upload: 'fromUserUpload'
-  }
-  return sourceMap[result.source]
-}
-
-/**
  * Calculate stats from image results.
  */
 function calculateStats(images: Map<string, ImageResult | null>): FetchImagesStats {
-  const stats = {
+  const stats: MutableStats = {
     activitiesProcessed: images.size,
     imagesFound: 0,
+    fromMediaLibrary: 0,
     fromCdn: 0,
     fromGooglePlaces: 0,
     fromWikipedia: 0,
@@ -105,7 +105,7 @@ function calculateStats(images: Map<string, ImageResult | null>): FetchImagesSta
   for (const result of images.values()) {
     if (result) {
       stats.imagesFound++
-      stats[countSource(result)]++
+      incrementSourceCount(stats, result.source)
     } else {
       stats.failed++
     }
@@ -115,10 +115,37 @@ function calculateStats(images: Map<string, ImageResult | null>): FetchImagesSta
 }
 
 /**
+ * Increment the appropriate source count based on image source.
+ */
+function incrementSourceCount(stats: MutableStats, source: ImageResult['source']): void {
+  switch (source) {
+    case 'media_library':
+      stats.fromMediaLibrary++
+      break
+    case 'cdn':
+      stats.fromCdn++
+      break
+    case 'google_places':
+      stats.fromGooglePlaces++
+      break
+    case 'wikipedia':
+      stats.fromWikipedia++
+      break
+    case 'pixabay':
+      stats.fromPixabay++
+      break
+    case 'user_upload':
+      stats.fromUserUpload++
+      break
+  }
+}
+
+/**
  * Log stats about fetched images.
  */
 function logStats(stats: FetchImagesStats, logger: PipelineContext['logger']): void {
   logger.log(`   ✓ ${stats.imagesFound}/${stats.activitiesProcessed} images found`)
+  if (stats.fromMediaLibrary > 0) logger.log(`   📸 ${stats.fromMediaLibrary} from Media Library`)
   if (stats.fromCdn > 0) logger.log(`   📦 ${stats.fromCdn} from CDN`)
   if (stats.fromUserUpload > 0) logger.log(`   📤 ${stats.fromUserUpload} from user uploads`)
   if (stats.fromWikipedia > 0) logger.log(`   📚 ${stats.fromWikipedia} from Wikipedia`)
@@ -160,6 +187,7 @@ export async function stepFetchImageUrls(
     const stats: FetchImagesStats = {
       activitiesProcessed: 0,
       imagesFound: 0,
+      fromMediaLibrary: 0,
       fromCdn: 0,
       fromGooglePlaces: 0,
       fromWikipedia: 0,
@@ -185,7 +213,8 @@ export async function stepFetchImageUrls(
     googlePlacesApiKey:
       options?.googlePlacesApiKey ??
       process.env.GOOGLE_MAPS_API_KEY ??
-      process.env.GOOGLE_MAPS_API_KEY
+      process.env.GOOGLE_MAPS_API_KEY,
+    mediaLibraryPath: options?.mediaLibraryPath
   }
 
   // Log what sources are available

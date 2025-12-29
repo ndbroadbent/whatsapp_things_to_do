@@ -208,3 +208,26 @@ body { margin: 0; padding: 0; }
 .style-btn:last-child { border-right: none; }
 .style-btn:hover { background: #f3f4f6; }
 .style-btn.active { background: #2563eb; color: white; }
+
+/* Image attribution */
+.img-attribution {
+  display: block;
+  font-size: 10px;
+  color: #6b7280;
+  text-decoration: none;
+  margin-top: 4px;
+}
+.img-attribution:hover { text-decoration: underline; color: #4b5563; }
+
+.thumb-attribution {
+  display: block;
+  font-size: 9px;
+  color: #9ca3af;
+  text-decoration: none;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 64px;
+}
+.thumb-attribution:hover { text-decoration: underline; color: #6b7280; }
