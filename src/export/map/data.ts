@@ -89,6 +89,8 @@ function toMapActivities(
       url: firstMessage ? extractUrl(firstMessage.message) : null,
       color,
       imagePath: config.imagePaths?.get(s.activityId) ?? null,
+      mediumImagePath: config.mediumImagePaths?.get(s.activityId) ?? null,
+      lightboxImagePath: config.lightboxImagePaths?.get(s.activityId) ?? null,
       imageAttribution: attribution ? formatAttribution(attribution) : null,
       placeId: s.placeId ?? null,
       messages: s.messages.map((m) => ({

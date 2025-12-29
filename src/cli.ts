@@ -17,9 +17,9 @@ import { cmdExport } from './cli/commands/export'
 import { cmdFetchImageUrls } from './cli/commands/fetch-image-urls'
 import { cmdFetchImages } from './cli/commands/fetch-images'
 import { cmdFilter } from './cli/commands/filter'
-import { cmdGeocode } from './cli/commands/geocode'
 import { cmdList } from './cli/commands/list'
 import { cmdParse } from './cli/commands/parse'
+import { cmdPlaceLookup } from './cli/commands/place-lookup'
 import { cmdPreview } from './cli/commands/preview'
 import { cmdScan } from './cli/commands/scan'
 import { cmdScrapeUrls } from './cli/commands/scrape-urls'
@@ -72,8 +72,8 @@ async function main(): Promise<void> {
         await cmdClassify(args, logger)
         break
 
-      case 'geocode':
-        await cmdGeocode(args, logger)
+      case 'place-lookup':
+        await cmdPlaceLookup(args, logger)
         break
 
       case 'fetch-image-urls':

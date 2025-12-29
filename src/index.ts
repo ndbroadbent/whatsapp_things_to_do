@@ -16,7 +16,8 @@ export {
   generateCacheKey,
   generateClassifierCacheKey,
   generateEmbeddingCacheKey,
-  generateGeocodeCacheKey
+  generateGeocodeCacheKey,
+  generatePlaceLookupCacheKey
 } from './caching/index'
 // Categories and default activities
 export { VALID_CATEGORIES } from './categories'
@@ -83,18 +84,10 @@ export {
   loadQueryEmbeddings,
   SUGGESTION_QUERIES
 } from './extraction/index'
-// Geocoder module
-export {
-  calculateCenter,
-  countGeocoded,
-  filterGeocoded,
-  geocodeActivities,
-  geocodeActivity,
-  geocodeLocation
-} from './geocoder/index'
 // Images module
 export type {
   ImageFetchConfig,
+  ImageMeta,
   ImageMetadata,
   ImageResult,
   ImageSize,
@@ -121,7 +114,8 @@ export {
   hasAllowedLicense,
   IMAGE_SIZES,
   isLicenseAllowed,
-  loadMediaIndex
+  loadMediaIndex,
+  shouldShowAttribution
 } from './images/index'
 // Parser module
 export {
@@ -135,6 +129,15 @@ export {
   parseWhatsAppChat,
   parseWhatsAppChatStream
 } from './parser/index'
+// Place Lookup module
+export {
+  calculateCenter,
+  countWithCoordinates,
+  filterWithCoordinates,
+  lookupActivityPlace,
+  lookupActivityPlaces,
+  lookupPlace
+} from './place-lookup/index'
 // Processor module - interface and real implementation
 export type {
   ChatProcessor,
@@ -190,9 +193,6 @@ export type {
   ExtractorOptions,
   ExtractorResult,
   GeocodedActivity,
-  GeocodeResult,
-  GeocoderConfig,
-  GeocodeSource,
   IntentSignals,
   MapConfig,
   MapStyle,
@@ -201,6 +201,9 @@ export type {
   ParseResult,
   ParserOptions,
   PDFConfig,
+  PlaceLookupConfig,
+  PlaceLookupResult,
+  PlaceLookupSource,
   ProcessingStats,
   ProviderConfig,
   Result,

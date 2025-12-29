@@ -1,0 +1,78 @@
+/* Tooltip module */
+var floatingTooltip = document.getElementById('floatingTooltip')
+var escapeDiv = document.createElement('div')
+
+function escapeHtml(str) {
+  escapeDiv.textContent = str
+  return escapeDiv.innerHTML
+}
+
+function formatSenders(messages) {
+  var uniqueSenders = []
+  var seen = {}
+  for (var i = 0; i < messages.length; i++) {
+    var name = messages[i].sender.split(' ')[0]
+    if (!seen[name]) {
+      seen[name] = true
+      uniqueSenders.push(name)
+    }
+  }
+  var label = uniqueSenders.length === 1 ? 'Sender' : 'Senders'
+  var display =
+    uniqueSenders.length <= 2
+      ? uniqueSenders.join(', ')
+      : uniqueSenders.slice(0, 2).join(', ') + ', and ' + (uniqueSenders.length - 2) + ' more'
+  return { label: label, display: display }
+}
+
+function buildTooltipHtml(messages) {
+  return messages
+    .map(function (m) {
+      var senderName = m.sender.split(' ')[0]
+      return (
+        '<div class="msg-tooltip-item">' +
+        '<div class="msg-tooltip-header">' +
+        escapeHtml(senderName) +
+        ' · ' +
+        m.date +
+        '</div>' +
+        '<div class="msg-tooltip-text">' +
+        escapeHtml(m.message) +
+        '</div></div>'
+      )
+    })
+    .join('')
+}
+
+function showTooltip(trigger, messages) {
+  floatingTooltip.className = ''
+  floatingTooltip.innerHTML = buildTooltipHtml(messages)
+  positionTooltip(trigger, false)
+}
+
+function showAttributionTooltip(trigger, text) {
+  floatingTooltip.className = 'tooltip-simple'
+  floatingTooltip.innerHTML = '<div style="color:#e5e7eb;">' + escapeHtml(text) + '</div>'
+  positionTooltip(trigger, true)
+}
+
+function positionTooltip(trigger, center) {
+  var rect = trigger.getBoundingClientRect()
+  floatingTooltip.style.display = 'block'
+  var tooltipWidth = floatingTooltip.offsetWidth
+  var left
+  if (center) {
+    left = rect.left + rect.width / 2 - tooltipWidth / 2
+  } else {
+    left = rect.left
+  }
+  if (left + tooltipWidth > window.innerWidth - 10) left = window.innerWidth - tooltipWidth - 10
+  if (left < 10) left = 10
+  floatingTooltip.style.left = left + 'px'
+  floatingTooltip.style.bottom = window.innerHeight - rect.top + 10 + 'px'
+  floatingTooltip.style.top = 'auto'
+}
+
+function hideTooltip() {
+  floatingTooltip.style.display = 'none'
+}

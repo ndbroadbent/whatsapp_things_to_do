@@ -1,12 +1,12 @@
 /**
- * Geocode Command
+ * Place Lookup Command
  *
- * Geocodes classified activities using Google Maps API.
- * Runs: parse → scan → embed → filter → scrape → classify → geocode
+ * Looks up places for classified activities using Google Maps API.
+ * Runs: parse → scan → embed → filter → scrape → classify → place-lookup
  */
 
 import { writeFile } from 'node:fs/promises'
-import { filterGeocoded } from '../../geocoder/index'
+import { filterWithCoordinates } from '../../place-lookup/index'
 import { formatLocation, type GeocodedActivity } from '../../types'
 import type { CLIArgs } from '../args'
 import {
@@ -17,10 +17,10 @@ import {
   truncate
 } from '../helpers'
 import type { Logger } from '../logger'
-import { stepGeocode } from '../steps/geocode'
+import { stepPlaceLookup } from '../steps/place-lookup'
 import { StepRunner } from '../steps/runner'
 
-interface GeocodeOutput {
+interface PlaceLookupOutput {
   activitiesProcessed: number
   activitiesGeocoded: number
   fromGoogleMapsUrl: number
@@ -40,14 +40,14 @@ interface GeocodeOutput {
     formattedAddress: string | undefined
     placeId: string | undefined
     isVenuePlaceId: boolean | undefined
-    geocodeSource: string | undefined
+    placeLookupSource: string | undefined
   }>
 }
 
-export async function cmdGeocode(args: CLIArgs, logger: Logger): Promise<void> {
-  const { ctx, config } = await initCommandContext('Geocode', args, logger)
+export async function cmdPlaceLookup(args: CLIArgs, logger: Logger): Promise<void> {
+  const { ctx, config } = await initCommandContext('Place Lookup', args, logger)
 
-  // Use StepRunner to handle dependencies: classify → geocode
+  // Use StepRunner to handle dependencies: classify → place-lookup
   const runner = new StepRunner(ctx, args, config, logger)
 
   // Run classify step (which runs parse → scan → embed → filter → scrape → classify)
@@ -56,50 +56,50 @@ export async function cmdGeocode(args: CLIArgs, logger: Logger): Promise<void> {
   logger.log(`   Classified ${classifiedActivities.length} activities`)
 
   if (classifiedActivities.length === 0) {
-    logger.log('\n⚠️  No activities classified. Nothing to geocode.')
+    logger.log('\n⚠️  No activities classified. Nothing to look up.')
     return
   }
 
   // Dry run: show stats and exit
   if (args.dryRun) {
-    logger.log('\n📊 Geocoding Estimate (dry run)')
-    logger.log(`   Activities to geocode: ${classifiedActivities.length}`)
+    logger.log('\n📊 Place Lookup Estimate (dry run)')
+    logger.log(`   Activities to look up: ${classifiedActivities.length}`)
     const withLocation = classifiedActivities.filter((a) => formatLocation(a)).length
     logger.log(`   With location info: ${withLocation}`)
     logger.log(`   Without location: ${classifiedActivities.length - withLocation}`)
     return
   }
 
-  // Run geocode step
-  const geocodeResult = await stepGeocode(ctx, classifiedActivities, {
+  // Run place lookup step
+  const lookupResult = await stepPlaceLookup(ctx, classifiedActivities, {
     homeCountry: args.homeCountry
   })
 
   // Summary
-  logger.log('\n📊 Geocoding Results')
-  logger.log(`   Processed: ${geocodeResult.stats.activitiesProcessed}`)
-  logger.log(`   Geocoded: ${geocodeResult.stats.activitiesGeocoded}`)
-  if (geocodeResult.stats.fromGoogleMapsUrl > 0) {
-    logger.log(`   From Maps URLs: ${geocodeResult.stats.fromGoogleMapsUrl}`)
+  logger.log('\n📊 Place Lookup Results')
+  logger.log(`   Processed: ${lookupResult.stats.activitiesProcessed}`)
+  logger.log(`   Located: ${lookupResult.stats.activitiesGeocoded}`)
+  if (lookupResult.stats.fromGoogleMapsUrl > 0) {
+    logger.log(`   From Maps URLs: ${lookupResult.stats.fromGoogleMapsUrl}`)
   }
-  if (geocodeResult.stats.fromGoogleGeocoding > 0) {
-    logger.log(`   From address: ${geocodeResult.stats.fromGoogleGeocoding}`)
+  if (lookupResult.stats.fromGoogleGeocoding > 0) {
+    logger.log(`   From address: ${lookupResult.stats.fromGoogleGeocoding}`)
   }
-  if (geocodeResult.stats.fromPlaceSearch > 0) {
-    logger.log(`   From place search: ${geocodeResult.stats.fromPlaceSearch}`)
+  if (lookupResult.stats.fromPlaceSearch > 0) {
+    logger.log(`   From place search: ${lookupResult.stats.fromPlaceSearch}`)
   }
-  if (geocodeResult.stats.failed > 0) {
-    logger.log(`   Failed: ${geocodeResult.stats.failed}`)
+  if (lookupResult.stats.failed > 0) {
+    logger.log(`   Failed: ${lookupResult.stats.failed}`)
   }
 
-  const output: GeocodeOutput = {
-    activitiesProcessed: geocodeResult.stats.activitiesProcessed,
-    activitiesGeocoded: geocodeResult.stats.activitiesGeocoded,
-    fromGoogleMapsUrl: geocodeResult.stats.fromGoogleMapsUrl,
-    fromGoogleGeocoding: geocodeResult.stats.fromGoogleGeocoding,
-    fromPlaceSearch: geocodeResult.stats.fromPlaceSearch,
-    failed: geocodeResult.stats.failed,
-    activities: geocodeResult.activities.map((a) => ({
+  const output: PlaceLookupOutput = {
+    activitiesProcessed: lookupResult.stats.activitiesProcessed,
+    activitiesGeocoded: lookupResult.stats.activitiesGeocoded,
+    fromGoogleMapsUrl: lookupResult.stats.fromGoogleMapsUrl,
+    fromGoogleGeocoding: lookupResult.stats.fromGoogleGeocoding,
+    fromPlaceSearch: lookupResult.stats.fromPlaceSearch,
+    failed: lookupResult.stats.failed,
+    activities: lookupResult.activities.map((a) => ({
       activity: a.activity,
       category: a.category,
       messages: toOutputMessages(a.messages),
@@ -112,7 +112,7 @@ export async function cmdGeocode(args: CLIArgs, logger: Logger): Promise<void> {
       formattedAddress: a.formattedAddress,
       placeId: a.placeId,
       isVenuePlaceId: a.isVenuePlaceId,
-      geocodeSource: a.geocodeSource
+      placeLookupSource: a.placeLookupSource
     }))
   }
 
@@ -122,10 +122,10 @@ export async function cmdGeocode(args: CLIArgs, logger: Logger): Promise<void> {
       console.log(json)
     } else {
       await writeFile(args.jsonOutput, json)
-      logger.success(`\n✓ Saved geocoded activities to ${args.jsonOutput}`)
+      logger.success(`\n✓ Saved place lookup results to ${args.jsonOutput}`)
     }
   } else {
-    displayActivities(geocodeResult.activities, logger, args.showAll, args.maxResults)
+    displayActivities(lookupResult.activities, logger, args.showAll, args.maxResults)
   }
 }
 
@@ -136,7 +136,7 @@ function displayActivities(
   maxResults: number
 ): void {
   // Show only geocoded activities
-  const geocoded = filterGeocoded(activities)
+  const geocoded = filterWithCoordinates(activities)
 
   if (geocoded.length === 0) {
     logger.log('\n📍 Geocoded Activities: none')
@@ -166,12 +166,12 @@ function displayActivities(
       logger.log(`   🏠 ${truncate(a.formattedAddress, 60)}`)
     }
 
-    // Show geocode source
-    if (a.geocodeSource) {
+    // Show place lookup source
+    if (a.placeLookupSource) {
       const sourceLabel =
-        a.geocodeSource === 'google_maps_url'
+        a.placeLookupSource === 'google_maps_url'
           ? 'Maps URL'
-          : a.geocodeSource === 'google_geocoding'
+          : a.placeLookupSource === 'geocoding_api'
             ? 'Address'
             : 'Place search'
       logger.log(`   🔍 Source: ${sourceLabel}`)

@@ -28,8 +28,12 @@ export interface MapConfig {
   readonly zoom?: number
   readonly clusterMarkers?: boolean
   readonly colorBySender?: boolean
-  /** Image paths keyed by activity ID (relative paths like "images/abc123.jpg") */
+  /** Thumbnail paths (128×128) keyed by activity ID */
   readonly imagePaths?: Map<string, string> | undefined
+  /** Medium image paths (400×267) keyed by activity ID - for popup */
+  readonly mediumImagePaths?: Map<string, string> | undefined
+  /** Lightbox image paths (1400×933) keyed by activity ID */
+  readonly lightboxImagePaths?: Map<string, string> | undefined
   /** Image attributions keyed by activity ID */
   readonly imageAttributions?: Map<string, ImageAttribution> | undefined
   /** Default map tile style (default: 'osm') */

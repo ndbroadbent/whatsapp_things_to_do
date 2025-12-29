@@ -1,21 +1,21 @@
 /**
- * Geocode Step
+ * Place Lookup Step
  *
- * Geocodes classified activities using Google Maps API.
+ * Looks up places for classified activities using Google Maps API.
  * Uses worker pool for parallel API calls with caching at both pipeline and API levels.
  */
 
-import { countGeocoded, geocodeActivity } from '../../geocoder/index'
-import type { ClassifiedActivity, GeocodedActivity, GeocoderConfig } from '../../types'
+import { countWithCoordinates, lookupActivityPlace } from '../../place-lookup/index'
+import type { ClassifiedActivity, GeocodedActivity, PlaceLookupConfig } from '../../types'
 import { runWorkerPool } from '../worker-pool'
 import type { PipelineContext } from './context'
 
 const DEFAULT_CONCURRENCY = 10
 
 /**
- * Stats saved to geocode_stats.json
+ * Stats saved to place_lookup_stats.json
  */
-interface GeocodeStats {
+interface PlaceLookupStats {
   readonly activitiesProcessed: number
   readonly activitiesGeocoded: number
   readonly fromGoogleMapsUrl: number
@@ -25,33 +25,33 @@ interface GeocodeStats {
 }
 
 /**
- * Result of the geocode step.
+ * Result of the place lookup step.
  */
-interface GeocodeResult {
+interface PlaceLookupResult {
   /** Geocoded activities */
   readonly activities: readonly GeocodedActivity[]
   /** Whether result was from cache */
   readonly fromCache: boolean
-  /** Geocoding stats */
-  readonly stats: GeocodeStats
+  /** Place lookup stats */
+  readonly stats: PlaceLookupStats
 }
 
 /**
- * Geocode step options.
+ * Place lookup step options.
  */
-interface GeocodeOptions {
+interface PlaceLookupOptions {
   /** Home country for location context */
   readonly homeCountry?: string | undefined
   /** Region bias (2-letter country code) */
   readonly regionBias?: string | undefined
-  /** Number of concurrent geocode requests (default 10) */
+  /** Number of concurrent place lookup requests (default 10) */
   readonly concurrency?: number | undefined
 }
 
 /**
- * Calculate geocoding stats from results.
+ * Calculate place lookup stats from results.
  */
-function calculateStats(activities: readonly GeocodedActivity[]): GeocodeStats {
+function calculateStats(activities: readonly GeocodedActivity[]): PlaceLookupStats {
   let fromGoogleMapsUrl = 0
   let fromGoogleGeocoding = 0
   let fromPlaceSearch = 0
@@ -59,14 +59,14 @@ function calculateStats(activities: readonly GeocodedActivity[]): GeocodeStats {
 
   for (const a of activities) {
     if (a.latitude !== undefined && a.longitude !== undefined) {
-      switch (a.geocodeSource) {
+      switch (a.placeLookupSource) {
         case 'google_maps_url':
           fromGoogleMapsUrl++
           break
-        case 'google_geocoding':
+        case 'geocoding_api':
           fromGoogleGeocoding++
           break
-        case 'place_search':
+        case 'places_api':
           fromPlaceSearch++
           break
       }
@@ -77,7 +77,7 @@ function calculateStats(activities: readonly GeocodedActivity[]): GeocodeStats {
 
   return {
     activitiesProcessed: activities.length,
-    activitiesGeocoded: countGeocoded(activities),
+    activitiesGeocoded: countWithCoordinates(activities),
     fromGoogleMapsUrl,
     fromGoogleGeocoding,
     fromPlaceSearch,
@@ -86,25 +86,25 @@ function calculateStats(activities: readonly GeocodedActivity[]): GeocodeStats {
 }
 
 /**
- * Run the geocode step.
+ * Run the place lookup step.
  *
- * Uses worker pool for parallel geocoding.
- * Checks pipeline cache first, calls geocoder API if needed.
- * Uses API cache for individual geocoding results.
+ * Uses worker pool for parallel place lookups.
+ * Checks pipeline cache first, calls Google Maps API if needed.
+ * Uses API cache for individual lookup results.
  */
-export async function stepGeocode(
+export async function stepPlaceLookup(
   ctx: PipelineContext,
   activities: readonly ClassifiedActivity[],
-  options?: GeocodeOptions
-): Promise<GeocodeResult> {
+  options?: PlaceLookupOptions
+): Promise<PlaceLookupResult> {
   const { pipelineCache, apiCache, logger, noCache } = ctx
   const concurrency = options?.concurrency ?? DEFAULT_CONCURRENCY
 
-  // Check pipeline cache - only valid if geocode_stats exists (completion marker)
-  if (!noCache && pipelineCache.hasStage('geocode_stats')) {
-    const cached = pipelineCache.getStage<GeocodedActivity[]>('geocodings') ?? []
-    const stats = pipelineCache.getStage<GeocodeStats>('geocode_stats')
-    logger.log('\n🌍 Geocoding activities... 📦 cached')
+  // Check pipeline cache - only valid if place_lookup_stats exists (completion marker)
+  if (!noCache && pipelineCache.hasStage('place_lookup_stats')) {
+    const cached = pipelineCache.getStage<GeocodedActivity[]>('place_lookups') ?? []
+    const stats = pipelineCache.getStage<PlaceLookupStats>('place_lookup_stats')
+    logger.log('\n🌍 Looking up places... 📦 cached')
     return {
       activities: cached,
       fromCache: true,
@@ -113,8 +113,8 @@ export async function stepGeocode(
   }
 
   if (activities.length === 0) {
-    logger.log('\n🌍 Geocoding activities... (no activities)')
-    const stats: GeocodeStats = {
+    logger.log('\n🌍 Looking up places... (no activities)')
+    const stats: PlaceLookupStats = {
       activitiesProcessed: 0,
       activitiesGeocoded: 0,
       fromGoogleMapsUrl: 0,
@@ -122,8 +122,8 @@ export async function stepGeocode(
       fromPlaceSearch: 0,
       failed: 0
     }
-    pipelineCache.setStage('geocode_stats', stats)
-    pipelineCache.setStage('geocodings', [])
+    pipelineCache.setStage('place_lookup_stats', stats)
+    pipelineCache.setStage('place_lookups', [])
     return { activities: [], fromCache: false, stats }
   }
 
@@ -133,9 +133,9 @@ export async function stepGeocode(
     throw new Error('GOOGLE_MAPS_API_KEY environment variable required')
   }
 
-  logger.log(`\n🌍 Geocoding ${activities.length} activities...`)
+  logger.log(`\n🌍 Looking up places for ${activities.length} activities...`)
 
-  const config: GeocoderConfig = {
+  const config: PlaceLookupConfig = {
     apiKey,
     defaultCountry: options?.homeCountry,
     regionBias: options?.regionBias
@@ -145,14 +145,14 @@ export async function stepGeocode(
   const poolResult = await runWorkerPool(
     activities,
     async (activity) => {
-      return geocodeActivity(activity, config, apiCache)
+      return lookupActivityPlace(activity, config, apiCache)
     },
     {
       concurrency,
       onProgress: ({ completed, total }) => {
         if (completed % 10 === 0 || completed === total) {
           const percent = Math.floor((completed / total) * 100)
-          logger.log(`   ${percent}% geocoded (${completed}/${total} activities)`)
+          logger.log(`   ${percent}% looked up (${completed}/${total} activities)`)
         }
       }
     }
@@ -164,10 +164,10 @@ export async function stepGeocode(
   const stats = calculateStats(geocodedActivities)
 
   // Cache results
-  pipelineCache.setStage('geocodings', [...geocodedActivities])
-  pipelineCache.setStage('geocode_stats', stats)
+  pipelineCache.setStage('place_lookups', [...geocodedActivities])
+  pipelineCache.setStage('place_lookup_stats', stats)
 
-  logger.log(`   ✓ ${stats.activitiesGeocoded}/${stats.activitiesProcessed} geocoded`)
+  logger.log(`   ✓ ${stats.activitiesGeocoded}/${stats.activitiesProcessed} places found`)
   if (stats.fromGoogleMapsUrl > 0) {
     logger.log(`   📍 ${stats.fromGoogleMapsUrl} from Google Maps URLs`)
   }

@@ -1,0 +1,43 @@
+/* Modal and lightbox */
+window.openModal = function () {
+  document.getElementById('activityModal').classList.add('open')
+  document.body.style.overflow = 'hidden'
+  window.sortActivities(document.getElementById('sortSelect').value)
+}
+
+window.closeModal = function (e) {
+  if (!e || e.target === e.currentTarget) {
+    document.getElementById('activityModal').classList.remove('open')
+    document.body.style.overflow = ''
+  }
+}
+
+window.openLightbox = function (imagePath, title, attribution) {
+  var lightbox = document.getElementById('lightbox')
+  document.getElementById('lightboxImage').src = imagePath
+  document.getElementById('lightboxTitle').textContent = title
+  var attrEl = document.getElementById('lightboxAttribution')
+  if (attribution) {
+    attrEl.innerHTML = '<a href="' + escapeHtml(attribution.url) + '" target="_blank">' +
+      escapeHtml(attribution.text) + '</a>'
+    attrEl.style.display = 'block'
+  } else {
+    attrEl.style.display = 'none'
+  }
+  lightbox.classList.add('open')
+  document.body.style.overflow = 'hidden'
+}
+
+window.closeLightbox = function (e) {
+  if (!e || e.target === e.currentTarget || e.target.classList.contains('lightbox-close')) {
+    document.getElementById('lightbox').classList.remove('open')
+    document.body.style.overflow = ''
+  }
+}
+
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') {
+    window.closeModal()
+    window.closeLightbox()
+  }
+})

@@ -29,9 +29,13 @@ interface StepOutputs {
   filter: { candidates: readonly CandidateMessage[] }
   scrapeUrls: { metadataMap: Map<string, ScrapedMetadata> }
   classify: { activities: readonly ClassifiedActivity[] }
-  geocode: { activities: readonly GeocodedActivity[] }
+  placeLookup: { activities: readonly GeocodedActivity[] }
   fetchImageUrls: { images: Map<string, ImageResult | null> }
-  fetchImages: { thumbnails: Map<string, Buffer> }
+  fetchImages: {
+    thumbnails: Map<string, Buffer>
+    mediumImages: Map<string, Buffer>
+    lightboxImages: Map<string, Buffer>
+  }
   export: { exportedFiles: Map<ExportFormat, string> }
 }
 
@@ -94,8 +98,8 @@ export class StepRunner {
         return this.runScrapeUrls() as Promise<StepOutputs[K]>
       case 'classify':
         return this.runClassify() as Promise<StepOutputs[K]>
-      case 'geocode':
-        return this.runGeocode() as Promise<StepOutputs[K]>
+      case 'placeLookup':
+        return this.runPlaceLookup() as Promise<StepOutputs[K]>
       case 'fetchImageUrls':
         return this.runFetchImageUrls() as Promise<StepOutputs[K]>
       case 'fetchImages':
@@ -177,27 +181,27 @@ export class StepRunner {
     return { activities: result.activities }
   }
 
-  private async runGeocode(): Promise<StepOutputs['geocode']> {
+  private async runPlaceLookup(): Promise<StepOutputs['placeLookup']> {
     // Dependency: classify
     const { activities } = await this.run('classify')
 
-    const { stepGeocode } = await import('./geocode')
-    const result = await stepGeocode(this.ctx, activities, {
+    const { stepPlaceLookup } = await import('./place-lookup')
+    const result = await stepPlaceLookup(this.ctx, activities, {
       homeCountry: this.args.homeCountry
     })
     return { activities: result.activities }
   }
 
   private async runFetchImageUrls(): Promise<StepOutputs['fetchImageUrls']> {
-    // Dependency: geocode
-    const { activities } = await this.run('geocode')
+    // Dependency: placeLookup
+    const { activities } = await this.run('placeLookup')
 
     // Media library path can come from CLI arg or config
     const mediaLibraryPath = this.args.mediaLibraryPath ?? this.config?.mediaLibraryPath
 
     const { stepFetchImageUrls } = await import('./fetch-image-urls')
     const result = await stepFetchImageUrls(this.ctx, activities, {
-      skipCdn: this.args.skipCdn,
+      skipMediaLibrary: this.args.skipMediaLibrary,
       skipPixabay: this.args.skipPixabay,
       skipWikipedia: this.args.skipWikipedia,
       skipGooglePlaces: this.args.skipGooglePlaces,
@@ -212,23 +216,31 @@ export class StepRunner {
 
     const { stepFetchImages } = await import('./fetch-images')
     const result = await stepFetchImages(this.ctx, images)
-    return { thumbnails: result.thumbnails }
+    return {
+      thumbnails: result.thumbnails,
+      mediumImages: result.mediumImages,
+      lightboxImages: result.lightboxImages
+    }
   }
 
   private async runExport(): Promise<StepOutputs['export']> {
-    // Dependencies: geocode, and optionally fetchImages (if --images flag)
-    const { activities } = await this.run('geocode')
+    // Dependencies: placeLookup, and optionally fetchImages (if --images flag)
+    const { activities } = await this.run('placeLookup')
 
-    // Only fetch images if explicitly requested via --images flag
+    // Fetch images if requested via --images flag or config
     let thumbnails: Map<string, Buffer> = new Map()
+    let mediumImages: Map<string, Buffer> = new Map()
+    let lightboxImages: Map<string, Buffer> = new Map()
     let images: Map<string, ImageResult | null> = new Map()
-    if (this.args.fetchImages) {
+    if (this.args.fetchImages || this.config?.fetchImages) {
       const [imageUrlsResult, fetchResult] = await Promise.all([
         this.run('fetchImageUrls'),
         this.run('fetchImages')
       ])
       images = imageUrlsResult.images
       thumbnails = fetchResult.thumbnails
+      mediumImages = fetchResult.mediumImages
+      lightboxImages = fetchResult.lightboxImages
     }
 
     const { stepExport } = await import('./export')
@@ -236,6 +248,8 @@ export class StepRunner {
       outputDir: this.args.outputDir,
       formats: this.args.formats as ExportFormat[],
       thumbnails,
+      mediumImages,
+      lightboxImages,
       images,
       args: this.args,
       config: this.config

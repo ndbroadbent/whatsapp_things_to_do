@@ -209,14 +209,38 @@ function buildCliEnv(): NodeJS.ProcessEnv {
  */
 export function runCli(args: string): { stdout: string; stderr: string; exitCode: number } {
   const parsedArgs = parseArgs(args)
+  const debug = !!process.env.DEBUG_E2E
+
+  if (debug) {
+    console.log(`\n🔧 [DEBUG] Running CLI: bun src/cli.ts ${parsedArgs.join(' ')}`)
+    console.log(`🔧 [DEBUG] Cache dir: ${testState.tempCacheDir}`)
+  }
+
+  const startTime = Date.now()
   const result = spawnSync('bun', ['src/cli.ts', ...parsedArgs], {
     encoding: 'utf-8',
-    env: buildCliEnv()
+    env: buildCliEnv(),
+    timeout: 120000 // 2 minute timeout per command
   })
+  const elapsed = Date.now() - startTime
+
+  if (debug) {
+    console.log(`🔧 [DEBUG] CLI completed in ${elapsed}ms, exit code: ${result.status}`)
+    if (result.signal) {
+      console.log(`🔧 [DEBUG] CLI was killed with signal: ${result.signal}`)
+    }
+  }
 
   const stdout = result.stdout || ''
   const stderr = result.stderr || ''
   const exitCode = result.status ?? 1
+
+  // Check if killed by timeout or signal
+  if (result.signal) {
+    throw new Error(
+      `CLI was killed with signal ${result.signal} after ${elapsed}ms\nstdout:\n${stdout}\nstderr:\n${stderr}`
+    )
+  }
 
   // Surface errors immediately - much easier to debug
   if (stderr) {

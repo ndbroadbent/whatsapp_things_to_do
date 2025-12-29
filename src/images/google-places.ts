@@ -71,16 +71,21 @@ export async function fetchGooglePlacesPhoto(
 
     const photoUrl = `${PHOTO_API}?${photoParams}`
 
+    const attributionName = photo.html_attributions?.[0]
+      ? stripHtml(photo.html_attributions[0])
+      : (details.result.name ?? 'Unknown')
+
     const result: ImageResult = {
-      url: photoUrl,
+      imageUrl: photoUrl,
       width: photo.width,
       height: photo.height,
-      source: 'google_places',
-      attribution: {
-        name: photo.html_attributions?.[0]
-          ? stripHtml(photo.html_attributions[0])
-          : `Google Places: ${details.result.name ?? 'Unknown'}`,
-        url: `https://www.google.com/maps/place/?q=place_id:${placeId}`
+      meta: {
+        source: 'google_places',
+        url: `https://www.google.com/maps/place/?q=place_id:${placeId}`,
+        attribution: {
+          name: attributionName,
+          url: `https://www.google.com/maps/place/?q=place_id:${placeId}`
+        }
       }
     }
 

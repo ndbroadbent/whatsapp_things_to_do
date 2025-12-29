@@ -10,7 +10,7 @@
 import { generateImageCacheKey } from '../caching/key'
 import type { ResponseCache } from '../caching/types'
 import { httpFetch } from '../http'
-import type { GeocodedActivity } from '../types/geocoder'
+import type { GeocodedActivity } from '../types/place-lookup'
 import { cacheNull, cacheResult, getCached } from './cache-helper'
 import type { ImageResult } from './types'
 
@@ -118,6 +118,7 @@ interface PixabayHit {
   readonly webformatHeight: number
   readonly largeImageURL: string
   readonly user: string
+  readonly user_id: number
   readonly pageURL: string
 }
 
@@ -130,13 +131,18 @@ interface PixabayResponse {
 function parsePixabayHit(hit: PixabayHit, query: string): ImageResult {
   return {
     // Use webformatURL (640px) - largeImageURL requires download
-    url: hit.webformatURL,
+    imageUrl: hit.webformatURL,
     width: hit.webformatWidth,
     height: hit.webformatHeight,
-    source: 'pixabay',
-    attribution: {
-      name: hit.user,
-      url: hit.pageURL
+    meta: {
+      source: 'pixabay',
+      url: hit.pageURL,
+      license: 'Pixabay License',
+      license_url: 'https://pixabay.com/service/license-summary/',
+      attribution: {
+        name: hit.user,
+        url: `https://pixabay.com/users/${hit.user}-${hit.user_id}/`
+      }
     },
     query
   }

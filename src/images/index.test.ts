@@ -5,7 +5,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { CachedResponse, ResponseCache } from '../caching/types'
 import { createGeocodedActivity } from '../test-support'
-import type { GeocodedActivity } from '../types/geocoder'
+import type { GeocodedActivity } from '../types/place-lookup'
 import { clearMediaIndexCache, fetchImageForActivity, fetchImagesForActivities } from './index'
 import type { ImageFetchConfig } from './types'
 
@@ -44,7 +44,6 @@ describe('Images Module', () => {
         skipGooglePlaces: true,
         skipWikipedia: true,
         skipPixabay: true,
-        skipCdn: true,
         skipMediaLibrary: true
       }
 
@@ -60,7 +59,6 @@ describe('Images Module', () => {
         skipGooglePlaces: true,
         skipWikipedia: true,
         skipPixabay: true,
-        skipCdn: true,
         skipMediaLibrary: true,
         googlePlacesApiKey: 'test-key'
       }
@@ -77,7 +75,6 @@ describe('Images Module', () => {
         skipGooglePlaces: true,
         skipWikipedia: true,
         skipPixabay: true,
-        skipCdn: true,
         skipMediaLibrary: true
       }
 
@@ -93,7 +90,6 @@ describe('Images Module', () => {
         skipGooglePlaces: true,
         skipWikipedia: true,
         skipPixabay: true,
-        skipCdn: true,
         skipMediaLibrary: true,
         pixabayApiKey: 'test-key'
       }
@@ -109,7 +105,6 @@ describe('Images Module', () => {
       const config: ImageFetchConfig = {
         skipGooglePlaces: true,
         skipWikipedia: true,
-        skipCdn: true,
         skipMediaLibrary: true
         // No pixabayApiKey
       }
@@ -125,7 +120,6 @@ describe('Images Module', () => {
       const config: ImageFetchConfig = {
         skipWikipedia: true,
         skipPixabay: true,
-        skipCdn: true,
         skipMediaLibrary: true
         // No googlePlacesApiKey
       }
@@ -147,7 +141,6 @@ describe('Images Module', () => {
         skipGooglePlaces: true,
         skipWikipedia: true,
         skipPixabay: true,
-        skipCdn: true,
         skipMediaLibrary: true
       }
 
@@ -169,7 +162,6 @@ describe('Images Module', () => {
         skipGooglePlaces: true,
         skipWikipedia: true,
         skipPixabay: true,
-        skipCdn: true,
         skipMediaLibrary: true
       }
       const progressCalls: Array<{ current: number; total: number }> = []
@@ -188,7 +180,6 @@ describe('Images Module', () => {
     it('handles empty activities array', async () => {
       const cache = createMockCache()
       const config: ImageFetchConfig = {
-        skipCdn: true,
         skipMediaLibrary: true
       }
 

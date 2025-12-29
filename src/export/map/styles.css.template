@@ -168,10 +168,26 @@ body { margin: 0; padding: 0; }
   padding: 12px;
   border-radius: 8px;
   font-size: 12px;
-  width: 300px;
+  max-width: 300px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   z-index: 3000;
   pointer-events: none;
+}
+#floatingTooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 20px;
+  border: 6px solid transparent;
+  border-top-color: #1f2937;
+}
+#floatingTooltip.tooltip-simple {
+  padding: 8px 12px;
+  width: auto;
+}
+#floatingTooltip.tooltip-simple::after {
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .msg-tooltip-item {
@@ -219,15 +235,67 @@ body { margin: 0; padding: 0; }
 }
 .img-attribution:hover { text-decoration: underline; color: #4b5563; }
 
-.thumb-attribution {
-  display: block;
-  font-size: 9px;
-  color: #9ca3af;
-  text-decoration: none;
-  margin-top: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 64px;
+/* Clickable thumbnail with cursor */
+.activity-thumb-wrapper.has-image {
+  cursor: pointer;
 }
-.thumb-attribution:hover { text-decoration: underline; color: #6b7280; }
+.activity-thumb-wrapper.has-image:hover .activity-thumb {
+  opacity: 0.9;
+}
+
+
+/* Lightbox */
+.lightbox-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.9);
+  z-index: 4000;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  padding: 40px;
+}
+.lightbox-overlay.open { display: flex; }
+
+.lightbox-close {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 32px;
+  cursor: pointer;
+  opacity: 0.7;
+  z-index: 4001;
+}
+.lightbox-close:hover { opacity: 1; }
+
+.lightbox-image {
+  max-width: 90vw;
+  max-height: calc(100vh - 140px);
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+.lightbox-caption {
+  margin-top: 16px;
+  text-align: center;
+}
+.lightbox-title {
+  color: white;
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+.lightbox-attribution {
+  color: #9ca3af;
+  font-size: 13px;
+}
+.lightbox-attribution a {
+  color: #60a5fa;
+  text-decoration: none;
+}
+.lightbox-attribution a:hover { text-decoration: underline; }

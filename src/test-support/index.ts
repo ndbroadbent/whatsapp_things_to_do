@@ -12,7 +12,7 @@ import {
   calculateCombinedScore
 } from '../types'
 import { generateActivityId } from '../types/activity-id'
-import type { GeocodedActivity } from '../types/geocoder'
+import type { GeocodedActivity } from '../types/place-lookup'
 
 export { FixtureCache } from './fixture-cache'
 

@@ -14,7 +14,7 @@
 import { generateImageCacheKey } from '../caching/key'
 import type { ResponseCache } from '../caching/types'
 import { httpFetch } from '../http'
-import type { GeocodedActivity } from '../types/geocoder'
+import type { GeocodedActivity } from '../types/place-lookup'
 import { cacheNull, cacheResult, getCached } from './cache-helper'
 import type { ImageResult } from './types'
 import { isLicenseAllowed } from './wikipedia-license'
@@ -260,15 +260,18 @@ async function getImageWithLicense(imageTitle: string): Promise<ImageResult | nu
   const artistName = cleanHtml(artistHtml) || 'Unknown'
 
   return {
-    url: info.url,
+    imageUrl: info.url,
     width: info.width,
     height: info.height,
-    source: 'wikipedia',
-    attribution: {
-      name: artistName,
+    meta: {
+      source: 'wikipedia',
       url: info.descriptionurl,
       license: license,
-      licenseUrl: meta.LicenseUrl?.value
+      license_url: meta.LicenseUrl?.value,
+      attribution: {
+        name: artistName,
+        url: info.descriptionurl
+      }
     }
   }
 }

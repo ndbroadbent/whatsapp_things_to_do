@@ -37,10 +37,8 @@ describe('analyze command', () => {
     expect(stdout).toContain('Embedding')
     expect(stdout).toContain('Filtering')
     expect(stdout).toContain('Classifying')
-    expect(stdout).toContain('Geocoding')
+    expect(stdout).toContain('Looking up places')
     expect(stdout).toContain('Fetching images')
-    expect(stdout).toContain('Fetching')
-    expect(stdout).toContain('thumbnails')
 
     // Check export output
     expect(stdout).toContain('Export complete')
@@ -236,14 +234,21 @@ describe('analyze command', () => {
       const imagesDir = join(outputDir, 'images')
 
       // Images directory should exist if any thumbnails were fetched
-      if (existsSync(imagesDir)) {
-        const images = readdirSync(imagesDir)
-        expect(images.length).toBeGreaterThan(0)
+      expect(existsSync(imagesDir)).toBe(true)
 
-        // Check images are jpg files
-        for (const img of images) {
-          expect(img).toMatch(/\.jpg$/)
-        }
+      // Subdirectories: thumb/, medium/, lightbox/
+      const subdirs = readdirSync(imagesDir)
+      expect(subdirs).toContain('thumb')
+
+      // Check thumbnails directory has jpg files
+      const thumbnailsDir = join(imagesDir, 'thumb')
+      expect(existsSync(thumbnailsDir)).toBe(true)
+
+      const thumbnails = readdirSync(thumbnailsDir)
+      expect(thumbnails.length).toBeGreaterThan(0)
+
+      for (const img of thumbnails) {
+        expect(img).toMatch(/\.jpg$/)
       }
     })
   })

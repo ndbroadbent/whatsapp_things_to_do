@@ -1,0 +1,114 @@
+/* Marker creation */
+function createMarkers(markersLayer) {
+  var geocodedPoints = mapData.activities.filter(function (p) {
+    return p.lat !== null && p.lng !== null
+  })
+
+  geocodedPoints.forEach(function (p) {
+    var messagesEncoded = encodeURIComponent(JSON.stringify(p.messages)).replace(/'/g, '%27')
+    var senderDisplay = formatSenders(p.messages)
+    var mentionCount = p.messages.length
+    var mentionText = mentionCount > 1 ? ' (' + mentionCount + ' mentions)' : ''
+
+    var imageHtml = ''
+    var popupImage = p.mediumImagePath || p.imagePath
+    if (popupImage) {
+      imageHtml = '<img src="' +
+        escapeHtml(popupImage) +
+        '" style="display:block;width:100%;max-width:200px;border-radius:4px;margin-bottom:4px;" />'
+      if (p.imageAttribution) {
+        imageHtml += '<a href="' + escapeHtml(p.imageAttribution.url) +
+          '" target="_blank" class="img-attribution">' +
+          escapeHtml(p.imageAttribution.text) + '</a>'
+      }
+    }
+
+    var mapsUrl = p.placeId
+      ? 'https://www.google.com/maps/search/?api=1&query=' +
+        encodeURIComponent(p.activity) +
+        '&query_place_id=' +
+        p.placeId
+      : null
+
+    var popupContent =
+      '<div style="max-width:240px;">' +
+      imageHtml +
+      '<strong>' +
+      escapeHtml(p.activity) +
+      '</strong><br>' +
+      '<small>' +
+      p.date +
+      ' · <span class="sender-trigger" data-messages="' +
+      messagesEncoded +
+      '">' +
+      senderDisplay.label +
+      ': ' +
+      senderDisplay.display +
+      mentionText +
+      '</span></small><br>' +
+      (p.location ? '<em>' + escapeHtml(p.location) + '</em><br>' : '') +
+      (mapsUrl ? '<a href="' + mapsUrl + '" target="_blank">View on Google Maps</a><br>' : '') +
+      (p.url ? '<a href="' + escapeHtml(p.url) + '" target="_blank">Source Link</a>' : '') +
+      '</div>'
+
+    var marker = L.marker([p.lat, p.lng], {
+      icon: L.divIcon({
+        className: 'custom-marker',
+        html:
+          '<div style="background-color:' +
+          p.color +
+          ';width:12px;height:12px;border-radius:50%;border:2px solid white;"></div>',
+        iconSize: [16, 16],
+        iconAnchor: [8, 8]
+      })
+    })
+      .addTo(markersLayer)
+      .bindPopup(popupContent)
+
+    var closeTimeout = null
+    marker.on('mouseover', function () {
+      if (closeTimeout) {
+        clearTimeout(closeTimeout)
+        closeTimeout = null
+      }
+      this.openPopup()
+    })
+    marker.on('mouseout', function () {
+      var self = this
+      closeTimeout = setTimeout(function () {
+        self.closePopup()
+      }, 100)
+    })
+    marker.on('popupopen', function () {
+      var popup = this.getPopup()
+      var popupEl = popup.getElement()
+      if (popupEl) {
+        popupEl.addEventListener('mouseenter', function () {
+          if (closeTimeout) {
+            clearTimeout(closeTimeout)
+            closeTimeout = null
+          }
+        })
+        popupEl.addEventListener('mouseleave', function () {
+          marker.closePopup()
+        })
+      }
+    })
+  })
+
+  return geocodedPoints
+}
+
+function setupPopupTooltips() {
+  map.on('popupopen', function () {
+    var triggers = document.querySelectorAll('.leaflet-popup .sender-trigger[data-messages]')
+    triggers.forEach(function (trigger) {
+      trigger.addEventListener('mouseenter', function () {
+        var messages = JSON.parse(decodeURIComponent(trigger.getAttribute('data-messages') || ''))
+        if (!messages.length) return
+        showTooltip(trigger, messages)
+      })
+      trigger.addEventListener('mouseleave', hideTooltip)
+    })
+  })
+}

@@ -62,12 +62,12 @@ export async function cmdExport(args: CLIArgs, logger: Logger): Promise<void> {
   if (needsThumbnails) {
     const result = await runner.run('fetchImages')
     thumbnails = result.thumbnails
-    // Get geocoded activities from the runner
-    const geocodeResult = await runner.run('geocode')
-    geocoded = geocodeResult.activities
+    // Get place lookup activities from the runner
+    const placeLookupResult = await runner.run('placeLookup')
+    geocoded = placeLookupResult.activities
   } else {
-    // Just run through geocode step
-    const result = await runner.run('geocode')
+    // Just run through place lookup step
+    const result = await runner.run('placeLookup')
     geocoded = result.activities
   }
 

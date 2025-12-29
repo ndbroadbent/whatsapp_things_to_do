@@ -30,8 +30,12 @@ interface ExportOptions {
   readonly outputDir: string
   /** Formats to export */
   readonly formats: readonly ExportFormat[]
-  /** Thumbnails keyed by activity ID for PDF export */
+  /** Thumbnails (128×128) keyed by activity ID for PDF and map list */
   readonly thumbnails?: Map<string, Buffer>
+  /** Medium images (400×267) keyed by activity ID for map popup */
+  readonly mediumImages?: Map<string, Buffer>
+  /** Lightbox images (1400×933) keyed by activity ID for map lightbox */
+  readonly lightboxImages?: Map<string, Buffer>
   /** Image results keyed by activity ID (for attribution) */
   readonly images?: Map<string, ImageResult | null>
   /** CLI args for building filter options per format */
@@ -105,7 +109,8 @@ export async function stepExport(
   activities: readonly GeocodedActivity[],
   options: ExportOptions
 ): Promise<ExportResult> {
-  const { outputDir, formats, args, config, thumbnails, images } = options
+  const { outputDir, formats, args, config, thumbnails, mediumImages, lightboxImages, images } =
+    options
   const inputFile = ctx.input
 
   await ensureDir(outputDir)
@@ -132,6 +137,8 @@ export async function stepExport(
       outputDir,
       inputFile,
       thumbnails,
+      mediumImages,
+      lightboxImages,
       imageAttributions,
       pdfConfig,
       mapDefaultStyle
@@ -154,11 +161,11 @@ function parseMapStyle(style: string | undefined): MapStyle | undefined {
 
 /**
  * Extract image attributions from ImageResult objects.
- * Converts ImageResult.attribution to ImageAttribution format.
+ * Converts ImageResult.meta.attribution to ImageAttribution format.
  *
  * Only sources with meaningful attribution are included:
- * - wikipedia, pixabay, media_library
- * - cdn/google_places/user_upload are excluded (no artist attribution)
+ * - wikipedia, pixabay, unsplash
+ * - google_places/user_upload are excluded (no artist attribution)
  */
 function extractImageAttributions(
   images: Map<string, ImageResult | null> | undefined
@@ -167,19 +174,19 @@ function extractImageAttributions(
 
   const attributions = new Map<string, ImageAttribution>()
   for (const [activityId, result] of images) {
-    if (result?.attribution) {
+    if (result?.meta.attribution) {
       // Map image source to attribution source type
       // Only include sources that have meaningful artist attribution
-      const source = mapToAttributionSource(result.source)
+      const source = mapToAttributionSource(result.meta.source)
       if (source) {
         const attr: ImageAttribution = {
-          name: result.attribution.name,
-          url: result.attribution.url,
+          name: result.meta.attribution.name,
+          url: result.meta.attribution.url,
           source
         }
         // Only add license if defined (exactOptionalPropertyTypes)
-        if (result.attribution.license !== undefined) {
-          ;(attr as { license: string }).license = result.attribution.license
+        if (result.meta.license !== undefined) {
+          ;(attr as { license: string }).license = result.meta.license
         }
         attributions.set(activityId, attr)
       }
@@ -193,20 +200,118 @@ function extractImageAttributions(
  * Map ImageSource to ImageAttribution source.
  * Returns null for sources that don't require visible attribution.
  */
-function mapToAttributionSource(source: ImageResult['source']): ImageAttribution['source'] | null {
+function mapToAttributionSource(
+  source: ImageResult['meta']['source']
+): ImageAttribution['source'] | null {
   switch (source) {
     case 'wikipedia':
     case 'pixabay':
-    case 'media_library':
       return source
-    case 'cdn':
+    case 'unsplash':
+      return 'unsplash'
     case 'google_places':
     case 'user_upload':
+    case 'unsplash+':
       // These sources don't have artist attribution to display
       return null
     default:
       return 'other'
   }
+}
+
+/**
+ * Write images to disk and return path maps for the HTML export.
+ */
+async function writeMapImages(
+  outputDir: string,
+  thumbnails: Map<string, Buffer> | undefined,
+  mediumImages: Map<string, Buffer> | undefined,
+  lightboxImages: Map<string, Buffer> | undefined
+): Promise<{
+  thumbnailPaths: Map<string, string>
+  mediumPaths: Map<string, string>
+  lightboxPaths: Map<string, string>
+}> {
+  const thumbnailPaths = new Map<string, string>()
+  const mediumPaths = new Map<string, string>()
+  const lightboxPaths = new Map<string, string>()
+
+  const hasImages =
+    (thumbnails && thumbnails.size > 0) ||
+    (mediumImages && mediumImages.size > 0) ||
+    (lightboxImages && lightboxImages.size > 0)
+
+  if (!hasImages) {
+    return { thumbnailPaths, mediumPaths, lightboxPaths }
+  }
+
+  const imagesDir = join(outputDir, 'images')
+  const thumbDir = join(imagesDir, 'thumb')
+  const mediumDir = join(imagesDir, 'medium')
+  const lightboxDir = join(imagesDir, 'lightbox')
+
+  await Promise.all([ensureDir(thumbDir), ensureDir(mediumDir), ensureDir(lightboxDir)])
+
+  // Write thumbnails (128×128)
+  if (thumbnails) {
+    for (const [activityId, buffer] of thumbnails) {
+      const filename = `${activityId}.jpg`
+      await writeFile(join(thumbDir, filename), new Uint8Array(buffer))
+      thumbnailPaths.set(activityId, `images/thumb/${filename}`)
+    }
+  }
+
+  // Write medium images (400×267)
+  if (mediumImages) {
+    for (const [activityId, buffer] of mediumImages) {
+      const filename = `${activityId}.jpg`
+      await writeFile(join(mediumDir, filename), new Uint8Array(buffer))
+      mediumPaths.set(activityId, `images/medium/${filename}`)
+    }
+  }
+
+  // Write lightbox images (1400×933)
+  if (lightboxImages) {
+    for (const [activityId, buffer] of lightboxImages) {
+      const filename = `${activityId}.jpg`
+      await writeFile(join(lightboxDir, filename), new Uint8Array(buffer))
+      lightboxPaths.set(activityId, `images/lightbox/${filename}`)
+    }
+  }
+
+  return { thumbnailPaths, mediumPaths, lightboxPaths }
+}
+
+/**
+ * Export to map HTML format with images.
+ */
+async function exportMapFormat(
+  activities: readonly GeocodedActivity[],
+  outputDir: string,
+  thumbnails: Map<string, Buffer> | undefined,
+  mediumImages: Map<string, Buffer> | undefined,
+  lightboxImages: Map<string, Buffer> | undefined,
+  imageAttributions: Map<string, ImageAttribution> | undefined,
+  mapDefaultStyle: MapStyle | undefined
+): Promise<string> {
+  const { thumbnailPaths, mediumPaths, lightboxPaths } = await writeMapImages(
+    outputDir,
+    thumbnails,
+    mediumImages,
+    lightboxImages
+  )
+
+  const html = exportToMapHTML(activities, {
+    title: 'Things To Do',
+    imagePaths: thumbnailPaths,
+    mediumImagePaths: mediumPaths,
+    lightboxImagePaths: lightboxPaths,
+    imageAttributions,
+    ...(mapDefaultStyle && { defaultStyle: mapDefaultStyle })
+  })
+  const mapPath = join(outputDir, 'map.html')
+  await writeFile(mapPath, html)
+  return mapPath
 }
 
 async function exportFormat(
@@ -215,6 +320,8 @@ async function exportFormat(
   outputDir: string,
   inputFile: string,
   thumbnails: Map<string, Buffer> | undefined,
+  mediumImages: Map<string, Buffer> | undefined,
+  lightboxImages: Map<string, Buffer> | undefined,
   imageAttributions: Map<string, ImageAttribution> | undefined,
   pdfConfig: PDFConfig,
   mapDefaultStyle: MapStyle | undefined
@@ -235,29 +342,16 @@ async function exportFormat(
       return jsonPath
     }
 
-    case 'map': {
-      // Write thumbnails to images/ directory and build path map
-      const imagePaths = new Map<string, string>()
-      if (thumbnails && thumbnails.size > 0) {
-        const imagesDir = join(outputDir, 'images')
-        await ensureDir(imagesDir)
-        for (const [activityId, buffer] of thumbnails) {
-          const filename = `${activityId}.jpg`
-          await writeFile(join(imagesDir, filename), new Uint8Array(buffer))
-          imagePaths.set(activityId, `images/${filename}`)
-        }
-      }
-
-      const html = exportToMapHTML(activities, {
-        title: 'Things To Do',
-        imagePaths,
+    case 'map':
+      return exportMapFormat(
+        activities,
+        outputDir,
+        thumbnails,
+        mediumImages,
+        lightboxImages,
         imageAttributions,
-        ...(mapDefaultStyle && { defaultStyle: mapDefaultStyle })
-      })
-      const mapPath = join(outputDir, 'map.html')
-      await writeFile(mapPath, html)
-      return mapPath
-    }
+        mapDefaultStyle
+      )
 
     case 'excel': {
       const excel = await exportToExcel(activities)

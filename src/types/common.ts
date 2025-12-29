@@ -62,7 +62,7 @@ export interface CLIOptions {
   readonly parallel?: number | undefined
   readonly minConfidence?: number | undefined
   readonly skipEmbeddings?: boolean | undefined
-  readonly skipGeocoding?: boolean | undefined
+  readonly skipPlaceLookup?: boolean | undefined
   readonly quiet?: boolean | undefined
   readonly verbose?: boolean | undefined
   readonly dryRun?: boolean | undefined

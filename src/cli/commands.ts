@@ -93,6 +93,20 @@ function addPrefixedPdfOptions(cmd: Command): Command {
 }
 
 /**
+ * Add common options for classify and place-lookup commands.
+ */
+function addClassifyOptions(cmd: Command): Command {
+  return cmd
+    .option('-c, --home-country <name>', 'Your home country (auto-detected from IP if not set)')
+    .option('--timezone <tz>', 'Your timezone (auto-detected from system if not set)')
+    .option('--json [file]', 'Output as JSON (to file if specified, otherwise stdout)')
+    .option('-n, --max-results <num>', 'Max results to display', '10')
+    .option('-m, --max-messages <num>', 'Max messages to process (for testing)')
+    .option('-a, --all', 'Show all activities (default: top 10)')
+    .option('--dry-run', 'Show stats without API calls')
+}
+
+/**
  * Add common pipeline options shared by analyze and export commands.
  */
 function addPipelineOptions(cmd: Command): Command {
@@ -106,7 +120,7 @@ function addPipelineOptions(cmd: Command): Command {
       'csv,excel,json,map,pdf'
     )
     .option('--min-confidence <num>', 'Minimum confidence threshold', '0.5')
-    .option('--skip-geocoding', 'Skip geocoding step')
+    .option('--skip-place-lookup', 'Skip place lookup step')
     .option('--images', 'Fetch images for activities (slower, uses external APIs)')
     .option(
       '--media-library-path <path>',
@@ -215,7 +229,7 @@ export function createProgram(): Command {
   const baseAnalyzeCmd = program
     .command('analyze')
     .description(
-      'Run the complete pipeline (parse → filter → scrape-urls → classify → geocode → export)'
+      'Run the complete pipeline (parse → filter → scrape-urls → classify → place-lookup → export)'
     )
     .argument('<input>', 'Chat export (.zip, directory, or .txt file)')
 
@@ -287,30 +301,20 @@ export function createProgram(): Command {
     .option('--dry-run', 'Show URL count without scraping')
 
   // ============ CLASSIFY ============
-  program
-    .command('classify')
-    .description('Classify candidates into activities using AI')
-    .argument('<input>', 'Chat export (.zip, directory, or .txt file)')
-    .option('-c, --home-country <name>', 'Your home country (auto-detected from IP if not set)')
-    .option('--timezone <tz>', 'Your timezone (auto-detected from system if not set)')
-    .option('--json [file]', 'Output as JSON (to file if specified, otherwise stdout)')
-    .option('-n, --max-results <num>', 'Max results to display', '10')
-    .option('-m, --max-messages <num>', 'Max messages to process (for testing)')
-    .option('-a, --all', 'Show all activities (default: top 10)')
-    .option('--dry-run', 'Show stats without API calls')
+  addClassifyOptions(
+    program
+      .command('classify')
+      .description('Classify candidates into activities using AI')
+      .argument('<input>', 'Chat export (.zip, directory, or .txt file)')
+  )
 
-  // ============ GEOCODE ============
-  program
-    .command('geocode')
-    .description('Geocode classified activities using Google Maps API')
-    .argument('<input>', 'Chat export (.zip, directory, or .txt file)')
-    .option('-c, --home-country <name>', 'Your home country (auto-detected from IP if not set)')
-    .option('--timezone <tz>', 'Your timezone (auto-detected from system if not set)')
-    .option('--json [file]', 'Output as JSON (to file if specified, otherwise stdout)')
-    .option('-n, --max-results <num>', 'Max results to display', '10')
-    .option('-m, --max-messages <num>', 'Max messages to process (for testing)')
-    .option('-a, --all', 'Show all geocoded activities (default: top 10)')
-    .option('--dry-run', 'Show stats without API calls')
+  // ============ PLACE-LOOKUP ============
+  addClassifyOptions(
+    program
+      .command('place-lookup')
+      .description('Look up places for classified activities using Google Maps API')
+      .argument('<input>', 'Chat export (.zip, directory, or .txt file)')
+  )
 
   // ============ FETCH-IMAGE-URLS ============
   program
@@ -318,7 +322,7 @@ export function createProgram(): Command {
     .description('Fetch image URLs for geocoded activities')
     .argument('<input>', 'Chat export file or directory')
     .option('--json [file]', 'Output as JSON (to file if specified, otherwise stdout)')
-    .option('--no-image-cdn', 'Skip CDN default images (fetch all from APIs)')
+    .option('--no-media-library', 'Skip media library images')
     .option('--skip-pixabay', 'Skip Pixabay image search')
     .option('--skip-wikipedia', 'Skip Wikipedia image lookup')
     .option('--skip-google-places', 'Skip Google Places photos')

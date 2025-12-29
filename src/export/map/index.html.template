@@ -51,6 +51,15 @@
     </div>
   </div>
 
+  <div class="lightbox-overlay" id="lightbox" onclick="closeLightbox(event)">
+    <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+    <img id="lightboxImage" class="lightbox-image" src="" alt="" />
+    <div class="lightbox-caption">
+      <div id="lightboxTitle" class="lightbox-title"></div>
+      <div id="lightboxAttribution" class="lightbox-attribution"></div>
+    </div>
+  </div>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
   {{DATA_SCRIPT}}

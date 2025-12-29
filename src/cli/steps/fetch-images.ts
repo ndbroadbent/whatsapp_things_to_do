@@ -1,12 +1,19 @@
 /**
  * Fetch Images Step
  *
- * Downloads images and resizes them to print-quality thumbnails (300 DPI).
- * For a 0.75" thumbnail at 300 DPI = 225px.
+ * Downloads images and resizes them to multiple sizes:
+ * - Thumbnail: 128×128 (square crop for activity list)
+ * - Medium: 400×267 (3:2 for tooltip popup)
+ * - Lightbox: 1400×933 (3:2 for full-size viewing)
+ *
+ * For media library URLs (media.chattomap.com), fetches pre-sized images directly.
+ * For other sources (Pixabay, Google Places), downloads original and resizes.
  *
  * Images are cached in ~/.cache/chat-to-map/images/:
- * - originals/<sanitized-url>-<hash>.jpg - Original downloaded images
- * - thumbnails/<sanitized-url>-<hash>.jpg - Resized thumbnails
+ * - originals/<filename>.jpg - Original downloaded images (non-CDN only)
+ * - thumbnails/<filename>.jpg - 128×128 square
+ * - medium/<filename>.jpg - 400×267 (3:2)
+ * - lightbox/<filename>.jpg - 1400×933 (3:2)
  */
 
 import { existsSync } from 'node:fs'
@@ -19,19 +26,23 @@ import type { ImageResult } from '../../images/types'
 import { runWorkerPool } from '../worker-pool'
 import type { PipelineContext } from './context'
 
-/** Thumbnail size in pixels (0.75" at 300 DPI) */
-const THUMBNAIL_SIZE = 225
+/** Image sizes matching media library */
+const THUMBNAIL_SIZE = { width: 128, height: 128 } // square
+const MEDIUM_SIZE = { width: 400, height: 267 } // 3:2
+const LIGHTBOX_SIZE = { width: 1400, height: 933 } // 3:2
 
 interface FetchImagesOptions {
-  /** Size in pixels (default: 225 for 0.75" at 300 DPI) */
-  readonly thumbnailSize?: number
   /** Concurrency for fetching (default: 5) */
   readonly concurrency?: number
 }
 
 interface FetchImagesResult {
-  /** Thumbnails keyed by activityId */
+  /** Thumbnails (128×128) keyed by activityId */
   readonly thumbnails: Map<string, Buffer>
+  /** Medium images (400×267) keyed by activityId */
+  readonly mediumImages: Map<string, Buffer>
+  /** Lightbox images (1400×933) keyed by activityId */
+  readonly lightboxImages: Map<string, Buffer>
   /** Stats */
   readonly stats: {
     readonly total: number
@@ -45,36 +56,75 @@ interface FetchTask {
   readonly activityId: string
   readonly url: string
   readonly filename: string
+  readonly isMediaLibrary: boolean
+}
+
+interface ResizedImages {
+  readonly thumbnail: Buffer
+  readonly medium: Buffer
+  readonly lightbox: Buffer
 }
 
 /**
- * Fetch and resize images to thumbnails.
- * Caches both originals and thumbnails to ~/.cache/chat-to-map/images/
+ * Save all three image sizes to disk.
+ */
+async function saveResizedImages(
+  images: ResizedImages,
+  thumbnailsDir: string,
+  mediumDir: string,
+  lightboxDir: string,
+  filename: string
+): Promise<void> {
+  await Promise.all([
+    writeFile(join(thumbnailsDir, filename), new Uint8Array(images.thumbnail)),
+    writeFile(join(mediumDir, filename), new Uint8Array(images.medium)),
+    writeFile(join(lightboxDir, filename), new Uint8Array(images.lightbox))
+  ])
+}
+
+/**
+ * Transform a media library URL to a different size.
+ * e.g., .../abc123-700.jpg → .../abc123-128.jpg
+ */
+function getMediaLibrarySizeUrl(url: string, size: number): string {
+  return url.replace(/-\d+\.jpg$/, `-${size}.jpg`)
+}
+
+/**
+ * Fetch and resize images to thumbnails, medium, and lightbox sizes.
+ * For media library URLs, fetches pre-sized images directly.
+ * For other sources, downloads original and resizes.
  */
 export async function stepFetchImages(
   ctx: PipelineContext,
   images: Map<string, ImageResult | null>,
   options?: FetchImagesOptions
 ): Promise<FetchImagesResult> {
-  const size = options?.thumbnailSize ?? THUMBNAIL_SIZE
   const concurrency = options?.concurrency ?? 5
   const thumbnails = new Map<string, Buffer>()
+  const mediumImages = new Map<string, Buffer>()
+  const lightboxImages = new Map<string, Buffer>()
 
   // Set up image cache directories
   const imagesDir = join(ctx.cacheDir, 'images')
   const originalsDir = join(imagesDir, 'originals')
   const thumbnailsDir = join(imagesDir, 'thumbnails')
+  const mediumDir = join(imagesDir, 'medium')
+  const lightboxDir = join(imagesDir, 'lightbox')
   await mkdir(originalsDir, { recursive: true })
   await mkdir(thumbnailsDir, { recursive: true })
+  await mkdir(mediumDir, { recursive: true })
+  await mkdir(lightboxDir, { recursive: true })
 
   // Build task list from entries with valid URLs
   const tasks: FetchTask[] = []
   for (const [activityId, image] of images) {
-    if (image?.url) {
+    if (image?.imageUrl) {
       tasks.push({
         activityId,
-        url: image.url,
-        filename: generateImageFilename(image.url)
+        url: image.imageUrl,
+        filename: generateImageFilename(image.imageUrl),
+        isMediaLibrary: image.fromMediaLibrary === true
       })
     }
   }
@@ -83,19 +133,28 @@ export async function stepFetchImages(
     ctx.logger.log(`\n🖼️  No images to fetch`)
     return {
       thumbnails,
+      mediumImages,
+      lightboxImages,
       stats: { total: 0, fetched: 0, failed: 0, cached: 0 }
     }
   }
 
-  // Check which thumbnails are already cached
+  // Check which images are already cached (need all three sizes)
   const uncachedTasks: FetchTask[] = []
   let cachedCount = 0
 
   for (const task of tasks) {
     const thumbnailPath = join(thumbnailsDir, task.filename)
-    if (existsSync(thumbnailPath)) {
-      const buffer = await readFile(thumbnailPath)
-      thumbnails.set(task.activityId, buffer)
+    const mediumPath = join(mediumDir, task.filename)
+    const lightboxPath = join(lightboxDir, task.filename)
+
+    if (existsSync(thumbnailPath) && existsSync(mediumPath) && existsSync(lightboxPath)) {
+      const thumbBuffer = await readFile(thumbnailPath)
+      const mediumBuffer = await readFile(mediumPath)
+      const lightboxBuffer = await readFile(lightboxPath)
+      thumbnails.set(task.activityId, thumbBuffer)
+      mediumImages.set(task.activityId, mediumBuffer)
+      lightboxImages.set(task.activityId, lightboxBuffer)
       cachedCount++
     } else {
       uncachedTasks.push(task)
@@ -103,27 +162,38 @@ export async function stepFetchImages(
   }
 
   if (uncachedTasks.length === 0) {
-    ctx.logger.log(`\n🖼️  Fetching thumbnails... 📦 cached`)
+    ctx.logger.log(`\n🖼️  Fetching images... 📦 cached`)
     return {
       thumbnails,
+      mediumImages,
+      lightboxImages,
       stats: { total: tasks.length, fetched: 0, failed: 0, cached: cachedCount }
     }
   }
 
-  ctx.logger.log(`\n🖼️  Fetching ${uncachedTasks.length} thumbnails...`)
+  ctx.logger.log(`\n🖼️  Fetching ${uncachedTasks.length} images...`)
 
   // Use worker pool for parallel fetching
   const { successes, errorCount } = await runWorkerPool(
     uncachedTasks,
     async (task) => {
-      const result = await fetchAndResize(
-        task.url,
-        size,
-        originalsDir,
-        thumbnailsDir,
-        task.filename
-      )
-      return { activityId: task.activityId, thumbnail: result }
+      const result = task.isMediaLibrary
+        ? await fetchMediaLibraryImages(
+            task.url,
+            thumbnailsDir,
+            mediumDir,
+            lightboxDir,
+            task.filename
+          )
+        : await fetchAndResize(
+            task.url,
+            originalsDir,
+            thumbnailsDir,
+            mediumDir,
+            lightboxDir,
+            task.filename
+          )
+      return { activityId: task.activityId, images: result }
     },
     {
       concurrency,
@@ -136,40 +206,88 @@ export async function stepFetchImages(
     }
   )
 
-  // Collect successful thumbnails
+  // Collect successful images
   for (const result of successes) {
-    if (result.thumbnail) {
-      thumbnails.set(result.activityId, result.thumbnail)
+    if (result.images) {
+      thumbnails.set(result.activityId, result.images.thumbnail)
+      mediumImages.set(result.activityId, result.images.medium)
+      lightboxImages.set(result.activityId, result.images.lightbox)
     }
   }
 
   const stats = {
     total: tasks.length,
-    fetched: successes.filter((r) => r.thumbnail).length,
-    failed: errorCount + uncachedTasks.length - successes.filter((r) => r.thumbnail).length,
+    fetched: successes.filter((r) => r.images).length,
+    failed: errorCount + uncachedTasks.length - successes.filter((r) => r.images).length,
     cached: cachedCount
   }
 
   ctx.logger.log(
-    `   ✓ ${stats.fetched} thumbnails fetched, ${stats.cached} cached, ${stats.failed} failed`
+    `   ✓ ${stats.fetched} images fetched, ${stats.cached} cached, ${stats.failed} failed`
   )
 
-  return { thumbnails, stats }
+  return { thumbnails, mediumImages, lightboxImages, stats }
 }
 
 /**
- * Fetch an image URL, save original, and create thumbnail.
+ * Fetch pre-sized images from media library CDN.
+ * No resizing needed - images are already the correct sizes.
+ */
+async function fetchMediaLibraryImages(
+  url: string,
+  thumbnailsDir: string,
+  mediumDir: string,
+  lightboxDir: string,
+  filename: string
+): Promise<ResizedImages | null> {
+  try {
+    const thumbnailUrl = getMediaLibrarySizeUrl(url, 128)
+    const mediumUrl = getMediaLibrarySizeUrl(url, 400)
+    const lightboxUrl = getMediaLibrarySizeUrl(url, 1400)
+
+    // Fetch all three sizes in parallel
+    const [thumbResponse, mediumResponse, lightboxResponse] = await Promise.all([
+      httpFetch(thumbnailUrl),
+      httpFetch(mediumUrl),
+      httpFetch(lightboxUrl)
+    ])
+
+    if (!thumbResponse.ok || !mediumResponse.ok || !lightboxResponse.ok) {
+      return null
+    }
+
+    const [thumbArray, mediumArray, lightboxArray] = await Promise.all([
+      thumbResponse.arrayBuffer(),
+      mediumResponse.arrayBuffer(),
+      lightboxResponse.arrayBuffer()
+    ])
+
+    const images: ResizedImages = {
+      thumbnail: Buffer.from(thumbArray),
+      medium: Buffer.from(mediumArray),
+      lightbox: Buffer.from(lightboxArray)
+    }
+
+    await saveResizedImages(images, thumbnailsDir, mediumDir, lightboxDir, filename)
+    return images
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Fetch an image URL from external source, save original, and resize to all sizes.
  */
 async function fetchAndResize(
   url: string,
-  size: number,
   originalsDir: string,
   thumbnailsDir: string,
+  mediumDir: string,
+  lightboxDir: string,
   filename: string
-): Promise<Buffer | null> {
+): Promise<ResizedImages | null> {
   try {
     const originalPath = join(originalsDir, filename)
-    const thumbnailPath = join(thumbnailsDir, filename)
 
     let originalBuffer: Buffer
 
@@ -188,19 +306,37 @@ async function fetchAndResize(
       await writeFile(originalPath, new Uint8Array(originalBuffer))
     }
 
-    // Create thumbnail
-    const thumbnail = await sharp(originalBuffer)
-      .resize(size, size, {
-        fit: 'cover',
-        position: 'center'
-      })
-      .jpeg({ quality: 90 })
-      .toBuffer()
+    // Create all sizes in parallel
+    const [thumbnail, medium, lightbox] = await Promise.all([
+      // Thumbnail: square crop (128×128)
+      sharp(originalBuffer)
+        .resize(THUMBNAIL_SIZE.width, THUMBNAIL_SIZE.height, {
+          fit: 'cover',
+          position: 'center'
+        })
+        .jpeg({ quality: 90 })
+        .toBuffer(),
+      // Medium: 3:2 aspect (400×267)
+      sharp(originalBuffer)
+        .resize(MEDIUM_SIZE.width, MEDIUM_SIZE.height, {
+          fit: 'cover',
+          position: 'center'
+        })
+        .jpeg({ quality: 90 })
+        .toBuffer(),
+      // Lightbox: 3:2 aspect (700×467)
+      sharp(originalBuffer)
+        .resize(LIGHTBOX_SIZE.width, LIGHTBOX_SIZE.height, {
+          fit: 'cover',
+          position: 'center'
+        })
+        .jpeg({ quality: 90 })
+        .toBuffer()
+    ])
 
-    // Save thumbnail
-    await writeFile(thumbnailPath, new Uint8Array(thumbnail))
-
-    return thumbnail
+    const images: ResizedImages = { thumbnail, medium, lightbox }
+    await saveResizedImages(images, thumbnailsDir, mediumDir, lightboxDir, filename)
+    return images
   } catch {
     return null
   }

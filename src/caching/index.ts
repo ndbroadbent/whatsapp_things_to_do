@@ -9,6 +9,7 @@ export {
   generateCacheKey,
   generateClassifierCacheKey,
   generateEmbeddingCacheKey,
-  generateGeocodeCacheKey
+  generateGeocodeCacheKey,
+  generatePlaceLookupCacheKey
 } from './key'
 export type { CachedResponse, CacheKeyComponents, ResponseCache } from './types'

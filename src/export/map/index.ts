@@ -6,10 +6,25 @@
 
 import type { GeocodedActivity, MapConfig } from '../../types'
 import { generateListOnlyHTML } from '../map-list-html'
+import ACTIVITY_LIST_JS from './activity-list.js.template' with { type: 'text' }
 import APP_JS from './app.js.template' with { type: 'text' }
 import { toMapData } from './data'
+import LIGHTBOX_JS from './lightbox.js.template' with { type: 'text' }
+import MARKERS_JS from './markers.js.template' with { type: 'text' }
 import { generateMapHTML } from './template'
+import TILES_JS from './tiles.js.template' with { type: 'text' }
+import TOOLTIP_JS from './tooltip.js.template' with { type: 'text' }
 import type { MapData } from './types'
+
+/** Combined app JS from all modules */
+const COMBINED_APP_JS = [
+  TOOLTIP_JS,
+  TILES_JS,
+  MARKERS_JS,
+  ACTIVITY_LIST_JS,
+  LIGHTBOX_JS,
+  APP_JS
+].join('\n\n')
 
 /**
  * Generate map data JavaScript file content.
@@ -36,5 +51,5 @@ export function exportToMapHTML(
 
   const dataJS = generateDataJS(mapData)
 
-  return generateMapHTML({ inline: { data: dataJS, app: APP_JS } })
+  return generateMapHTML({ inline: { data: dataJS, app: COMBINED_APP_JS } })
 }

@@ -42,10 +42,10 @@ describe('CLI Args', () => {
 
     it('parses boolean flags for analyze', () => {
       const args = parseArgs(
-        ['analyze', 'chat.txt', '-c', 'NZ', '--skip-geocoding', '--dry-run', '--verbose'],
+        ['analyze', 'chat.txt', '-c', 'NZ', '--skip-place-lookup', '--dry-run', '--verbose'],
         false
       )
-      expect(args.skipGeocoding).toBe(true)
+      expect(args.skipPlaceLookup).toBe(true)
       expect(args.dryRun).toBe(true)
       expect(args.verbose).toBe(true)
     })
@@ -57,7 +57,7 @@ describe('CLI Args', () => {
       expect(args.minConfidence).toBe(0.5)
       expect(args.maxResults).toBe(10)
       expect(args.maxMessages).toBeUndefined()
-      expect(args.skipGeocoding).toBe(false)
+      expect(args.skipPlaceLookup).toBe(false)
       expect(args.quiet).toBe(false)
       expect(args.verbose).toBe(false)
       expect(args.dryRun).toBe(false)

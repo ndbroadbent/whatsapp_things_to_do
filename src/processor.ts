@@ -7,15 +7,15 @@
 
 import { classifyMessages } from './classifier/index'
 import { extractCandidates as extractCandidatesImpl } from './extraction/index'
-import { geocodeActivities } from './geocoder/index'
 import { parseChatWithStats } from './parser/index'
+import { lookupActivityPlaces } from './place-lookup/index'
 import type {
   CandidateMessage,
   ClassifiedActivity,
   ClassifierConfig,
   GeocodedActivity,
-  GeocoderConfig,
-  ParsedMessage
+  ParsedMessage,
+  PlaceLookupConfig
 } from './types'
 import { isMappable } from './types/classifier'
 
@@ -198,11 +198,11 @@ export class RealChatProcessor implements ChatProcessor {
       }
     }
 
-    const geocoderConfig: GeocoderConfig = {
+    const placeLookupConfig: PlaceLookupConfig = {
       apiKey: config.googleMapsApiKey
     }
 
-    const geocoded = await geocodeActivities(mappable, geocoderConfig)
+    const geocoded = await lookupActivityPlaces(mappable, placeLookupConfig)
 
     const geocodedCount = geocoded.filter((a: GeocodedActivity) => a.latitude !== undefined).length
     const costCents = geocodedCount * COST_ESTIMATES.geocodingPerRequest

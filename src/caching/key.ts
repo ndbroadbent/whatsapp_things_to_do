@@ -90,7 +90,29 @@ export function generateClassifierCacheKey(
 }
 
 /**
+ * Generate cache key for place lookup requests.
+ * Path: places/<type>/<hash>.json
+ *
+ * @param type - 'places' for Places API Text Search, 'geocode' for Geocoding API
+ * @param query - The search query or address
+ * @param regionBias - Optional region bias code
+ */
+export function generatePlaceLookupCacheKey(
+  type: 'places' | 'geocode',
+  query: string,
+  regionBias?: string
+): string {
+  const hash = generateCacheKey({
+    service: 'google',
+    model: type,
+    payload: { query, regionBias }
+  })
+  return `places/${type}/${hash}`
+}
+
+/**
  * Generate cache key for geocoding requests.
+ * @deprecated Use generatePlaceLookupCacheKey('geocode', ...) instead
  * Path: geo/google/<hash>.json
  */
 export function generateGeocodeCacheKey(location: string, regionBias?: string): string {

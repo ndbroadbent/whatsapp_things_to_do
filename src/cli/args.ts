@@ -16,9 +16,9 @@ export interface CLIArgs {
   outputDir: string
   formats: string[]
   minConfidence: number
-  skipGeocoding: boolean
+  skipPlaceLookup: boolean
   fetchImages: boolean
-  skipCdn: boolean
+  skipMediaLibrary: boolean
   skipPixabay: boolean
   skipWikipedia: boolean
   skipGooglePlaces: boolean
@@ -172,9 +172,9 @@ function buildCLIArgs(commandName: string, input: string, opts: Record<string, u
     outputDir: typeof opts.outputDir === 'string' ? opts.outputDir : DEFAULT_OUTPUT_DIR,
     formats: format.split(',').map((f) => f.trim()),
     minConfidence: Number.parseFloat(String(opts.minConfidence ?? '0.5')),
-    skipGeocoding: opts.skipGeocoding === true,
+    skipPlaceLookup: opts.skipPlaceLookup === true,
     fetchImages: opts.images === true,
-    skipCdn: opts.imageCdn === false,
+    skipMediaLibrary: opts.mediaLibrary === false,
     skipPixabay: opts.skipPixabay === true,
     skipWikipedia: opts.skipWikipedia === true,
     skipGooglePlaces: opts.skipGooglePlaces === true,

@@ -1,12 +1,12 @@
 /**
- * Geocode Command E2E Tests
+ * Place Lookup Command E2E Tests
  */
 
 import { describe, expect, it } from 'vitest'
 import type { GeocodedActivity } from '../../types'
 import { FIXTURE_INPUT, readCacheJson, runCli, testState } from './helpers'
 
-interface GeocodeStats {
+interface PlaceLookupStats {
   activitiesProcessed: number
   activitiesGeocoded: number
   fromGoogleMapsUrl: number
@@ -15,38 +15,40 @@ interface GeocodeStats {
   failed: number
 }
 
-describe('geocode command', () => {
-  it('geocodes on first run, uses cache on second run', { timeout: 60000 }, () => {
-    // First run: fresh geocoding
+describe('place-lookup command', () => {
+  it('looks up places on first run, uses cache on second run', { timeout: 60000 }, () => {
+    // First run: fresh place lookup
     const run1 = runCli(
-      `geocode ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir} -c "New Zealand"`
+      `place-lookup ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir} -c "New Zealand"`
     )
     expect(run1.exitCode).toBe(0)
-    expect(run1.stdout).toContain('Geocoding')
+    expect(run1.stdout).toContain('Looking up places')
     expect(run1.stdout).toContain('activities')
     // First run should NOT show cached
-    expect(run1.stdout).not.toMatch(/Geocoding.*activities.*cached/)
+    expect(run1.stdout).not.toMatch(/Looking up places.*cached/)
 
-    // Second run: should use cached geocoding
+    // Second run: should use cached results
     const run2 = runCli(
-      `geocode ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir} -c "New Zealand"`
+      `place-lookup ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir} -c "New Zealand"`
     )
     expect(run2.exitCode).toBe(0)
-    expect(run2.stdout).toContain('Geocoding activities... 📦 cached')
+    expect(run2.stdout).toContain('Looking up places... 📦 cached')
   })
 
-  it('writes geocode_stats.json to cache', () => {
-    const stats = readCacheJson<GeocodeStats>(testState.tempCacheDir, 'geocode_stats.json')
+  it('writes place_lookup_stats.json to cache', () => {
+    const stats = readCacheJson<PlaceLookupStats>(testState.tempCacheDir, 'place_lookup_stats.json')
     expect(stats.activitiesProcessed).toBeGreaterThanOrEqual(10)
     expect(stats.activitiesGeocoded).toBeGreaterThanOrEqual(5)
-    // Most should come from address geocoding
-    expect(stats.fromGoogleGeocoding).toBeGreaterThanOrEqual(4)
+    expect(stats.fromGoogleGeocoding).toBeGreaterThanOrEqual(2)
     // Some activities may not have location info
     expect(stats.failed).toBeGreaterThanOrEqual(0)
   })
 
-  it('writes geocodings.json with geocoded activities', () => {
-    const activities = readCacheJson<GeocodedActivity[]>(testState.tempCacheDir, 'geocodings.json')
+  it('writes place_lookups.json with geocoded activities', () => {
+    const activities = readCacheJson<GeocodedActivity[]>(
+      testState.tempCacheDir,
+      'place_lookups.json'
+    )
     expect(activities.length).toBeGreaterThanOrEqual(10)
 
     // Check whale safari is geocoded to Auckland
@@ -57,7 +59,7 @@ describe('geocode command', () => {
     // Auckland coordinates: around -36.8, 174.7
     expect(whaleSafari?.latitude).toBeCloseTo(-36.8, 0)
     expect(whaleSafari?.longitude).toBeCloseTo(174.7, 0)
-    expect(whaleSafari?.geocodeSource).toBe('google_geocoding')
+    expect(whaleSafari?.placeLookupSource).toBe('places_api')
 
     // Check Bay of Islands is geocoded
     const bayOfIslands = activities.find((a) => a.activity.includes('Bay of Islands'))
@@ -114,13 +116,13 @@ describe('geocode command', () => {
 
   it('shows geocoded activities in CLI output', () => {
     const { stdout } = runCli(
-      `geocode ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir} -c "New Zealand"`
+      `place-lookup ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir} -c "New Zealand"`
     )
 
     // Check header
-    expect(stdout).toContain('Geocoding Results')
+    expect(stdout).toContain('Place Lookup Results')
     expect(stdout).toMatch(/Processed: \d+/)
-    expect(stdout).toMatch(/Geocoded: \d+/)
+    expect(stdout).toMatch(/Located: \d+/)
 
     // Check activities are displayed with coordinates
     expect(stdout).toContain('Geocoded Activities')
@@ -134,7 +136,7 @@ describe('geocode command', () => {
 
   it('respects --max-results flag', () => {
     const { stdout } = runCli(
-      `geocode ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir} -c "New Zealand" --max-results 3`
+      `place-lookup ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir} -c "New Zealand" --max-results 3`
     )
 
     // Should show exactly 3 numbered activities
@@ -149,7 +151,7 @@ describe('geocode command', () => {
 
   it('respects --all flag to show all geocoded activities', () => {
     const { stdout } = runCli(
-      `geocode ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir} -c "New Zealand" --all`
+      `place-lookup ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir} -c "New Zealand" --all`
     )
 
     // Should show all geocoded activities (at least 5)
@@ -160,18 +162,18 @@ describe('geocode command', () => {
 
   it('respects --dry-run flag', () => {
     const { stdout, exitCode } = runCli(
-      `geocode ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir} -c "New Zealand" --dry-run`
+      `place-lookup ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir} -c "New Zealand" --dry-run`
     )
 
     expect(exitCode).toBe(0)
     expect(stdout.toLowerCase()).toContain('dry run')
-    expect(stdout).toContain('Activities to geocode:')
+    expect(stdout).toContain('Activities to look up:')
     expect(stdout).toContain('With location info:')
-    expect(stdout).not.toContain('Geocoding Results')
+    expect(stdout).not.toContain('Place Lookup Results')
   })
 
-  it('counts geocode sources correctly', () => {
-    const stats = readCacheJson<GeocodeStats>(testState.tempCacheDir, 'geocode_stats.json')
+  it('counts place lookup sources correctly', () => {
+    const stats = readCacheJson<PlaceLookupStats>(testState.tempCacheDir, 'place_lookup_stats.json')
 
     // Total should equal geocoded + failed
     expect(stats.activitiesProcessed).toBe(stats.activitiesGeocoded + stats.failed)
@@ -182,8 +184,11 @@ describe('geocode command', () => {
     )
   })
 
-  it('preserves activity metadata after geocoding', () => {
-    const activities = readCacheJson<GeocodedActivity[]>(testState.tempCacheDir, 'geocodings.json')
+  it('preserves activity metadata after place lookup', () => {
+    const activities = readCacheJson<GeocodedActivity[]>(
+      testState.tempCacheDir,
+      'place_lookups.json'
+    )
 
     // Find a geocoded activity and verify original fields are preserved
     const whaleSafari = activities.find((a) => a.activity.toLowerCase().includes('whale'))
@@ -200,7 +205,10 @@ describe('geocode command', () => {
   })
 
   it('handles activities without location gracefully', () => {
-    const activities = readCacheJson<GeocodedActivity[]>(testState.tempCacheDir, 'geocodings.json')
+    const activities = readCacheJson<GeocodedActivity[]>(
+      testState.tempCacheDir,
+      'place_lookups.json'
+    )
 
     // Some activities should have no coordinates (e.g., movie night, mall sale)
     const noCoords = activities.filter((a) => a.latitude === undefined || a.longitude === undefined)

@@ -15,20 +15,47 @@
  * NOTE: 'scraped'/'og' is intentionally NOT included.
  * OG images can only be displayed as link previews within message context.
  */
+/**
+ * Original source of the image (for attribution).
+ */
 export type ImageSource =
-  | 'media_library' // ChatToMap media library (curated images)
-  | 'cdn' // ChatToMap CDN default image (deprecated, use media_library)
-  | 'google_places' // Google Places Photos API
-  | 'wikipedia' // Wikipedia/Wikimedia Commons
+  | 'unsplash' // Unsplash photos
+  | 'unsplash+' // Unsplash+ (no attribution required)
   | 'pixabay' // Pixabay stock photos
+  | 'wikipedia' // Wikipedia/Wikimedia Commons
+  | 'google_places' // Google Places Photos API
   | 'user_upload' // User-provided replacement image
+
+/**
+ * Image metadata - matches the -meta.json format from media library.
+ * All image sources (Pixabay API, Wikipedia, media library) return this format.
+ */
+export interface ImageMeta {
+  /** Original source (pixabay, unsplash, wikipedia, etc.) */
+  readonly source: ImageSource
+  /** URL to the source page */
+  readonly url: string
+  /** License name (e.g., "Pixabay License", "CC-BY-SA 4.0") */
+  readonly license?: string | undefined
+  /** URL to license text */
+  readonly license_url?: string | undefined
+  /** Attribution info */
+  readonly attribution?:
+    | {
+        /** Artist/photographer name */
+        readonly name: string
+        /** Link to artist's profile page */
+        readonly url: string
+      }
+    | undefined
+}
 
 /**
  * Result of fetching an image for an activity.
  */
 export interface ImageResult {
-  /** URL to the image */
-  readonly url: string
+  /** URL to the actual image file */
+  readonly imageUrl: string
 
   /** Image data (for embedding in PDF) */
   readonly data?: Uint8Array | undefined
@@ -37,35 +64,28 @@ export interface ImageResult {
   readonly width?: number | undefined
   readonly height?: number | undefined
 
-  /** Source that provided the image */
-  readonly source: ImageSource
+  /** Metadata (source, attribution, license) - matches -meta.json format */
+  readonly meta: ImageMeta
 
-  /** Attribution info (required for some sources) */
-  readonly attribution?:
-    | {
-        /** Artist/photographer name */
-        readonly name: string
-        /** Link to source page (Wikimedia Commons, Unsplash, etc.) */
-        readonly url: string
-        /** License short name (e.g., "CC-BY-SA 4.0") - required for Wikipedia */
-        readonly license?: string | undefined
-        /** Link to license text */
-        readonly licenseUrl?: string | undefined
-      }
-    | undefined
-
-  /** Search query used (for Pixabay debugging) */
+  /** Search query used (for debugging) */
   readonly query?: string | undefined
+
+  /** Whether this image came from the media library (pre-sized versions available) */
+  readonly fromMediaLibrary?: boolean | undefined
 }
 
 /**
  * Configuration for image fetching.
  */
 export interface ImageFetchConfig {
-  /** Skip CDN default images (--no-image-cdn) - deprecated, use skipMediaLibrary */
-  readonly skipCdn?: boolean | undefined
+  /**
+   * Path to local media library.
+   * If set, images/metadata are loaded from disk.
+   * If not set, uses remote CDN (media.chattomap.com).
+   */
+  readonly mediaLibraryPath?: string | undefined
 
-  /** Skip media library (curated images from media.chattomap.com) */
+  /** Skip media library entirely (--no-media-library) */
   readonly skipMediaLibrary?: boolean | undefined
 
   /** Skip Pixabay image search */
@@ -82,13 +102,6 @@ export interface ImageFetchConfig {
 
   /** Google Places API key */
   readonly googlePlacesApiKey?: string | undefined
-
-  /**
-   * Local path to media library images directory.
-   * If provided, images are loaded from disk instead of CDN.
-   * Example: "/path/to/media_library/images"
-   */
-  readonly mediaLibraryPath?: string | undefined
 
   /**
    * Country code for regional synonym overrides.

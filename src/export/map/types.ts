@@ -34,7 +34,12 @@ export interface MapActivity {
   score: number
   url: string | null
   color: string
+  /** Thumbnail path (128×128) for activity list */
   imagePath: string | null
+  /** Medium image path (400×267) for popup */
+  mediumImagePath: string | null
+  /** Lightbox image path (1400×933) for full-size view */
+  lightboxImagePath: string | null
   /** Image attribution (for Wikipedia, Unsplash, etc.) */
   imageAttribution: MapImageAttribution | null
   placeId: string | null

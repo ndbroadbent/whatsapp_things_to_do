@@ -29,7 +29,7 @@ describe('fetch-image-urls command', () => {
   it('fetches images on first run, uses cache on second run', { timeout: 60000 }, () => {
     // First run: fresh fetch
     const run1 = runCli(
-      `fetch-image-urls ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir} --no-image-cdn`
+      `fetch-image-urls ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir} --no-media-library`
     )
     expect(run1.exitCode).toBe(0)
     expect(run1.stdout).toMatch(/fetching images/i)
@@ -38,7 +38,7 @@ describe('fetch-image-urls command', () => {
 
     // Second run: should use cached images
     const run2 = runCli(
-      `fetch-image-urls ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir} --no-image-cdn`
+      `fetch-image-urls ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir} --no-media-library`
     )
     expect(run2.exitCode).toBe(0)
     expect(run2.stdout).toMatch(/fetching images.*cached/i)
@@ -48,7 +48,7 @@ describe('fetch-image-urls command', () => {
     const stats = readCacheJson<FetchImagesStats>(testState.tempCacheDir, 'fetch_images_stats.json')
     expect(stats.activitiesProcessed).toBeGreaterThanOrEqual(10)
     expect(stats.imagesFound).toBeGreaterThanOrEqual(10)
-    // With --no-image-cdn, images come from Google Places or Pixabay
+    // With --no-media-library, images come from Google Places or Pixabay
     // NOTE: Scraped/OG images are NOT used (licensing restrictions)
     expect(stats.fromGooglePlaces).toBeGreaterThanOrEqual(4)
     expect(stats.fromPixabay).toBeGreaterThanOrEqual(4)
@@ -69,14 +69,14 @@ describe('fetch-image-urls command', () => {
 
     // Check image sources are correct
     // NOTE: 'scraped' is NOT a valid source - OG images can only be link previews
-    const sources = withImages.map(([, img]) => img?.source)
+    const sources = withImages.map(([, img]) => img?.meta.source)
     expect(sources).toContain('google_places')
     expect(sources).toContain('pixabay')
   })
 
   it('shows image results in CLI output', () => {
     const { stdout } = runCli(
-      `fetch-image-urls ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir} --no-image-cdn`
+      `fetch-image-urls ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir} --no-media-library`
     )
 
     // Check header
@@ -112,7 +112,7 @@ describe('fetch-image-urls command', () => {
 
   it('includes expected output in stdout for --all flag', () => {
     const { stdout } = runCli(
-      `fetch-image-urls ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir} --all --no-image-cdn`
+      `fetch-image-urls ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir} --all --no-media-library`
     )
 
     // Should show all activities (at least 10)

@@ -63,8 +63,8 @@ interface FetchImagesResult {
  * Fetch images step options.
  */
 interface FetchImagesOptions {
-  /** Skip CDN default images (--no-image-cdn) */
-  readonly skipCdn?: boolean | undefined
+  /** Skip media library (--no-image-cdn) */
+  readonly skipMediaLibrary?: boolean | undefined
   /** Skip Pixabay (no API key or --skip-pixabay) */
   readonly skipPixabay?: boolean | undefined
   /** Skip Wikipedia */
@@ -87,6 +87,28 @@ interface CachedImageData {
 }
 
 /**
+ * Validate cached ImageResult has correct format.
+ * Throws if cache contains old format (missing meta property).
+ */
+function validateCachedImageResult(result: ImageResult | null, activityId: string): void {
+  if (result === null) return
+
+  if (!result.meta) {
+    throw new Error(
+      `Invalid cached ImageResult for activity ${activityId}: missing 'meta' property. ` +
+        `Cache contains old format. Delete ~/.cache/chat-to-map and retry.`
+    )
+  }
+
+  if (!result.meta.source) {
+    throw new Error(
+      `Invalid cached ImageResult for activity ${activityId}: missing 'meta.source'. ` +
+        `Cache contains old format. Delete ~/.cache/chat-to-map and retry.`
+    )
+  }
+}
+
+/**
  * Calculate stats from image results.
  */
 function calculateStats(images: Map<string, ImageResult | null>): FetchImagesStats {
@@ -105,7 +127,7 @@ function calculateStats(images: Map<string, ImageResult | null>): FetchImagesSta
   for (const result of images.values()) {
     if (result) {
       stats.imagesFound++
-      incrementSourceCount(stats, result.source)
+      incrementSourceCount(stats, result.meta.source)
     } else {
       stats.failed++
     }
@@ -117,13 +139,12 @@ function calculateStats(images: Map<string, ImageResult | null>): FetchImagesSta
 /**
  * Increment the appropriate source count based on image source.
  */
-function incrementSourceCount(stats: MutableStats, source: ImageResult['source']): void {
+function incrementSourceCount(stats: MutableStats, source: ImageResult['meta']['source']): void {
   switch (source) {
-    case 'media_library':
+    case 'unsplash':
+    case 'unsplash+':
+      // Count both unsplash types together (from media library)
       stats.fromMediaLibrary++
-      break
-    case 'cdn':
-      stats.fromCdn++
       break
     case 'google_places':
       stats.fromGooglePlaces++
@@ -173,6 +194,12 @@ export async function stepFetchImageUrls(
   if (!noCache && pipelineCache.hasStage('fetch_images_stats')) {
     const cached = pipelineCache.getStage<CachedImageData>('images')
     const stats = pipelineCache.getStage<FetchImagesStats>('fetch_images_stats')
+
+    // Validate cached entries have correct format (fail fast on old cache format)
+    for (const [activityId, result] of cached?.entries ?? []) {
+      validateCachedImageResult(result, activityId)
+    }
+
     logger.log('\n🖼️  Fetching images... 📦 cached')
     const images = new Map(cached?.entries ?? [])
     return {
@@ -205,7 +232,7 @@ export async function stepFetchImageUrls(
   // Build config from options and environment
   // NOTE: Scraped OG images are NOT used - they can only be link previews
   const config: ImageFetchConfig = {
-    skipCdn: options?.skipCdn ?? false,
+    skipMediaLibrary: options?.skipMediaLibrary ?? false,
     skipPixabay: options?.skipPixabay ?? false,
     skipWikipedia: options?.skipWikipedia ?? false,
     skipGooglePlaces: options?.skipGooglePlaces ?? false,
@@ -219,7 +246,7 @@ export async function stepFetchImageUrls(
 
   // Log what sources are available
   const sources: string[] = []
-  if (!config.skipCdn) sources.push('CDN')
+  if (!config.skipMediaLibrary) sources.push('Media Library')
   if (!config.skipGooglePlaces && config.googlePlacesApiKey) sources.push('Google Places')
   if (!config.skipPixabay && config.pixabayApiKey) sources.push('Pixabay')
   logger.log(`   Sources: ${sources.join(', ') || 'none'}`)

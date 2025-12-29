@@ -1,0 +1,137 @@
+/* Activity list rendering */
+var activities = mapData.activities.map(function (p) {
+  return {
+    id: p.activityId,
+    activity: p.activity,
+    category: p.category,
+    sender: p.sender.split(' ')[0],
+    location: p.location,
+    date: p.date,
+    score: p.score,
+    imagePath: p.imagePath,
+    mediumImagePath: p.mediumImagePath,
+    lightboxImagePath: p.lightboxImagePath,
+    imageAttribution: p.imageAttribution,
+    placeId: p.placeId,
+    url: p.url,
+    messages: p.messages
+  }
+})
+
+function renderActivityList(sorted) {
+  var html = sorted
+    .map(function (a, idx) {
+      var mapsUrl = a.placeId
+        ? 'https://www.google.com/maps/search/?api=1&query=' +
+          encodeURIComponent(a.activity) +
+          '&query_place_id=' +
+          a.placeId
+        : null
+      var mentionCount = a.messages.length
+      var badge = mentionCount > 1 ? '<span class="mention-badge">' + mentionCount + '</span>' : ''
+
+      var thumbContent
+      var hasImage = false
+      if (mapData.hasImages && a.imagePath) {
+        hasImage = true
+        thumbContent = '<img src="' + a.imagePath + '" class="activity-thumb" alt="" />'
+      } else {
+        var icon = mapData.categoryIcons[a.category] || mapData.categoryIcons.other
+        var color = mapData.categoryColors[a.category] || mapData.categoryColors.other
+        thumbContent =
+          '<div class="activity-thumb-placeholder" style="background-color:' +
+          color +
+          ';">' +
+          icon +
+          '</div>'
+      }
+      var wrapperClass = 'activity-thumb-wrapper' + (hasImage ? ' has-image' : '')
+      var thumb = '<div class="' + wrapperClass + '" data-idx="' + idx + '">' +
+        thumbContent + badge + '</div>'
+      var links =
+        (mapsUrl ? '<a href="' + mapsUrl + '" target="_blank">Google Maps</a>' : '') +
+        (a.url ? '<a href="' + a.url + '" target="_blank">Source</a>' : '')
+      var senderInfo = formatSenders(a.messages)
+      var senderHtml =
+        '<span class="sender-trigger" data-idx="' +
+        idx +
+        '">' +
+        senderInfo.label +
+        ': ' +
+        senderInfo.display +
+        '</span>'
+      return (
+        '<div class="activity-row">' +
+        thumb +
+        '<div class="activity-content">' +
+        '<div class="activity-title">' +
+        escapeHtml(a.activity) +
+        '</div>' +
+        '<div class="activity-meta">' +
+        (a.location ? '<span class="activity-location">' + escapeHtml(a.location) + '</span> · ' : '') +
+        senderHtml +
+        ' · ' +
+        a.date +
+        '</div>' +
+        '<div class="activity-links">' +
+        links +
+        '</div>' +
+        '</div></div>'
+      )
+    })
+    .join('')
+  document.getElementById('activityListBody').innerHTML = html
+  attachTooltipHandlers(sorted)
+  attachLightboxHandlers(sorted)
+}
+
+function attachLightboxHandlers(sorted) {
+  var thumbs = document.querySelectorAll('.activity-thumb-wrapper.has-image')
+  thumbs.forEach(function (thumb) {
+    var idx = parseInt(thumb.getAttribute('data-idx'), 10)
+    var a = sorted[idx]
+    if (!a || !a.imagePath) return
+
+    thumb.addEventListener('click', function () {
+      var lightboxImage = a.lightboxImagePath || a.mediumImagePath || a.imagePath
+      window.openLightbox(lightboxImage, a.activity, a.imageAttribution)
+    })
+
+    if (a.imageAttribution) {
+      thumb.addEventListener('mouseenter', function () {
+        showAttributionTooltip(thumb, a.imageAttribution.text)
+      })
+      thumb.addEventListener('mouseleave', hideTooltip)
+    }
+  })
+}
+
+function attachTooltipHandlers(sorted) {
+  var triggers = document.querySelectorAll('.sender-trigger[data-idx]')
+  triggers.forEach(function (trigger) {
+    trigger.addEventListener('mouseenter', function () {
+      var idx = parseInt(trigger.getAttribute('data-idx'), 10)
+      var a = sorted[idx]
+      if (!a) return
+      showTooltip(trigger, a.messages)
+    })
+    trigger.addEventListener('mouseleave', hideTooltip)
+  })
+}
+
+window.sortActivities = function (sortBy) {
+  var sorted = activities.slice()
+  if (sortBy === 'score')
+    sorted.sort(function (a, b) {
+      return b.score - a.score
+    })
+  else if (sortBy === 'oldest')
+    sorted.sort(function (a, b) {
+      return a.date.localeCompare(b.date)
+    })
+  else if (sortBy === 'newest')
+    sorted.sort(function (a, b) {
+      return b.date.localeCompare(a.date)
+    })
+  renderActivityList(sorted)
+}

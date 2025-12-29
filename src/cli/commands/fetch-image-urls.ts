@@ -58,11 +58,11 @@ function logStatsSummary(stats: FetchImagesStats, logger: Logger): void {
 export async function cmdFetchImageUrls(args: CLIArgs, logger: Logger): Promise<void> {
   const { ctx, config } = await initCommandContext('Fetch Image URLs', args, logger)
 
-  // Use StepRunner to handle dependencies: geocode → fetch-image-urls
+  // Use StepRunner to handle dependencies: placeLookup → fetch-image-urls
   const runner = new StepRunner(ctx, args, config, logger)
 
-  // Run geocode step (which runs the full pipeline up to geocode)
-  const { activities: geocodedActivities } = await runner.run('geocode')
+  // Run place lookup step (which runs the full pipeline up to place-lookup)
+  const { activities: geocodedActivities } = await runner.run('placeLookup')
 
   logger.log(`   Geocoded ${geocodedActivities.length} activities`)
 
@@ -76,7 +76,7 @@ export async function cmdFetchImageUrls(args: CLIArgs, logger: Logger): Promise<
     logger.log('\n📊 Image Fetch Estimate (dry run)')
     logger.log(`   Activities: ${geocodedActivities.length}`)
     const sources: string[] = []
-    if (!args.skipCdn) sources.push('CDN')
+    if (!args.skipMediaLibrary) sources.push('Media Library')
     if (!args.skipWikipedia) sources.push('Wikipedia')
     if (!args.skipPixabay && process.env.PIXABAY_API_KEY) sources.push('Pixabay')
     if (!args.skipGooglePlaces && process.env.GOOGLE_MAPS_API_KEY) sources.push('Google Places')
@@ -88,7 +88,7 @@ export async function cmdFetchImageUrls(args: CLIArgs, logger: Logger): Promise<
   // Media library path can come from CLI arg or config
   const mediaLibraryPath = args.mediaLibraryPath ?? config?.mediaLibraryPath
   const fetchResult = await stepFetchImageUrls(ctx, geocodedActivities, {
-    skipCdn: args.skipCdn,
+    skipMediaLibrary: args.skipMediaLibrary,
     skipPixabay: args.skipPixabay,
     skipWikipedia: args.skipWikipedia,
     skipGooglePlaces: args.skipGooglePlaces,
@@ -153,9 +153,9 @@ function displayActivities(
 
     if (image) {
       const queryInfo = image.query ? ` (query: "${image.query}")` : ''
-      logger.log(`   🖼️  ${image.source}${queryInfo}: ${image.url}`)
-      if (image.attribution) {
-        logger.log(`   📝 ${image.attribution.name}`)
+      logger.log(`   🖼️  ${image.meta.source}${queryInfo}: ${image.imageUrl}`)
+      if (image.meta.attribution) {
+        logger.log(`   📝 ${image.meta.attribution.name}`)
       }
     } else {
       logger.log(`   ⚠️  No image found`)

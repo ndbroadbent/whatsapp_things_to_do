@@ -1,0 +1,78 @@
+/* Tile layer styles */
+var tileStyles = {
+  osm: {
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; OpenStreetMap contributors',
+    label: 'Street'
+  },
+  satellite: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: '&copy; Esri',
+    label: 'Satellite'
+  },
+  terrain: {
+    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; OpenTopoMap',
+    label: 'Terrain'
+  }
+}
+
+// Get saved style from localStorage, or use default from mapData
+var STORAGE_KEY = 'chattomap-style'
+var savedStyle = null
+try {
+  savedStyle = localStorage.getItem(STORAGE_KEY)
+} catch (e) {
+  // localStorage not available
+}
+var currentStyle = savedStyle && tileStyles[savedStyle] ? savedStyle : (mapData.defaultStyle || 'osm')
+
+function setMapStyle(style) {
+  if (!tileStyles[style] || style === currentStyle) return
+  map.removeLayer(currentTileLayer)
+  currentTileLayer = L.tileLayer(tileStyles[style].url, {
+    attribution: tileStyles[style].attribution
+  }).addTo(map)
+  currentStyle = style
+  try {
+    localStorage.setItem(STORAGE_KEY, style)
+  } catch (e) {
+    // localStorage not available
+  }
+  updateStyleButtons()
+}
+
+function updateStyleButtons() {
+  var buttons = document.querySelectorAll('.style-btn')
+  buttons.forEach(function (btn) {
+    var style = btn.getAttribute('data-style')
+    btn.classList.toggle('active', style === currentStyle)
+  })
+}
+
+function initStyleControl() {
+  var styleControl = document.getElementById('styleControl')
+  if (styleControl) {
+    var styleHtml = Object.keys(tileStyles)
+      .map(function (style) {
+        var isActive = style === currentStyle ? ' active' : ''
+        return (
+          '<button class="style-btn' +
+          isActive +
+          '" data-style="' +
+          style +
+          '">' +
+          tileStyles[style].label +
+          '</button>'
+        )
+      })
+      .join('')
+    styleControl.innerHTML = styleHtml
+    styleControl.addEventListener('click', function (e) {
+      var btn = e.target.closest('.style-btn')
+      if (btn) {
+        setMapStyle(btn.getAttribute('data-style'))
+      }
+    })
+  }
+}

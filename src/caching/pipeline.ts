@@ -14,7 +14,7 @@
  * ├── candidates.all.json
  * ├── scraped_urls.json
  * ├── classifications.json
- * └── geocodings.json
+ * └── place_lookups.json
  * ```
  *
  * The sha256 is computed from the input file bytes (NOT content).
@@ -36,13 +36,13 @@ type PipelineStage =
   | 'scrape_stats'
   | 'scrape_metadata'
   | 'classify_stats'
-  | 'geocode_stats'
+  | 'place_lookup_stats'
   | 'fetch_images_stats'
   | 'candidates.heuristics'
   | 'candidates.embeddings'
   | 'candidates.all'
   | 'classifications'
-  | 'geocodings'
+  | 'place_lookups'
   | 'images'
 
 interface PipelineRunMeta {
@@ -97,7 +97,7 @@ const STAGES_WITH_TIMESTAMPS: PipelineStage[] = [
   'candidates.embeddings',
   'candidates.all',
   'classifications',
-  'geocodings'
+  'place_lookups'
 ]
 
 function stageHasTimestamps(stage: PipelineStage): boolean {

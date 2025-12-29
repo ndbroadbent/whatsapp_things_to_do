@@ -10,7 +10,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createActivity } from '../test-support'
-import type { CandidateMessage, ClassifiedActivity, GeocoderConfig } from '../types'
+import type { CandidateMessage, ClassifiedActivity, PlaceLookupConfig } from '../types'
 import { FilesystemCache } from './filesystem'
 
 // Base config with required fields for all tests
@@ -23,6 +23,7 @@ const BASE_CONFIG = {
 const mockFetch = vi.fn()
 vi.mock('../http', () => ({
   httpFetch: mockFetch,
+  guardedFetch: mockFetch, // place-lookup uses guardedFetch
   handleHttpError: async (response: { status: number; text: () => Promise<string> }) => {
     const errorText = await response.text()
     return {
@@ -305,14 +306,14 @@ describe('Cache Integration', () => {
     })
   })
 
-  describe('geocodeActivities cache integration', () => {
-    const config: GeocoderConfig = {
+  describe('lookupActivityPlaces cache integration', () => {
+    const config: PlaceLookupConfig = {
       apiKey: 'test-key',
       regionBias: 'NZ'
     }
 
     it('calls API on cache miss', async () => {
-      const { geocodeActivities } = await import('../geocoder/index')
+      const { lookupActivityPlaces } = await import('../place-lookup/index')
 
       const suggestions = [createClassifiedActivity(1, 'Try the cafe', 'Cuba Street, Wellington')]
 
@@ -330,14 +331,14 @@ describe('Cache Integration', () => {
         })
       })
 
-      const result = await geocodeActivities(suggestions, config, cache)
+      const result = await lookupActivityPlaces(suggestions, config, cache)
 
       expect(result).toHaveLength(1)
       expect(mockFetch).toHaveBeenCalledTimes(1)
     })
 
     it('skips API call on cache hit', async () => {
-      const { geocodeActivities } = await import('../geocoder/index')
+      const { lookupActivityPlaces } = await import('../place-lookup/index')
 
       const suggestions = [createClassifiedActivity(1, 'Try the cafe', 'Cuba Street, Wellington')]
 
@@ -356,16 +357,16 @@ describe('Cache Integration', () => {
       })
 
       // First call - should hit API
-      await geocodeActivities(suggestions, config, cache)
+      await lookupActivityPlaces(suggestions, config, cache)
       expect(mockFetch).toHaveBeenCalledTimes(1)
 
       // Second call - should use cache
-      await geocodeActivities(suggestions, config, cache)
+      await lookupActivityPlaces(suggestions, config, cache)
       expect(mockFetch).toHaveBeenCalledTimes(1)
     })
 
     it('makes new API call for different locations', async () => {
-      const { geocodeActivities } = await import('../geocoder/index')
+      const { lookupActivityPlaces } = await import('../place-lookup/index')
 
       // Mock successful API responses
       mockFetch.mockResolvedValueOnce({
@@ -395,14 +396,14 @@ describe('Cache Integration', () => {
       })
 
       // First call
-      await geocodeActivities(
+      await lookupActivityPlaces(
         [createClassifiedActivity(1, 'Try the cafe', 'Cuba Street, Wellington')],
         config,
         cache
       )
 
       // Second call with different location
-      await geocodeActivities(
+      await lookupActivityPlaces(
         [createClassifiedActivity(2, 'Visit Queenstown', 'Queenstown, New Zealand')],
         config,
         cache
