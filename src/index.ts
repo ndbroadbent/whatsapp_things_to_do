@@ -38,13 +38,6 @@ export {
   resolveModel,
   sortActivitiesByScore
 } from './classifier/index'
-export {
-  DEFAULT_ACTIVITIES,
-  findMatchingDefaultActivity,
-  getAllDefaultActivities,
-  getDefaultActivitiesForCategory,
-  isDefaultActivity
-} from './default-activities'
 // Export module
 export {
   exportToCSV,
