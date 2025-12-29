@@ -213,6 +213,10 @@ const SHARED_CATEGORIES_SECTION = `CATEGORIES: ${VALID_CATEGORIES.join(', ')}
 const SHARED_NORMALIZATION = `NORMALIZATION:
 - Normalize to common/informal variants: tramping→hike, cycling→bike, film→movie
 - Keep distinct categories: cafe≠restaurant, bar≠restaurant
+- KEEP SPECIFICITY: Don't strip qualifying words that make something distinct:
+  - "glow worm caves" → obj:"glow worm cave" (NOT just "cave" - completely different!)
+  - "hot air balloon" → obj:"hot air balloon" (NOT just "balloon")
+  - "escape room" → obj:"escape room" (NOT just "room")
 - DISAMBIGUATION: Some words have multiple meanings - use context to pick the right one:
   - "play pool" or "shoot pool" → obj:"billiards" (the cue game, NOT swimming pool)
   - "swim in pool" or "go to pool" → obj:"swimming pool"
@@ -410,4 +414,62 @@ export function separateCandidatesByType(candidates: readonly CandidateMessage[]
   }
 
   return { suggestions, agreements }
+}
+
+// ============================================================================
+// PROMPT SIGNATURE (for cache invalidation)
+// ============================================================================
+
+import { createHash } from 'node:crypto'
+
+/** Cached prompt signature - computed lazily on first use */
+let cachedPromptSignature: string | null = null
+
+/**
+ * Get a stable hash of the prompt template.
+ *
+ * Uses an "eigenprompt" approach: generates a prompt from a dummy candidate
+ * and hashes it. Any change to prompt structure/constants will change the hash.
+ *
+ * Computed lazily and cached for the lifetime of the process.
+ */
+export function getPromptSignature(): string {
+  if (cachedPromptSignature) return cachedPromptSignature
+
+  // Create a dummy candidate that exercises ALL prompt logic paths
+  const dummyContext: ContextMessage = {
+    id: 0,
+    timestamp: new Date('2000-01-01T00:00:00Z'),
+    sender: 'Y',
+    content: 'Y'
+  }
+  const dummyCandidate: CandidateMessage = {
+    messageId: 0,
+    timestamp: new Date('2000-01-01T00:00:00Z'),
+    sender: 'X',
+    content: 'X',
+    source: { type: 'regex', pattern: 'X' },
+    confidence: 1,
+    candidateType: 'suggestion',
+    contextBefore: [dummyContext],
+    contextAfter: [dummyContext]
+  }
+
+  // Build both prompt types to capture all template variations
+  const suggestionPrompt = buildClassificationPrompt(
+    [dummyCandidate],
+    { homeCountry: 'X' },
+    'suggestion'
+  )
+  const agreementPrompt = buildClassificationPrompt(
+    [dummyCandidate],
+    { homeCountry: 'X' },
+    'agreement'
+  )
+
+  // Hash the combined prompts - first 8 chars is enough for cache busting
+  const combined = suggestionPrompt + agreementPrompt
+  cachedPromptSignature = createHash('sha256').update(combined).digest('hex').slice(0, 8)
+
+  return cachedPromptSignature
 }

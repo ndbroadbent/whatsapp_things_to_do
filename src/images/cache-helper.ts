@@ -4,7 +4,7 @@
  * Shared caching utilities for image fetchers.
  */
 
-import type { ResponseCache } from '../cache/types'
+import type { ResponseCache } from '../caching/types'
 
 /**
  * Cache a successful result.

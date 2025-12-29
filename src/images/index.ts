@@ -17,7 +17,7 @@
  * See project_docs/IMAGES.md for full licensing rules.
  */
 
-import type { ResponseCache } from '../cache/types'
+import type { ResponseCache } from '../caching/types'
 import type { GeocodedActivity } from '../types/geocoder'
 import { fetchCdnDefaultImage } from './cdn'
 import { fetchGooglePlacesPhoto } from './google-places'

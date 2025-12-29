@@ -5,8 +5,8 @@
  */
 
 import countries from 'i18n-iso-countries'
-import { generateGeocodeCacheKey } from '../cache/key'
-import type { ResponseCache } from '../cache/types'
+import { generateGeocodeCacheKey } from '../caching/key'
+import type { ResponseCache } from '../caching/types'
 import { extractGoogleMapsCoords } from '../extraction/heuristics/url-classifier'
 import { httpFetch } from '../http'
 import {

@@ -11,8 +11,8 @@
  * API: https://en.wikipedia.org/w/api.php
  */
 
-import { generateImageCacheKey } from '../cache/key'
-import type { ResponseCache } from '../cache/types'
+import { generateImageCacheKey } from '../caching/key'
+import type { ResponseCache } from '../caching/types'
 import { httpFetch } from '../http'
 import type { GeocodedActivity } from '../types/geocoder'
 import { cacheNull, cacheResult, getCached } from './cache-helper'

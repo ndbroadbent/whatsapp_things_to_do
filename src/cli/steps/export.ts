@@ -6,6 +6,7 @@
 
 import { writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
+import type { ImageResult } from '../../images/types'
 import {
   exportToCSV,
   exportToExcel,
@@ -15,7 +16,7 @@ import {
   filterActivitiesForExport,
   VERSION
 } from '../../index'
-import type { GeocodedActivity, MapStyle, PDFConfig } from '../../types'
+import type { GeocodedActivity, ImageAttribution, MapStyle, PDFConfig } from '../../types'
 import type { CLIArgs } from '../args'
 import type { Config } from '../config'
 import { buildFilterOptions } from '../filter-options'
@@ -31,6 +32,8 @@ interface ExportOptions {
   readonly formats: readonly ExportFormat[]
   /** Thumbnails keyed by activity ID for PDF export */
   readonly thumbnails?: Map<string, Buffer>
+  /** Image results keyed by activity ID (for attribution) */
+  readonly images?: Map<string, ImageResult | null>
   /** CLI args for building filter options per format */
   readonly args: CLIArgs
   /** Config for building filter options per format */
@@ -102,7 +105,7 @@ export async function stepExport(
   activities: readonly GeocodedActivity[],
   options: ExportOptions
 ): Promise<ExportResult> {
-  const { outputDir, formats, args, config, thumbnails } = options
+  const { outputDir, formats, args, config, thumbnails, images } = options
   const inputFile = ctx.input
 
   await ensureDir(outputDir)
@@ -115,6 +118,9 @@ export async function stepExport(
   // Get map default style from args → config
   const mapDefaultStyle = parseMapStyle(args.mapDefaultStyle ?? config?.mapDefaultStyle)
 
+  // Extract image attributions from ImageResult objects
+  const imageAttributions = extractImageAttributions(images)
+
   for (const format of formats) {
     // Build filter options for this specific format (PDF can have different filters than others)
     const filter = buildFilterOptions(format, args, config)
@@ -126,6 +132,7 @@ export async function stepExport(
       outputDir,
       inputFile,
       thumbnails,
+      imageAttributions,
       pdfConfig,
       mapDefaultStyle
     )
@@ -145,12 +152,70 @@ function parseMapStyle(style: string | undefined): MapStyle | undefined {
   return undefined
 }
 
+/**
+ * Extract image attributions from ImageResult objects.
+ * Converts ImageResult.attribution to ImageAttribution format.
+ *
+ * Only sources with meaningful attribution are included:
+ * - wikipedia, pixabay, media_library
+ * - cdn/google_places/user_upload are excluded (no artist attribution)
+ */
+function extractImageAttributions(
+  images: Map<string, ImageResult | null> | undefined
+): Map<string, ImageAttribution> | undefined {
+  if (!images || images.size === 0) return undefined
+
+  const attributions = new Map<string, ImageAttribution>()
+  for (const [activityId, result] of images) {
+    if (result?.attribution) {
+      // Map image source to attribution source type
+      // Only include sources that have meaningful artist attribution
+      const source = mapToAttributionSource(result.source)
+      if (source) {
+        const attr: ImageAttribution = {
+          name: result.attribution.name,
+          url: result.attribution.url,
+          source
+        }
+        // Only add license if defined (exactOptionalPropertyTypes)
+        if (result.attribution.license !== undefined) {
+          ;(attr as { license: string }).license = result.attribution.license
+        }
+        attributions.set(activityId, attr)
+      }
+    }
+  }
+
+  return attributions.size > 0 ? attributions : undefined
+}
+
+/**
+ * Map ImageSource to ImageAttribution source.
+ * Returns null for sources that don't require visible attribution.
+ */
+function mapToAttributionSource(source: ImageResult['source']): ImageAttribution['source'] | null {
+  switch (source) {
+    case 'wikipedia':
+    case 'pixabay':
+    case 'media_library':
+      return source
+    case 'cdn':
+    case 'google_places':
+    case 'user_upload':
+      // These sources don't have artist attribution to display
+      return null
+    default:
+      return 'other'
+  }
+}
+
 async function exportFormat(
   format: ExportFormat,
   activities: readonly GeocodedActivity[],
   outputDir: string,
   inputFile: string,
   thumbnails: Map<string, Buffer> | undefined,
+  imageAttributions: Map<string, ImageAttribution> | undefined,
   pdfConfig: PDFConfig,
   mapDefaultStyle: MapStyle | undefined
 ): Promise<string | null> {
@@ -186,6 +251,7 @@ async function exportFormat(
       const html = exportToMapHTML(activities, {
         title: 'Things To Do',
         imagePaths,
+        imageAttributions,
         ...(mapDefaultStyle && { defaultStyle: mapDefaultStyle })
       })
       const mapPath = join(outputDir, 'map.html')

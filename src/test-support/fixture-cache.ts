@@ -27,7 +27,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { gunzipSync, gzipSync } from 'node:zlib'
-import type { CachedResponse, ResponseCache } from '../cache/types'
+import type { CachedResponse, ResponseCache } from '../caching/types'
 
 interface FixtureEntry<T = unknown> {
   response: CachedResponse<T>

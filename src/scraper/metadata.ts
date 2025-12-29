@@ -12,8 +12,8 @@
  */
 
 import { decode } from 'html-entities'
-import { generateUrlCacheKey } from '../cache/key'
-import type { ResponseCache } from '../cache/types'
+import { generateUrlCacheKey } from '../caching/key'
+import type { ResponseCache } from '../caching/types'
 import type { CandidateMessage } from '../types'
 import { scrapeUrl } from './index'
 import type { ScrapedMetadata, ScraperConfig } from './types'

@@ -9,7 +9,7 @@
  * and their responses as separate activities.
  */
 
-import type { ResponseCache } from '../cache/types'
+import type { ResponseCache } from '../caching/types'
 import type {
   CandidateMessage,
   EmbeddingConfig,

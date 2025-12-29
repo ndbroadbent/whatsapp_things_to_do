@@ -5,8 +5,8 @@
  * activity suggestions that don't match explicit patterns.
  */
 
-import { generateEmbeddingCacheKey } from '../../cache/key'
-import type { ResponseCache } from '../../cache/types'
+import { generateEmbeddingCacheKey } from '../../caching/key'
+import type { ResponseCache } from '../../caching/types'
 import { handleHttpError, handleNetworkError, httpFetch } from '../../http'
 import type {
   CandidateMessage,

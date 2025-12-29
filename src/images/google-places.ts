@@ -10,8 +10,8 @@
  * API: https://developers.google.com/maps/documentation/places/web-service/photos
  */
 
-import { generateImageCacheKey } from '../cache/key'
-import type { ResponseCache } from '../cache/types'
+import { generateImageCacheKey } from '../caching/key'
+import type { ResponseCache } from '../caching/types'
 import { httpFetch } from '../http'
 import { cacheNull, cacheResult, getCached } from './cache-helper'
 import type { ImageResult } from './types'

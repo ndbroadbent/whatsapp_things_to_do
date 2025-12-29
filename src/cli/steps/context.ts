@@ -6,8 +6,8 @@
 
 import { homedir } from 'node:os'
 import { basename, join } from 'node:path'
-import { FilesystemCache } from '../../cache/filesystem'
-import { hashFileBytes, PipelineCache } from '../../cache/pipeline'
+import { FilesystemCache } from '../../caching/filesystem'
+import { hashFileBytes, PipelineCache } from '../../caching/pipeline'
 import type { Logger } from '../logger'
 import { readInputFileWithMetadata } from './read'
 

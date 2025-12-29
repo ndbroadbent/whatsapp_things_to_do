@@ -5,6 +5,7 @@
  */
 
 import { createHash } from 'node:crypto'
+import { getPromptSignature } from '../classifier/prompt'
 import type { CacheKeyComponents } from './types'
 
 /**
@@ -65,13 +66,16 @@ export function generateEmbeddingCacheKey(model: string, inputs: readonly string
 
 /**
  * Generate cache key for classification requests.
- * Path: ai/<provider>/<model>/<hash>.json
+ * Path: ai/<provider>/<model>/<promptSig>/<hash>.json
+ *
+ * Includes prompt signature so cache is invalidated when prompt.ts changes.
  */
 export function generateClassifierCacheKey(
   provider: string,
   model: string,
   messages: readonly { readonly content: string; readonly messageId: number }[]
 ): string {
+  const promptSig = getPromptSignature()
   const hash = generateCacheKey({
     service: provider,
     model,
@@ -82,7 +86,7 @@ export function generateClassifierCacheKey(
       }))
     }
   })
-  return `ai/${provider}/${model}/${hash}`
+  return `ai/${provider}/${model}/${promptSig}/${hash}`
 }
 
 /**

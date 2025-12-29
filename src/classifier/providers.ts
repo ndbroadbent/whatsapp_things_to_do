@@ -5,8 +5,8 @@
  * Caching happens here - at the HTTP layer where we have access to both prompt and response.
  */
 
-import { generateClassifierCacheKey } from '../cache/key'
-import type { ResponseCache } from '../cache/types'
+import { generateClassifierCacheKey } from '../caching/key'
+import type { ResponseCache } from '../caching/types'
 import { emptyResponseError, handleHttpError, handleNetworkError, httpFetch } from '../http'
 import type { ClassifierConfig, ProviderConfig, Result } from '../types'
 import { DEFAULT_MODELS } from './models'

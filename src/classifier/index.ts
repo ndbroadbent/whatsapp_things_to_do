@@ -5,8 +5,8 @@
  * and extract activity/location details.
  */
 
-import { generateClassifierCacheKey } from '../cache/key'
-import type { ResponseCache } from '../cache/types'
+import { generateClassifierCacheKey } from '../caching/key'
+import type { ResponseCache } from '../caching/types'
 import {
   type ActivityCategory,
   type CandidateMessage,

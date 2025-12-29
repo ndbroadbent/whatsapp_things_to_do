@@ -5,7 +5,7 @@
  * Uses worker pool for parallel scraping with caching.
  */
 
-import { generateUrlCacheKey } from '../../cache/key'
+import { generateUrlCacheKey } from '../../caching/key'
 import { scrapeUrl } from '../../scraper/index'
 import { extractUrlsFromCandidates } from '../../scraper/metadata'
 import type { ScrapedMetadata } from '../../scraper/types'

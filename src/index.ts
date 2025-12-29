@@ -10,14 +10,14 @@
  */
 
 // Cache module
-export type { CachedResponse, CacheKeyComponents, ResponseCache } from './cache/index'
+export type { CachedResponse, CacheKeyComponents, ResponseCache } from './caching/index'
 export {
   FilesystemCache,
   generateCacheKey,
   generateClassifierCacheKey,
   generateEmbeddingCacheKey,
   generateGeocodeCacheKey
-} from './cache/index'
+} from './caching/index'
 // Categories and default activities
 export { VALID_CATEGORIES } from './categories'
 // Classifier module

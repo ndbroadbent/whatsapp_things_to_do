@@ -3,7 +3,7 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest'
-import type { CachedResponse, ResponseCache } from '../cache/types'
+import type { CachedResponse, ResponseCache } from '../caching/types'
 import { createGeocodedActivity } from '../test-support'
 import type { GeocodedActivity } from '../types/geocoder'
 import { clearMediaIndexCache, fetchImageForActivity, fetchImagesForActivities } from './index'

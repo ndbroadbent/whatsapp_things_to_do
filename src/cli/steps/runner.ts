@@ -221,9 +221,14 @@ export class StepRunner {
 
     // Only fetch images if explicitly requested via --images flag
     let thumbnails: Map<string, Buffer> = new Map()
+    let images: Map<string, ImageResult | null> = new Map()
     if (this.args.fetchImages) {
-      const result = await this.run('fetchImages')
-      thumbnails = result.thumbnails
+      const [imageUrlsResult, fetchResult] = await Promise.all([
+        this.run('fetchImageUrls'),
+        this.run('fetchImages')
+      ])
+      images = imageUrlsResult.images
+      thumbnails = fetchResult.thumbnails
     }
 
     const { stepExport } = await import('./export')
@@ -231,6 +236,7 @@ export class StepRunner {
       outputDir: this.args.outputDir,
       formats: this.args.formats as ExportFormat[],
       thumbnails,
+      images,
       args: this.args,
       config: this.config
     })

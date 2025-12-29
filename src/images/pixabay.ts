@@ -7,8 +7,8 @@
  * API: https://pixabay.com/api/docs/
  */
 
-import { generateImageCacheKey } from '../cache/key'
-import type { ResponseCache } from '../cache/types'
+import { generateImageCacheKey } from '../caching/key'
+import type { ResponseCache } from '../caching/types'
 import { httpFetch } from '../http'
 import type { GeocodedActivity } from '../types/geocoder'
 import { cacheNull, cacheResult, getCached } from './cache-helper'
@@ -135,7 +135,7 @@ function parsePixabayHit(hit: PixabayHit, query: string): ImageResult {
     height: hit.webformatHeight,
     source: 'pixabay',
     attribution: {
-      name: `Pixabay: ${hit.user}`,
+      name: hit.user,
       url: hit.pageURL
     },
     query
