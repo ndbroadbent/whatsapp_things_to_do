@@ -156,7 +156,8 @@ async function loadImageMeta(
   match: MediaLibraryMatch,
   config: ImageFetchConfig
 ): Promise<ImageMeta | null> {
-  const metaFilename = `${match.imageHash}-meta.json`
+  const { type, item, hash } = match.resolved
+  const metaFilename = `${hash}-meta.json`
 
   try {
     let raw: unknown
@@ -165,7 +166,7 @@ async function loadImageMeta(
       // Local filesystem
       const { readFileSync, existsSync } = await import('node:fs')
       const { join } = await import('node:path')
-      const fullPath = join(config.mediaLibraryPath, 'objects', match.objectName, metaFilename)
+      const fullPath = join(config.mediaLibraryPath, type, item, metaFilename)
 
       if (!existsSync(fullPath)) {
         return null
