@@ -29,6 +29,7 @@ interface FetchImagesStats {
   readonly fromCdn: number
   readonly fromGooglePlaces: number
   readonly fromWikipedia: number
+  readonly fromPexels: number
   readonly fromPixabay: number
   readonly fromUserUpload: number
   readonly failed: number
@@ -42,6 +43,7 @@ interface MutableStats {
   fromCdn: number
   fromGooglePlaces: number
   fromWikipedia: number
+  fromPexels: number
   fromPixabay: number
   fromUserUpload: number
   failed: number
@@ -65,13 +67,17 @@ interface FetchImagesResult {
 interface FetchImagesOptions {
   /** Skip media library (--no-image-cdn) */
   readonly skipMediaLibrary?: boolean | undefined
-  /** Skip Pixabay (no API key or --skip-pixabay) */
+  /** Skip Pexels (no API key or --skip-pexels) - primary stock source */
+  readonly skipPexels?: boolean | undefined
+  /** Skip Pixabay (no API key or --skip-pixabay) - fallback stock source */
   readonly skipPixabay?: boolean | undefined
   /** Skip Wikipedia */
   readonly skipWikipedia?: boolean | undefined
   /** Skip Google Places */
   readonly skipGooglePlaces?: boolean | undefined
-  /** Pixabay API key */
+  /** Pexels API key (primary stock source) */
+  readonly pexelsApiKey?: string | undefined
+  /** Pixabay API key (fallback stock source) */
   readonly pixabayApiKey?: string | undefined
   /** Google Places API key */
   readonly googlePlacesApiKey?: string | undefined
@@ -119,6 +125,7 @@ function calculateStats(images: Map<string, ImageResult | null>): FetchImagesSta
     fromCdn: 0,
     fromGooglePlaces: 0,
     fromWikipedia: 0,
+    fromPexels: 0,
     fromPixabay: 0,
     fromUserUpload: 0,
     failed: 0
@@ -152,6 +159,9 @@ function incrementSourceCount(stats: MutableStats, source: ImageResult['meta']['
     case 'wikipedia':
       stats.fromWikipedia++
       break
+    case 'pexels':
+      stats.fromPexels++
+      break
     case 'pixabay':
       stats.fromPixabay++
       break
@@ -170,9 +180,57 @@ function logStats(stats: FetchImagesStats, logger: PipelineContext['logger']): v
   if (stats.fromCdn > 0) logger.log(`   📦 ${stats.fromCdn} from CDN`)
   if (stats.fromUserUpload > 0) logger.log(`   📤 ${stats.fromUserUpload} from user uploads`)
   if (stats.fromWikipedia > 0) logger.log(`   📚 ${stats.fromWikipedia} from Wikipedia`)
-  if (stats.fromPixabay > 0) logger.log(`   🖼️  ${stats.fromPixabay} from Pixabay`)
+  if (stats.fromPexels > 0) logger.log(`   🖼️  ${stats.fromPexels} from Pexels`)
+  if (stats.fromPixabay > 0) logger.log(`   📷 ${stats.fromPixabay} from Pixabay`)
   if (stats.fromGooglePlaces > 0) logger.log(`   📍 ${stats.fromGooglePlaces} from Google Places`)
   if (stats.failed > 0) logger.log(`   ⚠️  ${stats.failed} not found`)
+}
+
+/**
+ * Build image fetch config from options and environment.
+ */
+function buildImageFetchConfig(options: FetchImagesOptions | undefined): ImageFetchConfig {
+  return {
+    skipMediaLibrary: options?.skipMediaLibrary ?? false,
+    skipPexels: options?.skipPexels ?? false,
+    skipPixabay: options?.skipPixabay ?? false,
+    skipWikipedia: options?.skipWikipedia ?? false,
+    skipGooglePlaces: options?.skipGooglePlaces ?? false,
+    pexelsApiKey: options?.pexelsApiKey ?? process.env.PEXELS_API_KEY,
+    pixabayApiKey: options?.pixabayApiKey ?? process.env.PIXABAY_API_KEY,
+    googlePlacesApiKey: options?.googlePlacesApiKey ?? process.env.GOOGLE_MAPS_API_KEY,
+    mediaLibraryPath: options?.mediaLibraryPath
+  }
+}
+
+/**
+ * Get list of available image sources based on config.
+ */
+function getAvailableSources(config: ImageFetchConfig): string[] {
+  const sources: string[] = []
+  if (!config.skipMediaLibrary) sources.push('Media Library')
+  if (!config.skipGooglePlaces && config.googlePlacesApiKey) sources.push('Google Places')
+  if (!config.skipPexels && config.pexelsApiKey) sources.push('Pexels')
+  if (!config.skipPixabay && config.pixabayApiKey) sources.push('Pixabay')
+  return sources
+}
+
+/**
+ * Create empty stats object.
+ */
+function createEmptyStats(): FetchImagesStats {
+  return {
+    activitiesProcessed: 0,
+    imagesFound: 0,
+    fromMediaLibrary: 0,
+    fromCdn: 0,
+    fromGooglePlaces: 0,
+    fromWikipedia: 0,
+    fromPexels: 0,
+    fromPixabay: 0,
+    fromUserUpload: 0,
+    failed: 0
+  }
 }
 
 /**
@@ -187,11 +245,11 @@ export async function stepFetchImageUrls(
   activities: readonly GeocodedActivity[],
   options?: FetchImagesOptions
 ): Promise<FetchImagesResult> {
-  const { pipelineCache, apiCache, logger, noCache } = ctx
+  const { pipelineCache, apiCache, logger, skipPipelineCache } = ctx
   const concurrency = options?.concurrency ?? DEFAULT_CONCURRENCY
 
   // Check pipeline cache - only valid if fetch_images_stats exists (completion marker)
-  if (!noCache && pipelineCache.hasStage('fetch_images_stats')) {
+  if (!skipPipelineCache && pipelineCache.hasStage('fetch_images_stats')) {
     const cached = pipelineCache.getStage<CachedImageData>('images')
     const stats = pipelineCache.getStage<FetchImagesStats>('fetch_images_stats')
 
@@ -211,17 +269,7 @@ export async function stepFetchImageUrls(
 
   if (activities.length === 0) {
     logger.log('\n🖼️  Fetching images... (no activities)')
-    const stats: FetchImagesStats = {
-      activitiesProcessed: 0,
-      imagesFound: 0,
-      fromMediaLibrary: 0,
-      fromCdn: 0,
-      fromGooglePlaces: 0,
-      fromWikipedia: 0,
-      fromPixabay: 0,
-      fromUserUpload: 0,
-      failed: 0
-    }
+    const stats = createEmptyStats()
     pipelineCache.setStage('fetch_images_stats', stats)
     pipelineCache.setStage<CachedImageData>('images', { entries: [] })
     return { images: new Map(), fromCache: false, stats }
@@ -231,24 +279,10 @@ export async function stepFetchImageUrls(
 
   // Build config from options and environment
   // NOTE: Scraped OG images are NOT used - they can only be link previews
-  const config: ImageFetchConfig = {
-    skipMediaLibrary: options?.skipMediaLibrary ?? false,
-    skipPixabay: options?.skipPixabay ?? false,
-    skipWikipedia: options?.skipWikipedia ?? false,
-    skipGooglePlaces: options?.skipGooglePlaces ?? false,
-    pixabayApiKey: options?.pixabayApiKey ?? process.env.PIXABAY_API_KEY,
-    googlePlacesApiKey:
-      options?.googlePlacesApiKey ??
-      process.env.GOOGLE_MAPS_API_KEY ??
-      process.env.GOOGLE_MAPS_API_KEY,
-    mediaLibraryPath: options?.mediaLibraryPath
-  }
+  const config = buildImageFetchConfig(options)
 
   // Log what sources are available
-  const sources: string[] = []
-  if (!config.skipMediaLibrary) sources.push('Media Library')
-  if (!config.skipGooglePlaces && config.googlePlacesApiKey) sources.push('Google Places')
-  if (!config.skipPixabay && config.pixabayApiKey) sources.push('Pixabay')
+  const sources = getAvailableSources(config)
   logger.log(`   Sources: ${sources.join(', ') || 'none'}`)
 
   // Process activities in parallel using worker pool

@@ -82,10 +82,10 @@ export async function stepClassify(
   candidates: readonly CandidateMessage[],
   options?: ClassifyOptions
 ): Promise<ClassifyResult> {
-  const { pipelineCache, apiCache, logger, noCache, cacheDir } = ctx
+  const { pipelineCache, apiCache, logger, skipPipelineCache, cacheDir } = ctx
 
   // Check pipeline cache - only valid if classify_stats exists (completion marker)
-  if (!noCache && pipelineCache.hasStage('classify_stats')) {
+  if (!skipPipelineCache && pipelineCache.hasStage('classify_stats')) {
     const activities = pipelineCache.getStage<ClassifiedActivity[]>('classifications') ?? []
     const stats = pipelineCache.getStage<ClassifyStats>('classify_stats')
     logger.log('\n🤖 Classifying candidates... 📦 cached')

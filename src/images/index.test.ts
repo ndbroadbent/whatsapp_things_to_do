@@ -43,6 +43,7 @@ describe('Images Module', () => {
       const config: ImageFetchConfig = {
         skipGooglePlaces: true,
         skipWikipedia: true,
+        skipPexels: true,
         skipPixabay: true,
         skipMediaLibrary: true
       }
@@ -58,6 +59,7 @@ describe('Images Module', () => {
       const config: ImageFetchConfig = {
         skipGooglePlaces: true,
         skipWikipedia: true,
+        skipPexels: true,
         skipPixabay: true,
         skipMediaLibrary: true,
         googlePlacesApiKey: 'test-key'
@@ -74,8 +76,42 @@ describe('Images Module', () => {
       const config: ImageFetchConfig = {
         skipGooglePlaces: true,
         skipWikipedia: true,
+        skipPexels: true,
         skipPixabay: true,
         skipMediaLibrary: true
+      }
+
+      const result = await fetchImageForActivity(activity, config, cache)
+
+      expect(result).toBeNull()
+    })
+
+    it('skips Pexels when skipPexels is true', async () => {
+      const cache = createMockCache()
+      const activity = createMockActivity({ action: 'hiking', object: 'mountains' })
+      const config: ImageFetchConfig = {
+        skipGooglePlaces: true,
+        skipWikipedia: true,
+        skipPexels: true,
+        skipPixabay: true,
+        skipMediaLibrary: true,
+        pexelsApiKey: 'test-key'
+      }
+
+      const result = await fetchImageForActivity(activity, config, cache)
+
+      expect(result).toBeNull()
+    })
+
+    it('skips Pexels when no API key provided', async () => {
+      const cache = createMockCache()
+      const activity = createMockActivity({ action: 'hiking' })
+      const config: ImageFetchConfig = {
+        skipGooglePlaces: true,
+        skipWikipedia: true,
+        skipPixabay: true,
+        skipMediaLibrary: true
+        // No pexelsApiKey
       }
 
       const result = await fetchImageForActivity(activity, config, cache)
@@ -89,6 +125,7 @@ describe('Images Module', () => {
       const config: ImageFetchConfig = {
         skipGooglePlaces: true,
         skipWikipedia: true,
+        skipPexels: true,
         skipPixabay: true,
         skipMediaLibrary: true,
         pixabayApiKey: 'test-key'
@@ -105,6 +142,7 @@ describe('Images Module', () => {
       const config: ImageFetchConfig = {
         skipGooglePlaces: true,
         skipWikipedia: true,
+        skipPexels: true,
         skipMediaLibrary: true
         // No pixabayApiKey
       }
@@ -119,6 +157,7 @@ describe('Images Module', () => {
       const activity = createMockActivity({ placeId: 'ChIJ123' })
       const config: ImageFetchConfig = {
         skipWikipedia: true,
+        skipPexels: true,
         skipPixabay: true,
         skipMediaLibrary: true
         // No googlePlacesApiKey
@@ -140,6 +179,7 @@ describe('Images Module', () => {
       const config: ImageFetchConfig = {
         skipGooglePlaces: true,
         skipWikipedia: true,
+        skipPexels: true,
         skipPixabay: true,
         skipMediaLibrary: true
       }
@@ -161,6 +201,7 @@ describe('Images Module', () => {
       const config: ImageFetchConfig = {
         skipGooglePlaces: true,
         skipWikipedia: true,
+        skipPexels: true,
         skipPixabay: true,
         skipMediaLibrary: true
       }

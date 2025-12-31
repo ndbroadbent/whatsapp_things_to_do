@@ -104,6 +104,7 @@ export {
   fetchGooglePlacesPhoto,
   fetchImageForActivity,
   fetchImagesForActivities,
+  fetchPexelsImage,
   fetchPixabayImage,
   fetchWikipediaImage,
   filterPixabayImages,

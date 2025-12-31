@@ -90,7 +90,8 @@ async function initContextWithHeader(
 
   return initContext(args.input, logger, {
     cacheDir: args.cacheDir,
-    noCache: args.noCache
+    noCache: args.noCache,
+    maxMessages: args.maxMessages
   })
 }
 

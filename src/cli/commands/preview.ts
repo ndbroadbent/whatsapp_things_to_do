@@ -119,7 +119,8 @@ export async function cmdPreview(args: CLIArgs, logger: Logger): Promise<void> {
   // Initialize pipeline context
   const ctx = await initContext(args.input, logger, {
     cacheDir: args.cacheDir,
-    noCache: args.noCache
+    noCache: args.noCache,
+    maxMessages: args.maxMessages
   })
 
   // Parse messages (uses cache) - required for scan step

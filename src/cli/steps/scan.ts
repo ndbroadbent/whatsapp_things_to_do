@@ -48,10 +48,10 @@ interface ScanOptions {
  * Chains: parse → scan
  */
 export function stepScan(ctx: PipelineContext, options?: ScanOptions): ScanResult {
-  const { pipelineCache, logger, noCache } = ctx
+  const { pipelineCache, logger, skipPipelineCache } = ctx
 
-  // Check cache (skip if noCache)
-  if (!noCache && pipelineCache.hasStage('candidates.heuristics')) {
+  // Check cache (skip if skipPipelineCache - e.g. --max-messages or --no-cache)
+  if (!skipPipelineCache && pipelineCache.hasStage('candidates.heuristics')) {
     const candidates = pipelineCache.getStage<CandidateMessage[]>('candidates.heuristics') ?? []
     const stats = pipelineCache.getStage<ScanStats>('scan_stats') ?? {
       totalUnique: candidates.length,

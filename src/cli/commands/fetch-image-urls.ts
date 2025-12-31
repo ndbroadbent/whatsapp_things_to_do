@@ -24,6 +24,7 @@ interface FetchImagesStats {
   fromMediaLibrary: number
   fromCdn: number
   fromWikipedia: number
+  fromPexels: number
   fromPixabay: number
   fromGooglePlaces: number
   fromUserUpload: number
@@ -50,6 +51,7 @@ function logStatsSummary(stats: FetchImagesStats, logger: Logger): void {
   if (stats.fromCdn > 0) logger.log(`   From CDN: ${stats.fromCdn}`)
   if (stats.fromUserUpload > 0) logger.log(`   From user uploads: ${stats.fromUserUpload}`)
   if (stats.fromWikipedia > 0) logger.log(`   From Wikipedia: ${stats.fromWikipedia}`)
+  if (stats.fromPexels > 0) logger.log(`   From Pexels: ${stats.fromPexels}`)
   if (stats.fromPixabay > 0) logger.log(`   From Pixabay: ${stats.fromPixabay}`)
   if (stats.fromGooglePlaces > 0) logger.log(`   From Google Places: ${stats.fromGooglePlaces}`)
   if (stats.failed > 0) logger.log(`   Not found: ${stats.failed}`)
@@ -78,6 +80,7 @@ export async function cmdFetchImageUrls(args: CLIArgs, logger: Logger): Promise<
     const sources: string[] = []
     if (!args.skipMediaLibrary) sources.push('Media Library')
     if (!args.skipWikipedia) sources.push('Wikipedia')
+    if (!args.skipPexels && process.env.PEXELS_API_KEY) sources.push('Pexels')
     if (!args.skipPixabay && process.env.PIXABAY_API_KEY) sources.push('Pixabay')
     if (!args.skipGooglePlaces && process.env.GOOGLE_MAPS_API_KEY) sources.push('Google Places')
     logger.log(`   Sources: ${sources.join(', ') || 'none'}`)

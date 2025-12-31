@@ -62,8 +62,13 @@ export function mergeAndDeduplicateCandidates(
   // Deduplicate agreements across all sources
   const result = deduplicateAgreements(merged, messages)
 
+  // Sort by messageId (chronological order) for stable batching.
+  // This ensures adding more messages doesn't shift earlier batches,
+  // allowing API cache hits for previously classified candidates.
+  const sorted = [...result.candidates].sort((a, b) => a.messageId - b.messageId)
+
   return {
-    candidates: result.candidates,
+    candidates: sorted,
     agreementsRemoved: result.removedCount
   }
 }
@@ -75,10 +80,10 @@ export function mergeAndDeduplicateCandidates(
  * Uses pipeline cache if available.
  */
 export async function stepFilter(ctx: PipelineContext): Promise<FilterResult> {
-  const { pipelineCache, apiCache, logger, noCache } = ctx
+  const { pipelineCache, apiCache, logger, skipPipelineCache } = ctx
 
   // Check cache - only valid if filter_stats exists (completion marker)
-  if (!noCache && pipelineCache.hasStage('filter_stats')) {
+  if (!skipPipelineCache && pipelineCache.hasStage('filter_stats')) {
     const cached = pipelineCache.getStage<CandidateMessage[]>('candidates.all') ?? []
     logger.log('\n🔍 Filtering candidates... 📦 cached')
     return {
@@ -99,7 +104,7 @@ export async function stepFilter(ctx: PipelineContext): Promise<FilterResult> {
 
   if (apiKey) {
     // Check embeddings cache
-    if (pipelineCache.hasStage('candidates.embeddings')) {
+    if (!skipPipelineCache && pipelineCache.hasStage('candidates.embeddings')) {
       embeddings = pipelineCache.getStage<CandidateMessage[]>('candidates.embeddings') ?? []
     } else {
       // Get messages for semantic search

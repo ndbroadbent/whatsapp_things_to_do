@@ -97,11 +97,11 @@ export async function stepPlaceLookup(
   activities: readonly ClassifiedActivity[],
   options?: PlaceLookupOptions
 ): Promise<PlaceLookupResult> {
-  const { pipelineCache, apiCache, logger, noCache } = ctx
+  const { pipelineCache, apiCache, logger, skipPipelineCache } = ctx
   const concurrency = options?.concurrency ?? DEFAULT_CONCURRENCY
 
   // Check pipeline cache - only valid if place_lookup_stats exists (completion marker)
-  if (!noCache && pipelineCache.hasStage('place_lookup_stats')) {
+  if (!skipPipelineCache && pipelineCache.hasStage('place_lookup_stats')) {
     const cached = pipelineCache.getStage<GeocodedActivity[]>('place_lookups') ?? []
     const stats = pipelineCache.getStage<PlaceLookupStats>('place_lookup_stats')
     logger.log('\n🌍 Looking up places... 📦 cached')

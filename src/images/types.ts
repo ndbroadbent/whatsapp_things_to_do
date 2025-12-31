@@ -21,7 +21,8 @@
 export type ImageSource =
   | 'unsplash' // Unsplash photos
   | 'unsplash+' // Unsplash+ (no attribution required)
-  | 'pixabay' // Pixabay stock photos
+  | 'pexels' // Pexels stock photos (primary stock source)
+  | 'pixabay' // Pixabay stock photos (fallback stock source)
   | 'wikipedia' // Wikipedia/Wikimedia Commons
   | 'google_places' // Google Places Photos API
   | 'user_upload' // User-provided replacement image
@@ -88,7 +89,10 @@ export interface ImageFetchConfig {
   /** Skip media library entirely (--no-media-library) */
   readonly skipMediaLibrary?: boolean | undefined
 
-  /** Skip Pixabay image search */
+  /** Skip Pexels image search (primary stock source) */
+  readonly skipPexels?: boolean | undefined
+
+  /** Skip Pixabay image search (fallback stock source) */
   readonly skipPixabay?: boolean | undefined
 
   /** Skip Wikipedia image lookup */
@@ -97,7 +101,10 @@ export interface ImageFetchConfig {
   /** Skip Google Places Photos */
   readonly skipGooglePlaces?: boolean | undefined
 
-  /** Pixabay API key */
+  /** Pexels API key (primary stock source) */
+  readonly pexelsApiKey?: string | undefined
+
+  /** Pixabay API key (fallback stock source) */
   readonly pixabayApiKey?: string | undefined
 
   /** Google Places API key */

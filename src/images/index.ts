@@ -4,8 +4,8 @@
  * Fetches images for activities using a priority chain:
  * 1. Google Places Photos (for venues with placeId)
  * 2. Media Library - Object match (curated images by object name/synonym)
- * 3. Pixabay (AI-filtered stock photos)
- * 4. Wikipedia (AI-filtered, license-checked)
+ * 3. Pexels (primary stock source - higher quality)
+ * 4. Pixabay (fallback stock source)
  * 5. Media Library - Action fallback (unambiguous action verbs)
  * 6. Category default (from media library)
  *
@@ -30,6 +30,7 @@ import {
   type MediaIndex,
   type MediaLibraryMatch
 } from './media-index'
+import { fetchPexelsImage } from './pexels'
 import { fetchPixabayImage } from './pixabay'
 import type { ImageFetchConfig, ImageMeta, ImageResult, ImageSource } from './types'
 
@@ -44,6 +45,7 @@ export {
   loadMediaIndex,
   type MediaIndexOptions
 } from './media-index'
+export { fetchPexelsImage } from './pexels'
 export { fetchPixabayImage } from './pixabay'
 export {
   filterPixabayImages,
@@ -73,8 +75,8 @@ let mediaIndexPath: string | null = null
  * Tries sources in priority order:
  * 1. Google Places (venue with placeId)
  * 2. Media Library - Object match
- * 3. Pixabay (AI-filtered)
- * 4. Wikipedia (AI-filtered + license checked)
+ * 3. Pexels (primary stock source - higher quality)
+ * 4. Pixabay (fallback stock source)
  * 5. Media Library - Action fallback
  * 6. Category default
  *
@@ -108,19 +110,25 @@ export async function fetchImageForActivity(
     if (result) return result
   }
 
-  // 3. Try Pixabay (if not skipped and has API key)
+  // 3. Try Pexels (primary stock source - higher quality)
+  if (!config.skipPexels && config.pexelsApiKey) {
+    const result = await fetchPexelsImage(activity, config.pexelsApiKey, cache)
+    if (result) return result
+  }
+
+  // 4. Try Pixabay (fallback stock source - when Pexels fails or is unavailable)
   if (!config.skipPixabay && config.pixabayApiKey) {
     const result = await fetchPixabayImage(activity, config.pixabayApiKey, cache)
     if (result) return result
   }
 
-  // 4. Try Media Library - Action fallback
+  // 5. Try Media Library - Action fallback
   if (mediaIndex && activity.action) {
     const result = await tryMediaLibraryActionFallback(activity, mediaIndex, config)
     if (result) return result
   }
 
-  // 5. Try Media Library - Category fallback
+  // 6. Try Media Library - Category fallback
   if (mediaIndex && activity.category && activity.category !== 'other') {
     const result = await tryMediaLibraryCategoryFallback(activity, mediaIndex, config)
     if (result) return result
@@ -231,6 +239,8 @@ function parseImageSource(source: unknown): ImageSource | null {
   if (typeof source !== 'string') return null
 
   switch (source) {
+    case 'pexels':
+      return 'pexels'
     case 'pixabay':
       return 'pixabay'
     case 'unsplash':
@@ -253,6 +263,7 @@ function parseImageSource(source: unknown): ImageSource | null {
  * - Wikipedia with CC-BY or CC-BY-SA licenses
  *
  * APPRECIATED (we show it, but not legally required):
+ * - Pexels (appreciated, link back to photographer)
  * - Unsplash (standard license)
  * - Pixabay
  *
@@ -268,8 +279,8 @@ export function shouldShowAttribution(source: ImageSource, license?: string): bo
   // Google Places - required per TOS
   if (source === 'google_places') return true
 
-  // Unsplash and Pixabay - appreciated (we show it)
-  if (source === 'unsplash' || source === 'pixabay') return true
+  // Pexels, Unsplash and Pixabay - appreciated (we show it)
+  if (source === 'pexels' || source === 'unsplash' || source === 'pixabay') return true
 
   // Wikipedia - depends on license
   if (source === 'wikipedia') {

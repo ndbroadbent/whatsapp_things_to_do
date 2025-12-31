@@ -19,6 +19,7 @@ export interface CLIArgs {
   skipPlaceLookup: boolean
   fetchImages: boolean
   skipMediaLibrary: boolean
+  skipPexels: boolean
   skipPixabay: boolean
   skipWikipedia: boolean
   skipGooglePlaces: boolean
@@ -175,6 +176,7 @@ function buildCLIArgs(commandName: string, input: string, opts: Record<string, u
     skipPlaceLookup: opts.skipPlaceLookup === true,
     fetchImages: opts.images === true,
     skipMediaLibrary: opts.mediaLibrary === false,
+    skipPexels: opts.skipPexels === true,
     skipPixabay: opts.skipPixabay === true,
     skipWikipedia: opts.skipWikipedia === true,
     skipGooglePlaces: opts.skipGooglePlaces === true,

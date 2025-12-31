@@ -30,10 +30,10 @@ export async function stepEmbed(
   ctx: PipelineContext,
   messages: readonly ParsedMessage[]
 ): Promise<EmbedResult> {
-  const { pipelineCache, apiCache, logger } = ctx
+  const { pipelineCache, apiCache, logger, skipPipelineCache } = ctx
 
   // Check cache - embed_stats is the completion marker
-  if (pipelineCache.hasStage('embed_stats')) {
+  if (!skipPipelineCache && pipelineCache.hasStage('embed_stats')) {
     const stats = pipelineCache.getStage<{ totalEmbedded: number }>('embed_stats')
     logger.log('\n🔮 Embedding messages... 📦 cached')
     return { totalEmbedded: stats?.totalEmbedded ?? 0, fromCache: true }

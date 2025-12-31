@@ -38,7 +38,8 @@ export async function cmdScan(args: CLIArgs, logger: Logger): Promise<void> {
   // Initialize pipeline context
   const ctx = await initContext(args.input, logger, {
     noCache: args.noCache,
-    cacheDir: args.cacheDir
+    cacheDir: args.cacheDir,
+    maxMessages: args.maxMessages
   })
 
   // Run parse step (for stats display)

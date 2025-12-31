@@ -339,6 +339,39 @@ rm -rf ~/.cache/chat-to-map           # Clear all
 rm -rf ~/.cache/chat-to-map/requests  # Clear API cache only
 ```
 
+## User CLI Config
+
+The CLI config file is at `~/.config/chat-to-map/config.json`:
+
+```json
+{
+  "homeCountry": "New Zealand",
+  "timezone": "Pacific/Auckland",
+  "mediaLibraryPath": "/Users/ndbroadbent/code/chat_to_map_worktrees/media-library/media_library/images",
+  "pdfThumbnails": true,
+  "fetchImages": true
+}
+```
+
+## Media Library
+
+**Local path:** `/Users/ndbroadbent/code/chat_to_map_worktrees/media-library/media_library/images/`
+**CDN:** `https://media.chattomap.com/images/` (synced via rclone to R2)
+
+```
+images/
+├── objects/          # ~700 curated activity images (swimming, restaurant, etc.)
+├── categories/       # Category fallback images (references to objects)
+├── countries/        # Country images (France, Japan, New Zealand, etc.)
+├── regions/          # Region images (future)
+├── cities/           # City images (future)
+├── venues/           # Venue images (future)
+├── index.json        # Index with all entries and synonyms (local)
+└── index.json.gz     # Compressed index (CDN)
+```
+
+Use `mediaLibraryPath` in config or `--media-library-path` CLI flag to use local images instead of CDN.
+
 ## What NOT to Do
 
 - ❌ Add IO operations to core library functions

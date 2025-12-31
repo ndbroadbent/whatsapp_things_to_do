@@ -19,6 +19,8 @@ interface InitContextOptions {
   readonly noCache?: boolean | undefined
   /** Custom cache directory (overrides env var and default) */
   readonly cacheDir?: string | undefined
+  /** Limit messages processed (for testing) - skips pipeline cache */
+  readonly maxMessages?: number | undefined
 }
 
 /**
@@ -41,6 +43,11 @@ export interface PipelineContext {
   readonly cacheDir: string
   /** Skip cache and regenerate all results */
   readonly noCache: boolean
+  /**
+   * Skip pipeline cache for step outputs (but still use API cache).
+   * Set when --max-messages is used since message limits affect all outputs.
+   */
+  readonly skipPipelineCache: boolean
 }
 
 /**
@@ -66,6 +73,9 @@ export async function initContext(
 ): Promise<PipelineContext> {
   const cacheDir = getCacheDir(options?.cacheDir)
   const noCache = options?.noCache ?? false
+  // Skip pipeline cache when --max-messages is used (since message limits affect all outputs)
+  // API cache is still used for embedding/classification/geocoding responses
+  const skipPipelineCache = noCache || options?.maxMessages !== undefined
 
   // Hash file once upfront
   const fileHash = hashFileBytes(input)
@@ -108,6 +118,7 @@ export async function initContext(
     apiCache,
     logger,
     cacheDir,
-    noCache
+    noCache,
+    skipPipelineCache
   }
 }

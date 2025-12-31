@@ -323,7 +323,8 @@ export function createProgram(): Command {
     .argument('<input>', 'Chat export file or directory')
     .option('--json [file]', 'Output as JSON (to file if specified, otherwise stdout)')
     .option('--no-media-library', 'Skip media library images')
-    .option('--skip-pixabay', 'Skip Pixabay image search')
+    .option('--skip-pexels', 'Skip Pexels image search (primary stock source)')
+    .option('--skip-pixabay', 'Skip Pixabay image search (fallback stock source)')
     .option('--skip-wikipedia', 'Skip Wikipedia image lookup')
     .option('--skip-google-places', 'Skip Google Places photos')
     .option(

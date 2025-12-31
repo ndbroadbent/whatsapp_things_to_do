@@ -44,11 +44,11 @@ interface ParseOptions {
  * Checks pipeline cache first, parses fresh if needed.
  */
 export function stepParse(ctx: PipelineContext, options?: ParseOptions): ParseResult {
-  const { pipelineCache, content, logger, noCache } = ctx
+  const { pipelineCache, content, logger, skipPipelineCache } = ctx
   const source = detectChatSource(content)
 
-  // Check cache (skip if noCache)
-  if (!noCache && pipelineCache.hasStage('messages')) {
+  // Check cache (skip if skipPipelineCache - e.g. --max-messages or --no-cache)
+  if (!skipPipelineCache && pipelineCache.hasStage('messages')) {
     const messages = pipelineCache.getStage<ParsedMessage[]>('messages') ?? []
     const stats =
       pipelineCache.getStage<ParseResult['stats']>('parse_stats') ?? computeStats(messages)

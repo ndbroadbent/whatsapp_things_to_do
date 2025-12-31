@@ -12,6 +12,7 @@ import type { ResponseCache } from '../caching/types'
 import { httpFetch } from '../http'
 import type { GeocodedActivity } from '../types/place-lookup'
 import { cacheNull, cacheResult, getCached } from './cache-helper'
+import { buildStockImageQuery } from './query-builder'
 import type { ImageResult } from './types'
 
 const PIXABAY_API = 'https://pixabay.com/api/'
@@ -26,7 +27,7 @@ export async function fetchPixabayImage(
   apiKey: string,
   cache: ResponseCache
 ): Promise<ImageResult | null> {
-  const query = buildSearchQuery(activity)
+  const query = buildStockImageQuery(activity)
   if (!query) return null
 
   const cacheKey = generateImageCacheKey('pixabay', query)
@@ -74,41 +75,6 @@ export async function fetchPixabayImage(
     await cacheNull(cache, cacheKey)
     return null
   }
-}
-
-/**
- * Build search query from activity fields.
- *
- * Always includes: action/object + location (venue/city/region/country) + imageKeywords
- *
- * E.g., "go trip" + "Bay of Islands" + ["coast", "beach", "ocean"]
- *     → "go trip Bay of Islands coast beach ocean"
- */
-function buildSearchQuery(activity: GeocodedActivity): string | null {
-  const parts: string[] = []
-
-  // Add action and/or object
-  if (activity.action) parts.push(activity.action)
-  if (activity.object) parts.push(activity.object)
-
-  // Always add location - venue, city, region, or country (first available)
-  const location = activity.venue ?? activity.city ?? activity.region ?? activity.country
-  if (location) parts.push(location)
-
-  // Add AI-generated keywords for disambiguation
-  if (activity.imageKeywords && activity.imageKeywords.length > 0) {
-    parts.push(...activity.imageKeywords)
-  }
-
-  // Fallback to category if nothing else
-  if (parts.length === 0 && activity.category && activity.category !== 'other') {
-    parts.push(activity.category)
-  }
-
-  if (parts.length === 0) return null
-
-  // Pixabay query max 100 chars
-  return parts.join(' ').slice(0, 100)
 }
 
 interface PixabayHit {

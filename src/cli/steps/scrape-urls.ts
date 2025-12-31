@@ -80,12 +80,12 @@ export async function stepScrapeUrls(
   candidates: readonly CandidateMessage[],
   options?: ScrapeOptions
 ): Promise<ScrapeStepResult> {
-  const { pipelineCache, apiCache, logger, noCache } = ctx
+  const { pipelineCache, apiCache, logger, skipPipelineCache } = ctx
   const timeout = options?.timeout ?? DEFAULT_TIMEOUT_MS
   const concurrency = options?.concurrency ?? DEFAULT_CONCURRENCY
 
   // Check pipeline cache - only valid if scrape_stats exists (completion marker)
-  if (!noCache && pipelineCache.hasStage('scrape_stats')) {
+  if (!skipPipelineCache && pipelineCache.hasStage('scrape_stats')) {
     const stats = pipelineCache.getStage<ScrapeStats>('scrape_stats')
     const cached = pipelineCache.getStage<CachedScrapeData>('scrape_metadata')
     if (stats && cached) {
