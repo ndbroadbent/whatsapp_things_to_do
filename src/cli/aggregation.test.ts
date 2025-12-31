@@ -15,7 +15,6 @@ function createActivity(
 ): ClassifiedActivity {
   const { id, ...rest } = overrides
   return createTestActivity({
-    action: 'try',
     messages: [
       {
         id,
@@ -40,9 +39,8 @@ describe('Aggregation Module', () => {
         createActivity({
           id: 1,
           activity: 'Dinner at Italian Place',
-          action: 'eat',
-          object: 'dinner',
-          venue: 'Trattoria Roma',
+          image: { stock: 'italian dinner rome', mediaKey: 'dinner', preferStock: false },
+          placeName: 'Trattoria Roma',
           city: 'Rome',
           country: 'Italy'
         })
@@ -62,22 +60,19 @@ describe('Aggregation Module', () => {
         createActivity({
           id: 1,
           activity: 'pottery class',
-          action: 'take',
-          object: 'class',
+          image: { stock: 'pottery class', mediaKey: 'pottery', preferStock: false },
           city: 'Auckland'
         }),
         createActivity({
           id: 2,
           activity: 'Pottery Class',
-          action: 'take',
-          object: 'class',
+          image: { stock: 'pottery class', mediaKey: 'pottery', preferStock: false },
           city: 'Auckland'
         }),
         createActivity({
           id: 3,
           activity: 'pottery classes',
-          action: 'take',
-          object: 'class',
+          image: { stock: 'pottery class', mediaKey: 'pottery', preferStock: false },
           city: 'Auckland'
         })
       ]
@@ -90,22 +85,20 @@ describe('Aggregation Module', () => {
       expect(getMentionCount(first)).toBe(3)
     })
 
-    it('groups by field match when non-compound with wildcards', () => {
-      // Same action/object, one has city, one has country only - should match
+    it('groups by field match with wildcards', () => {
+      // Same mediaKey, one has city, one has country only - should match
       const activities = [
         createActivity({
           id: 1,
           activity: 'Go hiking in NZ',
-          action: 'hike',
-          object: 'trail',
+          image: { stock: 'hiking trail queenstown', mediaKey: 'hiking', preferStock: true },
           city: 'Queenstown',
           country: 'New Zealand'
         }),
         createActivity({
           id: 2,
           activity: 'Hiking trip',
-          action: 'hike',
-          object: 'trail',
+          image: { stock: 'hiking nz', mediaKey: 'hiking', preferStock: true },
           country: 'New Zealand'
         })
       ]
@@ -118,53 +111,24 @@ describe('Aggregation Module', () => {
       expect(getMentionCount(first)).toBe(2)
     })
 
-    it('does not group compound activities by fields', () => {
-      const activities = [
-        createActivity({
-          id: 1,
-          activity: 'Go to Iceland and see aurora',
-          action: 'visit',
-          object: 'aurora',
-          country: 'Iceland',
-          isCompound: true
-        }),
-        createActivity({
-          id: 2,
-          activity: 'Visit Iceland for northern lights',
-          action: 'visit',
-          object: 'aurora',
-          country: 'Iceland',
-          isCompound: true
-        })
-      ]
-
-      const result = aggregateActivities(activities)
-
-      // Compound activities only match on exact title, not fields
-      expect(result).toHaveLength(2)
-    })
-
-    it('does not group activities with different actions', () => {
+    it('does not group activities with different mediaKeys', () => {
       const activities = [
         createActivity({
           id: 1,
           activity: 'pottery class',
-          action: 'make',
-          object: 'pottery',
+          image: { stock: 'pottery class', mediaKey: 'pottery', preferStock: false },
           city: 'Auckland'
         }),
         createActivity({
           id: 2,
           activity: 'cooking class',
-          action: 'cook',
-          object: 'food',
+          image: { stock: 'cooking class', mediaKey: 'cooking', preferStock: false },
           city: 'Auckland'
         }),
         createActivity({
           id: 3,
           activity: 'yoga class',
-          action: 'practice',
-          object: 'yoga',
+          image: { stock: 'yoga class', mediaKey: 'yoga', preferStock: false },
           city: 'Auckland'
         })
       ]
@@ -175,22 +139,20 @@ describe('Aggregation Module', () => {
       expect(result.every((r) => getMentionCount(r) === 1)).toBe(true)
     })
 
-    it('groups by venue similarity (95%)', () => {
+    it('groups by placeName similarity (95%)', () => {
       const activities = [
         createActivity({
           id: 1,
           activity: 'Dinner at Kazuya',
-          action: 'eat',
-          object: 'dinner',
-          venue: 'Kazuya Restaurant',
+          image: { stock: 'dinner kazuya auckland', mediaKey: 'restaurant', preferStock: true },
+          placeName: 'Kazuya Restaurant',
           city: 'Auckland'
         }),
         createActivity({
           id: 2,
           activity: 'Try Kazuya',
-          action: 'eat',
-          object: 'dinner',
-          venue: 'Kazuya',
+          image: { stock: 'kazuya restaurant', mediaKey: 'restaurant', preferStock: true },
+          placeName: 'Kazuya',
           city: 'Auckland'
         })
       ]
@@ -206,8 +168,7 @@ describe('Aggregation Module', () => {
         createActivity({
           id: 1,
           activity: 'pottery class',
-          action: 'take',
-          object: 'class',
+          image: { stock: 'pottery class', mediaKey: 'pottery', preferStock: false },
           messages: [
             { id: 1, sender: 'Alice', timestamp: new Date('2022-01-15'), message: 'pottery' }
           ]
@@ -215,8 +176,7 @@ describe('Aggregation Module', () => {
         createActivity({
           id: 2,
           activity: 'Pottery Class',
-          action: 'take',
-          object: 'class',
+          image: { stock: 'pottery class', mediaKey: 'pottery', preferStock: false },
           messages: [
             { id: 2, sender: 'Bob', timestamp: new Date('2023-06-20'), message: 'pottery' }
           ]
@@ -224,8 +184,7 @@ describe('Aggregation Module', () => {
         createActivity({
           id: 3,
           activity: 'pottery classes',
-          action: 'take',
-          object: 'class',
+          image: { stock: 'pottery class', mediaKey: 'pottery', preferStock: false },
           messages: [
             { id: 3, sender: 'Charlie', timestamp: new Date('2024-12-01'), message: 'pottery' }
           ]
@@ -246,8 +205,8 @@ describe('Aggregation Module', () => {
         createActivity({
           id: 1,
           activity: 'Dinner at Sidart',
-          action: 'eat',
-          venue: 'Sidart',
+          image: { stock: 'sidart restaurant auckland', mediaKey: 'restaurant', preferStock: true },
+          placeName: 'Sidart',
           city: 'Auckland',
           messages: [
             { id: 1, sender: 'Alice', timestamp: new Date('2022-01-01'), message: 'Try Sidart' }
@@ -256,8 +215,8 @@ describe('Aggregation Module', () => {
         createActivity({
           id: 2,
           activity: 'dinner at Sidart',
-          action: 'eat',
-          venue: 'Sidart',
+          image: { stock: 'sidart restaurant auckland', mediaKey: 'restaurant', preferStock: true },
+          placeName: 'Sidart',
           city: 'Auckland',
           messages: [
             { id: 2, sender: 'Bob', timestamp: new Date('2023-01-01'), message: 'Sidart is great' }
@@ -266,8 +225,8 @@ describe('Aggregation Module', () => {
         createActivity({
           id: 3,
           activity: 'Dinner at sidart',
-          action: 'eat',
-          venue: 'Sidart',
+          image: { stock: 'sidart restaurant auckland', mediaKey: 'restaurant', preferStock: true },
+          placeName: 'Sidart',
           city: 'Auckland',
           messages: [
             {
@@ -296,24 +255,21 @@ describe('Aggregation Module', () => {
       const act1 = createActivity({
         id: 1,
         activity: 'pottery class',
-        action: 'take',
-        object: 'class',
+        image: { stock: 'pottery class', mediaKey: 'pottery', preferStock: false },
         funScore: 4.0,
         interestingScore: 3.0
       })
       const act2 = createActivity({
         id: 2,
         activity: 'Pottery Class',
-        action: 'take',
-        object: 'class',
+        image: { stock: 'pottery class', mediaKey: 'pottery', preferStock: false },
         funScore: 3.0,
         interestingScore: 2.0
       })
       const act3 = createActivity({
         id: 3,
         activity: 'pottery classes',
-        action: 'take',
-        object: 'class',
+        image: { stock: 'pottery class', mediaKey: 'pottery', preferStock: false },
         funScore: 3.5,
         interestingScore: 2.5
       })
@@ -332,8 +288,7 @@ describe('Aggregation Module', () => {
         createActivity({
           id: 1,
           activity: 'pottery class',
-          action: 'take',
-          object: 'class',
+          image: { stock: 'pottery class auckland', mediaKey: 'pottery', preferStock: false },
           city: 'Auckland',
           country: 'New Zealand',
           messages: [
@@ -343,8 +298,7 @@ describe('Aggregation Module', () => {
         createActivity({
           id: 2,
           activity: 'Pottery Class',
-          action: 'take',
-          object: 'class',
+          image: { stock: 'pottery class wellington', mediaKey: 'pottery', preferStock: false },
           city: 'Wellington',
           country: 'New Zealand',
           messages: [
@@ -364,10 +318,9 @@ describe('Aggregation Module', () => {
 
   describe('filterByMentionCount', () => {
     it('filters activities below minimum count', () => {
-      const act1 = createActivity({ id: 1, activity: 'once', action: 'do' })
+      const act1 = createActivity({ id: 1, activity: 'once' })
       const act2 = createTestActivity({
         activity: 'thrice',
-        action: 'do',
         messages: [
           { id: 2, sender: 'A', timestamp: new Date(), message: 'thrice' },
           { id: 3, sender: 'B', timestamp: new Date(), message: 'thrice' },
@@ -376,7 +329,6 @@ describe('Aggregation Module', () => {
       })
       const act3 = createTestActivity({
         activity: 'five times',
-        action: 'do',
         messages: [
           { id: 5, sender: 'A', timestamp: new Date(), message: 'five' },
           { id: 6, sender: 'B', timestamp: new Date(), message: 'five' },
@@ -395,14 +347,38 @@ describe('Aggregation Module', () => {
 
   describe('getMostWanted', () => {
     it('returns only activities mentioned more than once', () => {
-      // Three distinct activities with different actions - they should NOT merge
+      // Three distinct activities with different mediaKeys - they should NOT merge
       const raw = [
-        createActivity({ id: 1, activity: 'Once mentioned', action: 'visit', object: 'place' }),
-        createActivity({ id: 2, activity: 'Twice mentioned', action: 'try', object: 'food' }),
-        createActivity({ id: 3, activity: 'twice mentioned', action: 'try', object: 'food' }),
-        createActivity({ id: 4, activity: 'Thrice mentioned', action: 'explore', object: 'trail' }),
-        createActivity({ id: 5, activity: 'thrice mentioned', action: 'explore', object: 'trail' }),
-        createActivity({ id: 6, activity: 'Thrice Mentioned', action: 'explore', object: 'trail' })
+        createActivity({
+          id: 1,
+          activity: 'Once mentioned',
+          image: { stock: 'once', mediaKey: 'place', preferStock: false }
+        }),
+        createActivity({
+          id: 2,
+          activity: 'Twice mentioned',
+          image: { stock: 'twice', mediaKey: 'food', preferStock: false }
+        }),
+        createActivity({
+          id: 3,
+          activity: 'twice mentioned',
+          image: { stock: 'twice', mediaKey: 'food', preferStock: false }
+        }),
+        createActivity({
+          id: 4,
+          activity: 'Thrice mentioned',
+          image: { stock: 'thrice', mediaKey: 'trail', preferStock: false }
+        }),
+        createActivity({
+          id: 5,
+          activity: 'thrice mentioned',
+          image: { stock: 'thrice', mediaKey: 'trail', preferStock: false }
+        }),
+        createActivity({
+          id: 6,
+          activity: 'Thrice Mentioned',
+          image: { stock: 'thrice', mediaKey: 'trail', preferStock: false }
+        })
       ]
 
       const deduped = aggregateActivities(raw)
@@ -415,12 +391,36 @@ describe('Aggregation Module', () => {
     it('respects limit parameter', () => {
       // Three distinct activities that will each merge into one
       const raw = [
-        createActivity({ id: 1, activity: 'Activity A', action: 'do', object: 'thing-a' }),
-        createActivity({ id: 2, activity: 'activity a', action: 'do', object: 'thing-a' }),
-        createActivity({ id: 3, activity: 'Activity B', action: 'see', object: 'thing-b' }),
-        createActivity({ id: 4, activity: 'activity b', action: 'see', object: 'thing-b' }),
-        createActivity({ id: 5, activity: 'Activity C', action: 'try', object: 'thing-c' }),
-        createActivity({ id: 6, activity: 'activity c', action: 'try', object: 'thing-c' })
+        createActivity({
+          id: 1,
+          activity: 'Activity A',
+          image: { stock: 'activity a', mediaKey: 'thing-a', preferStock: false }
+        }),
+        createActivity({
+          id: 2,
+          activity: 'activity a',
+          image: { stock: 'activity a', mediaKey: 'thing-a', preferStock: false }
+        }),
+        createActivity({
+          id: 3,
+          activity: 'Activity B',
+          image: { stock: 'activity b', mediaKey: 'thing-b', preferStock: false }
+        }),
+        createActivity({
+          id: 4,
+          activity: 'activity b',
+          image: { stock: 'activity b', mediaKey: 'thing-b', preferStock: false }
+        }),
+        createActivity({
+          id: 5,
+          activity: 'Activity C',
+          image: { stock: 'activity c', mediaKey: 'thing-c', preferStock: false }
+        }),
+        createActivity({
+          id: 6,
+          activity: 'activity c',
+          image: { stock: 'activity c', mediaKey: 'thing-c', preferStock: false }
+        })
       ]
 
       const deduped = aggregateActivities(raw)

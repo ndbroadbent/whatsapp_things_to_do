@@ -22,7 +22,12 @@ export {
 // Categories and default activities
 export { VALID_CATEGORIES } from './categories'
 // Classifier module
-export type { ResolvedModel } from './classifier/index'
+export type {
+  ParsedClassification,
+  ParsedImageHints,
+  ParsedLinkHints,
+  ResolvedModel
+} from './classifier/index'
 export {
   buildClassificationPrompt,
   type ClassificationContext,
@@ -109,7 +114,6 @@ export {
   fetchWikipediaImage,
   filterPixabayImages,
   filterWikipediaImages,
-  findActionFallbackImage,
   findCategoryFallbackImage,
   findObjectImage,
   hasAllowedLicense,
@@ -186,6 +190,8 @@ export type {
   ChatSource,
   CLIOptions,
   ClassifiedActivity,
+  ClassifiedImageHints,
+  ClassifiedLinkHints,
   ClassifierConfig,
   ClassifierProvider,
   EmbeddedMessage,

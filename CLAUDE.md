@@ -212,7 +212,10 @@ task hooks:run        # Run pre-commit manually
 - Use their own vitest config: `src/cli/e2e/vitest.config.ts`
 - Excluded from regular `task test` runs
 - Run with `task test:e2e` or `bun run test:e2e`
-- To run a single E2E test file: `bun run test:e2e -- src/cli/e2e/5-preview.test.ts`
+- To run a single E2E test file: `task test:e2e -- src/cli/e2e/07-classify.test.ts`
+- To preserve temp cache dir for debugging: `DEBUG_E2E=1 task test:e2e -- src/cli/e2e/07-classify.test.ts`
+- To update cache fixture (allow real API calls): `UPDATE_E2E_CACHE=true task test:e2e`
+- To rebuild cache fixture from scratch: `REPLACE_E2E_CACHE=true task test:e2e`
 
 **VCR Testing Model:** Tests are NEVER skipped. API responses are recorded locally and replayed on CI:
 1. Run tests locally with API keys in `.env` → responses cached to fixtures

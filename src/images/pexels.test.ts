@@ -32,10 +32,9 @@ function createMockCache(): ResponseCache {
 function createMockActivity(overrides: Partial<GeocodedActivity> = {}): GeocodedActivity {
   return createGeocodedActivity({
     activity: 'Go hiking',
-    confidence: 0.8,
+    score: 0.8,
     category: 'nature',
-    action: 'hiking',
-    object: 'mountains',
+    image: { stock: 'hiking mountains nature', mediaKey: 'hiking', preferStock: true },
     ...overrides
   })
 }
@@ -58,17 +57,14 @@ describe('Pexels Image Fetching', () => {
   })
 
   describe('fetchPexelsImage', () => {
-    it('returns null when no action/object/category available', async () => {
+    it('returns null when no stock query available', async () => {
       const cache = createMockCache()
       const activity = createMockActivity({
-        action: null,
-        object: null,
+        image: { stock: '', mediaKey: null, preferStock: false },
         category: 'other',
-        venue: null,
         city: null,
         region: null,
-        country: null,
-        imageKeywords: []
+        country: null
       })
 
       const result = await fetchPexelsImage(activity, 'test-api-key', cache)
@@ -77,11 +73,10 @@ describe('Pexels Image Fetching', () => {
       expect(mockFetch).not.toHaveBeenCalled()
     })
 
-    it('makes API call with correct query and authorization header', async () => {
+    it('makes API call with correct query from image.stock', async () => {
       const cache = createMockCache()
       const activity = createMockActivity({
-        action: 'hiking',
-        object: 'trail',
+        image: { stock: 'hiking trail Auckland', mediaKey: 'hiking', preferStock: true },
         city: 'Auckland'
       })
 
@@ -204,37 +199,15 @@ describe('Pexels Image Fetching', () => {
       expect(mockFetch).toHaveBeenCalledTimes(1) // Still only 1 call
     })
 
-    it('builds query with imageKeywords when available', async () => {
+    it('falls back to category when no stock query available', async () => {
       const cache = createMockCache()
       const activity = createMockActivity({
-        action: 'visit',
-        object: null,
-        city: 'Paris',
-        imageKeywords: ['eiffel', 'tower', 'landmark']
-      })
-
-      mockFetch.mockResolvedValueOnce(createPexelsResponse([]))
-
-      await fetchPexelsImage(activity, 'test-api-key', cache)
-
-      const [url] = mockFetch.mock.calls[0] ?? []
-      expect(url).toContain('visit')
-      expect(url).toContain('Paris')
-      expect(url).toContain('eiffel')
-      expect(url).toContain('tower')
-      expect(url).toContain('landmark')
-    })
-
-    it('falls back to category when no other fields available', async () => {
-      const cache = createMockCache()
-      const activity = createMockActivity({
-        action: null,
-        object: null,
-        venue: null,
+        image: { stock: '', mediaKey: null, preferStock: false },
+        placeName: null,
+        placeQuery: null,
         city: null,
         region: null,
         country: null,
-        imageKeywords: [],
         category: 'food'
       })
 

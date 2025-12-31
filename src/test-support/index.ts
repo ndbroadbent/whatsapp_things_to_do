@@ -73,18 +73,22 @@ export function createActivity(
     interestingScore,
     score,
     category: 'other' as ActivityCategory,
-    confidence: 0.9,
     messages,
-    isCompound: false,
-    action: 'do',
-    actionOriginal: 'do',
-    object: null,
-    objectOriginal: null,
-    venue: null,
-    city: null,
-    region: null,
-    country: null,
-    imageKeywords: [],
+    // Location fields
+    wikiName: null as string | null,
+    placeName: null as string | null,
+    placeQuery: null as string | null,
+    city: null as string | null,
+    region: null as string | null,
+    country: null as string | null,
+    // Image hints
+    image: {
+      stock: activity, // Default stock query to activity name
+      mediaKey: null as string | null,
+      preferStock: false
+    },
+    // Link hints
+    link: null as { type: string; query: string; url: string | null } | null,
     ...rest
   }
 

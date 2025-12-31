@@ -83,8 +83,10 @@ describe('Classifier Pronoun Resolution', () => {
     expect(activity).toBeDefined()
     if (!activity) throw new Error('No activity found')
 
-    expect(activity.action).toBe('visit')
-    expect(activity.object).toBeOneOf(['person', 'friend'])
+    // With new schema, image.stock is always required for stock photo searches
+    expect(activity.image.stock).toBeDefined()
+    // mediaKey is optional - could be 'social visit', 'friend', etc.
+    expect(activity.image).toBeDefined()
     expect(activity.messages[0]?.id).toBe(5)
     expect(activity.messages[0]?.sender).toBe('Bob Jones')
     expect(activity.messages[0]?.message).toBe('Can we visit her on Wednesday, please?')

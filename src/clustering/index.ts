@@ -2,13 +2,7 @@
  * Semantic Clustering Module
  *
  * Groups identical activities into single entries with multiple instances.
- *
- * Two clustering strategies:
- * 1. Simple entries (isCompound=false): Match on normalized fields (action, object, venue, city, country)
- * 2. Compound entries (isCompound=true): Match on exact activity title string
- *
- * Simple = structured fields fully capture the activity (e.g., "hike in Queenstown")
- * Compound = multi-part activity, title is the full representation (e.g., "Go to Iceland and see the aurora")
+ * Clusters by normalized fields (mediaKey, placeName/placeQuery, city, country).
  *
  * @example
  * ```typescript
@@ -24,7 +18,7 @@ import type { ClassifiedActivity } from '../types/classifier'
  * A single cluster of semantically equivalent activities.
  */
 interface ActivityCluster {
-  /** The best representative for this cluster (highest confidence). */
+  /** The best representative for this cluster (highest score). */
   readonly representative: ClassifiedActivity
   /** All activities in this cluster, including the representative. */
   readonly instances: readonly ClassifiedActivity[]
@@ -61,10 +55,10 @@ type ClusterConfig = Record<string, never>
  * Case-insensitive comparison.
  */
 function getClusterKey(a: ClassifiedActivity): string {
+  const place = a.placeName || a.placeQuery
   return [
-    a.action?.toLowerCase() ?? '',
-    a.object?.toLowerCase() ?? '',
-    a.venue?.toLowerCase() ?? '',
+    a.image.mediaKey?.toLowerCase() ?? '',
+    place?.toLowerCase() ?? '',
     a.city?.toLowerCase() ?? '',
     a.country?.toLowerCase() ?? ''
   ].join('|')
@@ -72,13 +66,13 @@ function getClusterKey(a: ClassifiedActivity): string {
 
 /**
  * Select the best representative from a list of activities.
- * Prefers higher confidence.
+ * Prefers higher score.
  * @throws Error if activities array is empty
  */
 function selectRepresentative(activities: readonly ClassifiedActivity[]): ClassifiedActivity {
   const sorted = [...activities].sort((a, b) => {
-    // Higher confidence first
-    return b.confidence - a.confidence
+    // Higher score first
+    return b.score - a.score
   })
 
   const first = sorted[0]
@@ -115,8 +109,7 @@ function buildCluster(
 /**
  * Cluster activities by matching fields.
  *
- * - Simple entries (isCompound=false): cluster by normalized fields (action, object, venue, city, country)
- * - Compound entries (isCompound=true): cluster by exact activity title
+ * Groups by normalized fields (mediaKey, placeName/placeQuery, city, country).
  *
  * @param activities - Classified activities from AI
  * @param config - Optional clustering configuration
@@ -142,36 +135,19 @@ export function clusterActivities(
   const valid: ClassifiedActivity[] = [...activities]
   const filtered: ClassifiedActivity[] = []
 
-  // Separate simple and compound entries
-  const simple = valid.filter((a) => !a.isCompound)
-  const compound = valid.filter((a) => a.isCompound)
-
-  // Group simple entries by normalized fields (case-insensitive)
-  const simpleGroups = new Map<string, ClassifiedActivity[]>()
-  for (const a of simple) {
+  // Group all entries by normalized fields (case-insensitive)
+  const groups = new Map<string, ClassifiedActivity[]>()
+  for (const a of valid) {
     const key = getClusterKey(a)
-    const group = simpleGroups.get(key) ?? []
+    const group = groups.get(key) ?? []
     group.push(a)
-    simpleGroups.set(key, group)
+    groups.set(key, group)
   }
 
-  // Group compound entries by exact title (case-insensitive)
-  const compoundGroups = new Map<string, ClassifiedActivity[]>()
-  for (const a of compound) {
-    const key = a.activity.toLowerCase()
-    const group = compoundGroups.get(key) ?? []
-    group.push(a)
-    compoundGroups.set(key, group)
-  }
-
-  // Build clusters from both groups
+  // Build clusters from groups
   const clusters: ActivityCluster[] = []
 
-  for (const [key, group] of simpleGroups) {
-    clusters.push(buildCluster(group, key))
-  }
-
-  for (const [key, group] of compoundGroups) {
+  for (const [key, group] of groups) {
     clusters.push(buildCluster(group, key))
   }
 

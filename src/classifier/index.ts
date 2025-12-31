@@ -18,12 +18,12 @@ import {
 import { DEFAULT_MODELS } from './models'
 import {
   buildClassificationPrompt,
-  type ParsedClassification,
   type PromptType,
   parseClassificationResponse,
   separateCandidatesByType
 } from './prompt'
 import { callProviderWithFallbacks } from './providers'
+import type { ParsedClassification } from './response-parser'
 import { countTokens, MAX_BATCH_TOKENS } from './tokenizer'
 
 export { createSmartBatches, groupCandidatesByProximity } from './batching'
@@ -34,6 +34,11 @@ export {
   type ClassificationContext,
   parseClassificationResponse
 } from './prompt'
+export type {
+  ParsedClassification,
+  ParsedImageHints,
+  ParsedLinkHints
+} from './response-parser'
 
 import { VALID_CATEGORIES } from '../categories'
 import { generateActivityId } from '../types/activity-id'
@@ -54,17 +59,15 @@ function normalizeCategory(category: string): ActivityCategory {
 
 /**
  * Convert a parsed classification to a classified activity.
- * Returns null if the activity has no action (invalid/incomplete classification).
+ * Returns null if the activity has no title (invalid/incomplete classification).
  */
 function toClassifiedActivity(
   response: ParsedClassification,
   candidate: CandidateMessage
 ): ClassifiedActivity | null {
-  // Action is required - if empty, the classification is invalid
-  if (!response.act || response.act.trim() === '') {
-    console.warn(
-      `[classifier] Discarding activity with empty action: msg=${response.msg}, title="${response.title}"`
-    )
+  // Title is required - if empty, the classification is invalid
+  if (!response.title || response.title.trim() === '') {
+    console.warn(`[classifier] Discarding activity with empty title: msg=${response.msg}`)
     return null
   }
 
@@ -81,13 +84,22 @@ function toClassifiedActivity(
   const interestingScore = response.int
   const score = calculateCombinedScore(funScore, interestingScore)
 
+  // Build link hints if present
+  const link =
+    response.link?.type && response.link.query
+      ? {
+          type: response.link.type,
+          query: response.link.query,
+          url: response.link.url
+        }
+      : null
+
   const activity = {
     activity: capitalizedTitle,
     funScore,
     interestingScore,
     score,
     category: normalizeCategory(response.cat),
-    confidence: response.conf,
     messages: [
       {
         id: candidate.messageId,
@@ -96,16 +108,21 @@ function toClassifiedActivity(
         message: resolvedMessage.content
       }
     ],
-    isCompound: response.com,
-    action: response.act,
-    actionOriginal: response.act_orig,
-    object: response.obj,
-    objectOriginal: response.obj_orig,
-    venue: response.venue,
+    // Location fields
+    wikiName: response.wikiName,
+    placeName: response.placeName,
+    placeQuery: response.placeQuery,
     city: response.city,
     region: response.region,
     country: response.country,
-    imageKeywords: response.kw
+    // Image hints
+    image: {
+      stock: response.image.stock,
+      mediaKey: response.image.mediaKey,
+      preferStock: response.image.preferStock
+    },
+    // Link hints
+    link
   }
 
   // Generate deterministic ID from all fields

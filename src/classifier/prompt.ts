@@ -11,8 +11,8 @@ import { VALID_CATEGORIES } from '../categories'
 import type { ScrapedMetadata } from '../scraper/types'
 import type { CandidateMessage, ContextMessage } from '../types'
 
-// Re-export parsing types and functions
-export { type ParsedClassification, parseClassificationResponse } from './response-parser'
+// Re-export parsing function (types re-exported from ./index.ts)
+export { parseClassificationResponse } from './response-parser'
 
 /** URL regex - matches http/https URLs */
 const URL_REGEX = /https?:\/\/[^\s<>"{}|\\^`[\]]+/g
@@ -180,52 +180,83 @@ ${offsetField}    "title": "<activity description, under 100 chars, fix any typo
     "fun": <0.0-5.0 how fun/enjoyable>,
     "int": <0.0-5.0 how interesting/unique>,
     "cat": "<category>",
-    "conf": <0.0-1.0 your confidence>,
-    "com": <true if compound/complex activity that one JSON object can't fully represent>,
-    "act": "<normalized action: go, hike, eat, watch, play, visit, etc. (always required)>",
-    "act_orig": "<original action word>",
-    "obj": "<normalized object: movie, restaurant>",
-    "obj_orig": "<original object word>",
-    "venue": "<name of place/restaurant/business/tour operator/etc. - extract from URL_META title if available>",
-    "city": "<city>",
+
+    // Location fields (top-level, for geocoding + images)
+    "wikiName": "<Wikipedia topic for things like bands, board games, concepts>",
+    "placeName": "<canonical named place - valid Wikipedia title (e.g., 'Waiheke Island', 'Mount Fuji')>",
+    "placeQuery": "<specific named business for Google Places (e.g., 'Dice Goblin Auckland') - NOT generic searches>",
+    "city": "<city name>",
     "region": "<state/province>",
     "country": "<country>",
-    "kw": ["<keyword1>", "<keyword2>", "<keyword3>"]
+
+    // Image hints (REQUIRED - stock is always required, mediaKey is optional)
+    "image": {
+      "stock": "<stock photo query - ALWAYS REQUIRED (e.g., 'hot air balloon cappadocia sunrise')>",
+      "mediaKey": "<media library key (e.g., 'hot air balloon', 'restaurant')>",
+      "preferStock": <true if stock query is more specific than generic mediaKey>
+    },
+
+    // Link hints (for generating clickable link widgets) - optional
+    "link": {
+      "type": "<movie|book|board_game|place|event|other>",
+      "query": "<canonical title to search (e.g., 'The Matrix', 'Blood on the Clocktower')>",
+      "url": "<URL if user provided one>"
+    }
   }
 ]
 \`\`\`
 
-(ALL fields are required. Use null or empty string if the field has no applicable value.)`
+(OMIT fields that would be null - don't include them. placeName and placeQuery are mutually exclusive - prefer placeName for canonical places.)`
 }
 
-const SHARED_KEYWORDS_SECTION = `KEYWORDS (kw): Include up to 3 keywords for stock photo search. Must be DIFFERENT from act/obj/venue. Include:
-- Location-specific details: "hot air balloon" + Turkey → ["cappadocia", "sunrise", "fairy chimneys"]
-- Disambiguation: "watch play" → ["theatre", "stage", "actors"] (not playground)
-- DO NOT include any generic terms that may dilute the search query. For example, "play paintball" is a much better query WITHOUT generic keywords like "action, game, team" (which return images of football and basketball.) Include no keywords at all if the act/obj/venue are already specific.`
+const SHARED_IMAGE_SECTION = `IMAGE HINTS (image.stock is ALWAYS required):
+image.stock: Stock photo query - ALWAYS REQUIRED. Be specific! Include location/context when relevant.
+image.mediaKey: Media library key for the activity type (e.g., "hot air balloon", "restaurant").
+image.preferStock: Set to true when stock query is MORE SPECIFIC than a generic mediaKey image.
+
+WHEN TO USE preferStock:
+- preferStock:true → "hot air balloon in Cappadocia" - stock photo of Cappadocia is better than generic balloon
+- preferStock:false (or omit) → "go to a restaurant" - generic restaurant image is fine, save API call
+
+The pipeline tries: mediaKey (if preferStock=false) → stock API → mediaKey (if preferStock=true) → category default`
 
 function buildLocationSection(homeCountry: string): string {
-  return `LOCATION: Only fill venue/city/region/country if explicitly mentioned or strongly implied. Do NOT default to the user's home country for generic activities like "watch a movie" or "play tennis". For ambiguous place names (e.g., "Omaha"), assume the user's home country (${homeCountry}). Venue can only be a specific place and not a general region.`
+  return `LOCATION FIELDS (fill only if explicitly mentioned):
+wikiName: Wikipedia topic for bands/games/concepts with CC images. NOT for movies/books (use link instead).
+placeName: Canonical place with Wikipedia article (e.g., "Waiheke Island", "Mount Fuji"). Clean names only.
+placeQuery: ONE SPECIFIC business/POI for Google Places (e.g., "Dice Goblin Auckland"). Must be unambiguous.
+city/region/country: Fill if explicitly mentioned. For ambiguous names, assume ${homeCountry}.
+RULES: placeName and placeQuery are MUTUALLY EXCLUSIVE. Never guess venues.
+IMPORTANT: placeQuery is ONLY for a specific named business. "geothermal park in Rotorua" is NOT a placeQuery - there are many parks. Use city:"Rotorua" + image.object:"geothermal park" instead.`
 }
 
 const SHARED_CATEGORIES_SECTION = `CATEGORIES: ${VALID_CATEGORIES.join(', ')}
 ("other" should be used only as a last resort. Only use it if no other category applies.)`
 
 const SHARED_NORMALIZATION = `NORMALIZATION:
-- Normalize to common/informal variants: tramping→hike, cycling→bike, film→movie
 - Keep distinct categories: cafe≠restaurant, bar≠restaurant
-- KEEP SPECIFICITY: Don't strip qualifying words that make something distinct:
-  - "glow worm caves" → obj:"glow worm cave" (NOT just "cave" - completely different!)
-  - "hot air balloon" → obj:"hot air balloon" (NOT just "balloon")
-  - "escape room" → obj:"escape room" (NOT just "room")
-- DISAMBIGUATION: Some words have multiple meanings - use context to pick the right one:
-  - "play pool" or "shoot pool" → obj:"billiards" (the cue game, NOT swimming pool)
-  - "swim in pool" or "go to pool" → obj:"swimming pool"
-- Regional terms are handled by our system - just normalize to the most common variant:
-  - kebab, doner, shawarma, gyro → use whichever term appears in the message (we map regionally)
-  - football → use "football" (we show gridiron images in US, soccer elsewhere)
-  - hockey → use "hockey" (we show ice hockey in US/Canada, field hockey elsewhere)`
+- KEEP SPECIFICITY in image.mediaKey: Don't strip qualifying words:
+  - "glow worm caves" → mediaKey:"glow worm cave" (NOT just "cave")
+  - "hot air balloon" → mediaKey:"hot air balloon" (NOT just "balloon")
+  - "escape room" → mediaKey:"escape room" (NOT just "room")
+- DISAMBIGUATION: Use context to pick the right mediaKey:
+  - "play pool" or "shoot pool" → mediaKey:"billiards" (the cue game, NOT swimming pool)
+  - "swim in pool" → mediaKey:"swimming pool"
+- Regional terms are handled by our system - just use the term from the message`
 
-const SHARED_COMPOUND_SECTION = `COMPOUND vs MULTIPLE: For com:true, still emit ONE object - it just flags that the JSON is lossy so that we prevent activity aggregation errors. If a message lists truly separate activities ("Try Kazuya, also check out the Botanic Gardens"), emit multiple objects.`
+const SHARED_COMPOUND_SECTION = `COMPOUND vs MULTIPLE: For complex activities that one JSON object can't fully represent (e.g., "Go to Iceland and see the aurora"), emit ONE object. For truly separate activities, emit multiple objects.`
+
+// Examples from IMAGES.md - used by both suggestion and agreement prompts
+const SHARED_EXAMPLES = `EXAMPLES:
+1. "let's go to Paris" → city:"Paris", country:"France", cat:"travel", image:{stock:"paris france eiffel tower", mediaKey:"city", preferStock:true}
+2. "trip to Waiheke" → placeName:"Waiheke Island", region:"Auckland", country:"New Zealand", image:{stock:"waiheke island beach vineyard", mediaKey:"island", preferStock:true}
+3. "board games at Dice Goblin" → placeQuery:"Dice Goblin Auckland", cat:"gaming", image:{stock:"board game cafe meetup", mediaKey:"board game", preferStock:true}
+4. "see Infected Mushroom in Auckland" → wikiName:"Infected Mushroom", city:"Auckland", cat:"music", image:{stock:"psytrance rave edm concert", mediaKey:"concert", preferStock:true}
+5. "visit geothermal park in Rotorua" → city:"Rotorua", cat:"nature", image:{stock:"rotorua mud pools geyser geothermal", mediaKey:"geothermal park", preferStock:true}
+6. "watch The Matrix" → cat:"entertainment", link:{type:"movie", query:"The Matrix"}, image:{stock:"movie night popcorn", mediaKey:"movie night"}
+7. "go to the theatre" → cat:"entertainment", image:{stock:"theatre stage performance", mediaKey:"theatre"}
+8. "hot air balloon ride" (generic) → cat:"experiences", image:{stock:"hot air balloon sunrise", mediaKey:"hot air balloon"}
+9. "hot air balloon in Turkey" → country:"Turkey", cat:"experiences", image:{stock:"cappadocia hot air balloon sunrise", mediaKey:"hot air balloon", preferStock:true}`
 
 // ============================================================================
 // SUGGESTION PROMPT (regular candidates)
@@ -269,21 +300,15 @@ ${SHARED_SKIP_RULES}
 
 ${buildJsonSchemaSection(false)}
 
-${SHARED_KEYWORDS_SECTION}
-
 ${buildLocationSection(context.homeCountry)}
+
+${SHARED_IMAGE_SECTION}
 
 ${SHARED_CATEGORIES_SECTION}
 
 ${SHARED_NORMALIZATION}
 
-EXAMPLES:
-- "Go tramping in Queenstown" → act:"hike", city:"Queenstown"
-- "Take a cable car ride in San Francisco" → act:"ride", obj:"cable car", city:"San Francisco"
-- "Watch a movie" → act:"watch", obj:"movie"
-- "Go to Coffee Lab" → act:"visit", venue:"Coffee Lab"
-- "Let's visit Omaha" (user in NZ) → city:"Omaha", country:"New Zealand"
-- "Go to Iceland and see the aurora" → act:"travel", country:"Iceland", com:true (two activities: travel + aurora viewing)
+${SHARED_EXAMPLES}
 
 ${SHARED_COMPOUND_SECTION}
 
@@ -335,17 +360,19 @@ ${SHARED_SKIP_RULES}
 
 ${buildJsonSchemaSection(true)}
 
-${SHARED_KEYWORDS_SECTION}
-
 ${buildLocationSection(context.homeCountry)}
+
+${SHARED_IMAGE_SECTION}
 
 ${SHARED_CATEGORIES_SECTION}
 
 ${SHARED_NORMALIZATION}
 
 EXAMPLES:
-- Context: "Wanna do a whale safari?" then >>> "That sounds amazing!" → off:-1, act:"do", obj:"safari"
-- Context: "Let's go hiking" then "What about Saturday?" then >>> "Perfect!" → off:-2, act:"hike"
+- Context: "Wanna do a whale safari?" then >>> "That sounds amazing!"
+  → off:-1, image:{stock:"whale safari boat ocean", mediaKey:"whale watching"}
+- Context: "Let's go hiking" then "What about Saturday?" then >>> "Perfect!"
+  → off:-2, image:{stock:"hiking trail nature forest", mediaKey:"hiking"}
 - >>> "Sounds fun!" with no clear activity before → skip entirely
 
 ${SHARED_COMPOUND_SECTION}
@@ -466,10 +493,8 @@ export function getPromptSignature(): string {
     { homeCountry: 'X' },
     'agreement'
   )
-
   // Hash the combined prompts - first 8 chars is enough for cache busting
   const combined = suggestionPrompt + agreementPrompt
   cachedPromptSignature = createHash('sha256').update(combined).digest('hex').slice(0, 8)
-
   return cachedPromptSignature
 }

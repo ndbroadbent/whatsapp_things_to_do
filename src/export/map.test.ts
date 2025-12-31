@@ -12,7 +12,7 @@ function createActivity(
   return createTestGeo({
     activity,
     category: 'food',
-    confidence: 0.9,
+    score: 0.9,
     messages: [
       {
         id,

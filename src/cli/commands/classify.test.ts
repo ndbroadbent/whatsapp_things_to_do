@@ -22,7 +22,6 @@ describe('toOutputActivity', () => {
       funScore: 0.9,
       interestingScore: 0.8,
       category: 'nature',
-      confidence: 0.95,
       messages: [
         {
           id: 123,
@@ -31,15 +30,11 @@ describe('toOutputActivity', () => {
           message: 'We should do the Karangahake Gorge hike!'
         }
       ],
-      isCompound: false,
-      action: 'hike',
-      actionOriginal: 'hike',
-      object: null,
-      objectOriginal: null,
-      venue: 'Karangahake Gorge',
+      placeName: 'Karangahake Gorge',
       city: null,
       region: null,
-      country: 'New Zealand'
+      country: 'New Zealand',
+      image: { stock: 'hiking gorge trail New Zealand', mediaKey: 'hiking', preferStock: true }
     })
 
     const output: ClassifyOutputActivity = toOutputActivity(activity)
@@ -51,17 +46,15 @@ describe('toOutputActivity', () => {
     expect(output.messages[0]?.timestamp).toBe('2024-10-11T01:34:03.000Z')
     expect(output.messages[0]?.message).toBe('We should do the Karangahake Gorge hike!')
     expect(output.mentionCount).toBe(1)
-    expect(output.action).toBe('hike')
-    expect(output.actionOriginal).toBe('hike')
-    expect(output.object).toBeNull()
-    expect(output.objectOriginal).toBeNull()
-    expect(output.venue).toBe('Karangahake Gorge')
+    expect(output.placeName).toBe('Karangahake Gorge')
     expect(output.city).toBeNull()
     expect(output.region).toBeNull()
     expect(output.country).toBe('New Zealand')
-    expect(output.isCompound).toBe(false)
     expect(output.interestingScore).toBe(0.8)
     expect(output.funScore).toBe(0.9)
+    expect(output.image.stock).toBe('hiking gorge trail New Zealand')
+    expect(output.image.mediaKey).toBe('hiking')
+    expect(output.image.preferStock).toBe(true)
   })
 
   it('converts Date timestamp to ISO string', () => {
@@ -82,7 +75,7 @@ describe('toOutputActivity', () => {
     expect(output.messages[0]?.timestamp).toBe('2025-01-15T10:30:00.000Z')
   })
 
-  it('includes action and object when present', () => {
+  it('includes image fields when present', () => {
     const activity: ClassifiedActivity = createActivity({
       activity: 'watch a movie',
       category: 'entertainment',
@@ -94,16 +87,14 @@ describe('toOutputActivity', () => {
           message: "Let's watch a movie"
         }
       ],
-      action: 'watch',
-      actionOriginal: 'watch',
-      object: 'movie',
-      objectOriginal: 'movie'
+      image: { stock: 'movie cinema entertainment', mediaKey: 'cinema', preferStock: false }
     })
 
     const output = toOutputActivity(activity)
 
-    expect(output.action).toBe('watch')
-    expect(output.object).toBe('movie')
+    expect(output.image.stock).toBe('movie cinema entertainment')
+    expect(output.image.mediaKey).toBe('cinema')
+    expect(output.image.preferStock).toBe(false)
   })
 
   it('handles multiple messages (merged duplicates)', () => {
@@ -141,7 +132,6 @@ describe('buildClassifyOutput', () => {
         funScore: 0.9,
         interestingScore: 0.8,
         category: 'nature',
-        confidence: 0.95,
         messages: [
           {
             id: 1,
@@ -150,10 +140,10 @@ describe('buildClassifyOutput', () => {
             message: "Let's go hiking"
           }
         ],
-        action: 'hike',
-        actionOriginal: 'hiking',
+        placeName: 'Alps',
         region: 'Alps',
-        country: 'Switzerland'
+        country: 'Switzerland',
+        image: { stock: 'mountain hiking alps switzerland', mediaKey: 'hiking', preferStock: true }
       })
     ]
 
@@ -164,8 +154,8 @@ describe('buildClassifyOutput', () => {
     expect(output.model).toBe(LATEST_GOOGLE_SMALL)
     expect(output.provider).toBe('google')
     expect(output.activities).toHaveLength(1)
-    expect(output.activities[0]?.action).toBe('hike')
-    expect(output.activities[0]?.actionOriginal).toBe('hiking')
+    expect(output.activities[0]?.placeName).toBe('Alps')
+    expect(output.activities[0]?.image.stock).toBe('mountain hiking alps switzerland')
   })
 
   it('maps multiple activities', () => {
@@ -185,11 +175,10 @@ describe('buildClassifyOutput', () => {
         activity: 'activity two',
         category: 'food',
         messages: [{ id: 2, sender: 'B', timestamp: new Date(), message: 'msg 2' }],
-        action: 'eat',
-        actionOriginal: 'eat',
-        venue: 'Some Restaurant',
+        placeName: 'Some Restaurant',
         city: 'Auckland',
-        country: 'New Zealand'
+        country: 'New Zealand',
+        image: { stock: 'restaurant dining food', mediaKey: 'restaurant', preferStock: false }
       })
     ]
 
@@ -198,6 +187,6 @@ describe('buildClassifyOutput', () => {
     expect(output.activities).toHaveLength(2)
     expect(output.activities[0]?.activity).toBe('activity one')
     expect(output.activities[1]?.activity).toBe('activity two')
-    expect(output.activities[1]?.venue).toBe('Some Restaurant')
+    expect(output.activities[1]?.placeName).toBe('Some Restaurant')
   })
 })

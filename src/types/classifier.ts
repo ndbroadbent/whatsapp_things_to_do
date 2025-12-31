@@ -19,6 +19,40 @@ export interface ActivityMessage {
   readonly message: string
 }
 
+/**
+ * Image hints for the banner image pipeline.
+ * Non-location image hints only (locations are top-level).
+ *
+ * Pipeline order:
+ * 1. If preferStock=false: try mediaKey in library first
+ * 2. Try stock photo API (Pixabay/Pexels)
+ * 3. If preferStock=true: try mediaKey in library as fallback
+ * 4. Fall back to category default
+ */
+export interface ClassifiedImageHints {
+  /** Stock photo query string (e.g., "hot air balloon cappadocia sunrise"). ALWAYS required. */
+  readonly stock: string
+  /** Media library key (e.g., "hot air balloon", "restaurant", "concert") */
+  readonly mediaKey: string | null
+  /**
+   * When true: stock is preferred, mediaKey is fallback (for location-specific activities)
+   * When false/omitted: mediaKey is tried first, stock is fallback (for generic activities)
+   */
+  readonly preferStock?: boolean
+}
+
+/**
+ * Link hints for generating clickable link widgets.
+ */
+export interface ClassifiedLinkHints {
+  /** Link type: movie, book, board_game, place, event, other */
+  readonly type: string
+  /** Canonical title/name to search for */
+  readonly query: string
+  /** URL if user provided one directly */
+  readonly url: string | null
+}
+
 export interface ClassifiedActivity {
   /** Unique activity ID (16-char hash of all fields) */
   readonly activityId: string
@@ -31,36 +65,30 @@ export interface ClassifiedActivity {
   /** Combined score 0.0-5.0, derived from interestingScore and funScore via calculateCombinedScore() */
   readonly score: number
   readonly category: ActivityCategory
-  readonly confidence: number
   /** All messages that mentioned this activity (1 initially, more after deduplication) */
   readonly messages: readonly ActivityMessage[]
-  /**
-   * Whether this is a compound/complex activity that JSON can't fully capture.
-   * Compound activities (e.g., "Go to Iceland and see the aurora") stay as singletons.
-   */
-  readonly isCompound: boolean
-  /** Normalized action verb/noun (e.g., "hike" not "tramping") */
-  readonly action: string | null
-  /** Original action word before normalization */
-  readonly actionOriginal: string | null
-  /** Normalized object (e.g., "movie" not "film") */
-  readonly object: string | null
-  /** Original object word before normalization */
-  readonly objectOriginal: string | null
-  /** Venue/place name (e.g., "Coffee Lab", "Kazuya") */
-  readonly venue: string | null
+
+  // ===== Location fields (top-level, for geocoding + sometimes images) =====
+  /** Wikipedia topic name for "things" (bands, board games, concepts) - NOT places */
+  readonly wikiName: string | null
+  /** Canonical named place with Wikipedia article (e.g., "Waiheke Island", "Mount Fuji") */
+  readonly placeName: string | null
+  /** Business/POI disambiguation string for Google Places (e.g., "Dice Goblin Auckland") */
+  readonly placeQuery: string | null
   /** City name (e.g., "Queenstown", "Auckland") */
   readonly city: string | null
   /** Region name (state, province, prefecture) */
   readonly region: string | null
   /** Country name */
   readonly country: string | null
-  /**
-   * 3 keywords for stock photo search (different from action/object/venue).
-   * Provides disambiguation and location-specific context.
-   * E.g., "hot air balloon" + Turkey → ["cappadocia", "sunrise", "fairy chimneys"]
-   */
-  readonly imageKeywords: readonly string[]
+
+  // ===== Image hints (non-location) =====
+  /** Hints for the banner image pipeline */
+  readonly image: ClassifiedImageHints
+
+  // ===== Link hints (optional) =====
+  /** Hints for generating clickable link widgets */
+  readonly link: ClassifiedLinkHints | null
 }
 
 /**
@@ -73,19 +101,20 @@ export function calculateCombinedScore(funScore: number, interestingScore: numbe
 
 /**
  * Check if an activity has a mappable location.
- * Derived from venue/city/region/country fields.
+ * Derived from location fields (placeName, placeQuery, city, region, country).
  */
 export function isMappable(a: ClassifiedActivity): boolean {
-  return !!(a.venue || a.city || a.region || a.country)
+  return !!(a.placeName || a.placeQuery || a.city || a.region || a.country)
 }
 
 /**
  * Format location from structured fields for display.
- * Returns a human-readable string like "Coffee Lab, Auckland, New Zealand"
+ * Returns a human-readable string like "Dice Goblin, Auckland, New Zealand"
  * or null if no location fields are set.
  */
 export function formatLocation(a: ClassifiedActivity): string | null {
-  const parts = [a.venue, a.city, a.region, a.country].filter(Boolean)
+  const place = a.placeName || a.placeQuery
+  const parts = [place, a.city, a.region, a.country].filter(Boolean)
   return parts.length > 0 ? parts.join(', ') : null
 }
 

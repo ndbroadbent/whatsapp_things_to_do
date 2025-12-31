@@ -11,7 +11,7 @@ function createActivity(
   return createTestGeo({
     activity,
     category: category as GeocodedActivity['category'],
-    confidence: 0.9,
+    score: 0.9,
     messages: [
       {
         id,

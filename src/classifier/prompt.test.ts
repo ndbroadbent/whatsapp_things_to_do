@@ -100,13 +100,17 @@ describe('Classifier Prompt', () => {
       expect(prompt).toContain('"fun"')
       expect(prompt).toContain('"int"')
       expect(prompt).toContain('"cat"')
-      expect(prompt).toContain('"conf"')
-      expect(prompt).toContain('"act"')
-      expect(prompt).toContain('"obj"')
-      expect(prompt).toContain('"venue"')
+      // Location fields
+      expect(prompt).toContain('"wikiName"')
+      expect(prompt).toContain('"placeName"')
+      expect(prompt).toContain('"placeQuery"')
       expect(prompt).toContain('"city"')
       expect(prompt).toContain('"country"')
-      expect(prompt).toContain('"com"')
+      // Image hints
+      expect(prompt).toContain('"image"')
+      expect(prompt).toContain('"stock"')
+      expect(prompt).toContain('"mediaKey"')
+      expect(prompt).toContain('"preferStock"')
     })
 
     it('lists valid categories', () => {
@@ -122,15 +126,14 @@ describe('Classifier Prompt', () => {
       expect(prompt).toContain('music')
     })
 
-    it('includes normalization rules', () => {
+    it('includes image mediaKey specificity rules', () => {
       const candidates = [createCandidate(1, 'Test message')]
 
       const prompt = buildClassificationPrompt(candidates, TEST_CONTEXT)
 
-      expect(prompt).toContain('tramping→hike')
-      expect(prompt).toContain('cycling→bike')
-      expect(prompt).toContain('film→movie')
-      expect(prompt).toContain('cafe≠restaurant')
+      // With new schema, normalization rules for action/object are gone
+      // But we still have specificity rules for image.mediaKey
+      expect(prompt).toContain('KEEP SPECIFICITY in image.mediaKey')
     })
 
     it('includes adult content filter instructions', () => {
@@ -230,25 +233,25 @@ describe('Classifier Prompt', () => {
   })
 
   describe('parseClassificationResponse', () => {
-    it('parses valid JSON array response with new fields', () => {
+    it('parses valid JSON array response with new schema', () => {
       const response = `[
         {
           "msg": 1,
           "title": "Dinner at Italian place",
-          "fun": 0.9,
-          "int": 0.7,
+          "fun": 4.5,
+          "int": 3.5,
           "cat": "restaurant",
-          "conf": 0.95,
-          "gen": false,
-          "com": true,
-          "act": "eat",
-          "act_orig": "dinner",
-          "obj": "restaurant",
-          "obj_orig": "Italian place",
-          "venue": "Italian place",
+          "wikiName": null,
+          "placeName": null,
+          "placeQuery": "Italian place Rome",
           "city": "Rome",
           "region": null,
-          "country": "Italy"
+          "country": "Italy",
+          "image": {
+            "stock": "italian restaurant pasta rome",
+            "mediaKey": "restaurant",
+            "preferStock": true
+          }
         }
       ]`
 
@@ -257,20 +260,21 @@ describe('Classifier Prompt', () => {
       expect(parsed).toHaveLength(1)
       expect(parsed[0]?.msg).toBe(1)
       expect(parsed[0]?.title).toBe('Dinner at Italian place')
-      expect(parsed[0]?.fun).toBe(0.9)
+      expect(parsed[0]?.fun).toBe(4.5)
+      expect(parsed[0]?.int).toBe(3.5)
       expect(parsed[0]?.cat).toBe('restaurant')
-      expect(parsed[0]?.conf).toBe(0.95)
-      expect(parsed[0]?.com).toBe(true)
-      expect(parsed[0]?.act).toBe('eat')
-      expect(parsed[0]?.venue).toBe('Italian place')
+      expect(parsed[0]?.placeQuery).toBe('Italian place Rome')
       expect(parsed[0]?.city).toBe('Rome')
       expect(parsed[0]?.country).toBe('Italy')
+      expect(parsed[0]?.image.stock).toBe('italian restaurant pasta rome')
+      expect(parsed[0]?.image.mediaKey).toBe('restaurant')
+      expect(parsed[0]?.image.preferStock).toBe(true)
     })
 
     it('parses multiple items', () => {
       const response = `[
-        {"msg": 1, "title": "Hiking", "fun": 0.8, "int": 0.6, "cat": "hike", "conf": 0.9, "com": true, "act": "hike", "act_orig": "hiking", "obj": null, "obj_orig": null, "venue": null, "city": "Mountains", "region": null, "country": null},
-        {"msg": 2, "title": "Vet visit", "fun": 0.1, "int": 0.2, "cat": "other", "conf": 0.85, "com": true, "act": "visit", "act_orig": "visit", "obj": "vet", "obj_orig": "vet", "venue": null, "city": null, "region": null, "country": null}
+        {"msg": 1, "title": "Hiking", "fun": 4.0, "int": 3.0, "cat": "hike", "city": "Mountains", "image": {"stock": "hiking trail mountains", "mediaKey": "hiking", "preferStock": true}},
+        {"msg": 2, "title": "Vet visit", "fun": 0.5, "int": 1.0, "cat": "other", "image": {"stock": "veterinarian clinic", "mediaKey": null, "preferStock": false}}
       ]`
 
       const parsed = parseClassificationResponse(response)
@@ -281,7 +285,7 @@ describe('Classifier Prompt', () => {
 
     it('handles response with markdown code block', () => {
       const response = `\`\`\`json
-[{"msg": 1, "title": "Beach day", "fun": 0.9, "int": 0.5, "cat": "nature", "conf": 0.95, "com": true, "act": "beach", "act_orig": "beach", "obj": null, "obj_orig": null, "venue": null, "city": "Malibu", "region": "California", "country": "USA"}]
+[{"msg": 1, "title": "Beach day", "fun": 4.5, "int": 2.5, "cat": "nature", "city": "Malibu", "region": "California", "country": "USA", "image": {"stock": "beach ocean waves", "mediaKey": "beach", "preferStock": false}}]
 \`\`\``
 
       const parsed = parseClassificationResponse(response)
@@ -293,7 +297,7 @@ describe('Classifier Prompt', () => {
     it('handles response with extra text around JSON', () => {
       const response = `Here is the classification:
 
-[{"msg": 1, "title": "Concert", "fun": 0.85, "int": 0.5, "cat": "concert", "conf": 0.9, "com": true, "act": "attend", "act_orig": "concert", "obj": "concert", "obj_orig": "concert", "venue": "Madison Square Garden", "city": "New York", "region": "NY", "country": "USA"}]
+[{"msg": 1, "title": "Concert", "fun": 4.25, "int": 2.5, "cat": "concert", "placeQuery": "Madison Square Garden New York", "city": "New York", "region": "NY", "country": "USA", "image": {"stock": "concert venue live music", "mediaKey": "concert", "preferStock": true}}]
 
 Hope this helps!`
 
@@ -304,43 +308,42 @@ Hope this helps!`
     })
 
     it('handles null location fields', () => {
-      const response = `[{"msg": 1, "title": "Something fun", "fun": 0.7, "int": 0.5, "cat": "other", "conf": 0.8, "com": true, "act": "do", "act_orig": "do", "obj": null, "obj_orig": null, "venue": null, "city": null, "region": null, "country": null}]`
+      const response = `[{"msg": 1, "title": "Something fun", "fun": 3.5, "int": 2.5, "cat": "other", "wikiName": null, "placeName": null, "placeQuery": null, "city": null, "region": null, "country": null, "image": {"stock": "fun activity", "mediaKey": null, "preferStock": false}}]`
 
       const parsed = parseClassificationResponse(response)
 
-      expect(parsed[0]?.venue).toBeNull()
+      expect(parsed[0]?.placeName).toBeNull()
+      expect(parsed[0]?.placeQuery).toBeNull()
       expect(parsed[0]?.city).toBeNull()
       expect(parsed[0]?.country).toBeNull()
     })
 
-    it('defaults missing boolean fields', () => {
-      const response = `[{"msg": 1, "title": "Test", "fun": 0.5, "int": 0.5, "cat": "other", "conf": 0.5}]`
+    it('defaults missing preferStock to false', () => {
+      const response = `[{"msg": 1, "title": "Test", "fun": 2.5, "int": 2.5, "cat": "other", "image": {"stock": "test"}}]`
 
       const parsed = parseClassificationResponse(response)
 
-      // Defaults: gen=true, com=true
-      expect(parsed[0]?.com).toBe(true)
+      expect(parsed[0]?.image.preferStock).toBe(false)
     })
 
     it('parses string-typed numbers (gpt-5-nano compatibility)', () => {
       // Some models return numbers as strings. Scores are 0-5 scale.
-      const response = `[{"msg": "168", "title": "Test", "fun": "4.25", "int": "3.5", "cat": "other", "conf": "0.9", "com": true}]`
+      const response = `[{"msg": "168", "title": "Test", "fun": "4.25", "int": "3.5", "cat": "other", "image": {"stock": "test"}}]`
 
       const parsed = parseClassificationResponse(response)
 
       expect(parsed[0]?.msg).toBe(168)
       expect(parsed[0]?.fun).toBe(4.3) // 4.25 rounds to 4.3
       expect(parsed[0]?.int).toBe(3.5)
-      expect(parsed[0]?.conf).toBe(0.9)
     })
 
-    it('parses string-typed booleans', () => {
+    it('parses string-typed booleans for preferStock', () => {
       // Some models return booleans as strings. Scores are 0-5 scale.
-      const response = `[{"msg": 1, "title": "Test", "fun": 3.5, "int": 2.5, "cat": "other", "conf": 0.5, "gen": "false", "com": "true"}]`
+      const response = `[{"msg": 1, "title": "Test", "fun": 3.5, "int": 2.5, "cat": "other", "image": {"stock": "test", "preferStock": "true"}}]`
 
       const parsed = parseClassificationResponse(response)
 
-      expect(parsed[0]?.com).toBe(true)
+      expect(parsed[0]?.image.preferStock).toBe(true)
     })
 
     it('throws on invalid JSON', () => {
@@ -370,7 +373,7 @@ Hope this helps!`
     })
 
     it('validates message IDs when expected IDs provided', () => {
-      const response = `[{"msg": 1, "title": "Test", "fun": 0.5, "int": 0.5, "cat": "other", "conf": 0.5}]`
+      const response = `[{"msg": 1, "title": "Test", "fun": 2.5, "int": 2.5, "cat": "other", "image": {"stock": "test"}}]`
 
       // Should not throw when ID matches
       expect(() => parseClassificationResponse(response, [1])).not.toThrow()

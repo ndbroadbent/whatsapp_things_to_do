@@ -32,7 +32,8 @@ interface PlaceLookupOutput {
     category: string
     messages: OutputMessage[]
     mentionCount: number
-    venue: string | null
+    placeName: string | null
+    placeQuery: string | null
     city: string | null
     country: string | null
     latitude: number | undefined
@@ -104,7 +105,8 @@ export async function cmdPlaceLookup(args: CLIArgs, logger: Logger): Promise<voi
       category: a.category,
       messages: toOutputMessages(a.messages),
       mentionCount: a.messages.length,
-      venue: a.venue,
+      placeName: a.placeName,
+      placeQuery: a.placeQuery,
       city: a.city,
       country: a.country,
       latitude: a.latitude,

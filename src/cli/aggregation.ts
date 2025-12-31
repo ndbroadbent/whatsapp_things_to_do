@@ -98,16 +98,12 @@ function shouldGroup(a: ClassifiedActivity, b: ClassifiedActivity): boolean {
     return true
   }
 
-  // Both must be non-compound (simple activities that can be matched on fields)
-  if (a.isCompound || b.isCompound) {
-    return false
-  }
-
   // All structured fields must match (null/empty acts as wildcard)
+  // Use mediaKey for activity type matching, placeName/placeQuery for venue matching
+  const place = (act: ClassifiedActivity) => act.placeName || act.placeQuery
   const fieldsMatch =
-    fieldMatches(a.action, b.action) &&
-    fieldMatches(a.object, b.object) &&
-    venueMatches(a.venue, b.venue) &&
+    fieldMatches(a.image.mediaKey, b.image.mediaKey) &&
+    venueMatches(place(a), place(b)) &&
     fieldMatches(a.city, b.city) &&
     fieldMatches(a.region, b.region) &&
     fieldMatches(a.country, b.country)

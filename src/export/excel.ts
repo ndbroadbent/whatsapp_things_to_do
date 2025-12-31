@@ -49,7 +49,7 @@ export async function exportToExcel(activities: readonly GeocodedActivity[]): Pr
     { header: 'Original Message', key: 'message', width: 50 },
     { header: 'Latitude', key: 'latitude', width: 12 },
     { header: 'Longitude', key: 'longitude', width: 12 },
-    { header: 'Confidence', key: 'confidence', width: 12 },
+    { header: 'Score', key: 'score', width: 12 },
     { header: 'Category', key: 'category', width: 15 },
     { header: 'Map Link', key: 'map_link', width: 45 },
     { header: 'Mentions', key: 'mentions', width: 10 },
@@ -82,7 +82,7 @@ export async function exportToExcel(activities: readonly GeocodedActivity[]): Pr
       message: firstMessage?.message.replace(/\n/g, ' ').slice(0, 300) ?? '',
       latitude: a.latitude ?? '',
       longitude: a.longitude ?? '',
-      confidence: a.confidence,
+      score: a.score,
       category: a.category,
       map_link: mapLink,
       mentions: a.messages.length,
@@ -99,23 +99,23 @@ export async function exportToExcel(activities: readonly GeocodedActivity[]): Pr
       mapLinkCell.font = { color: { argb: 'FF0000FF' }, underline: true }
     }
 
-    // Conditional formatting for confidence
-    const confidenceCell = row.getCell('confidence')
-    const confidence = a.confidence
-    if (confidence >= 0.8) {
-      confidenceCell.fill = {
+    // Conditional formatting for score (0-5 scale)
+    const scoreCell = row.getCell('score')
+    const score = a.score
+    if (score >= 4) {
+      scoreCell.fill = {
         type: 'pattern',
         pattern: 'solid',
         fgColor: { argb: 'FF90EE90' } // Light green
       }
-    } else if (confidence >= 0.6) {
-      confidenceCell.fill = {
+    } else if (score >= 3) {
+      scoreCell.fill = {
         type: 'pattern',
         pattern: 'solid',
         fgColor: { argb: 'FFFFFFE0' } // Light yellow
       }
     } else {
-      confidenceCell.fill = {
+      scoreCell.fill = {
         type: 'pattern',
         pattern: 'solid',
         fgColor: { argb: 'FFFFCCCB' } // Light red

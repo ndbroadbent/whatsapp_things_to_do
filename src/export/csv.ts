@@ -71,7 +71,7 @@ export function exportToCSV(suggestions: readonly GeocodedActivity[]): string {
       formatLocation(s) ?? '',
       s.latitude ?? '',
       s.longitude ?? '',
-      s.confidence.toFixed(2),
+      s.score.toFixed(2),
       s.category,
       googleMapsLink(s.latitude, s.longitude),
       s.messages.length,

@@ -62,7 +62,6 @@ describe('Geocoder Integration', () => {
         interestingScore: 4.5,
         score: 4.7,
         category: 'sports',
-        confidence: 1,
         messages: [
           {
             id: 22,
@@ -71,16 +70,18 @@ describe('Geocoder Integration', () => {
             message: 'We should come back in winter for skiing at Remarkables'
           }
         ],
-        isCompound: false,
-        action: 'ski',
-        actionOriginal: 'skiing',
-        object: 'ski resort',
-        objectOriginal: 'Remarkables',
-        venue: 'The Remarkables',
+        wikiName: null,
+        placeName: 'The Remarkables',
+        placeQuery: null,
         city: 'Queenstown',
         region: 'Otago',
         country: 'New Zealand',
-        imageKeywords: ['winter', 'snowboard', 'alps']
+        image: {
+          stock: 'skiing snow mountain queenstown',
+          mediaKey: 'ski resort',
+          preferStock: true
+        },
+        link: null
       }
 
       const result = await lookupActivityPlace(activity, getConfig(recorder))

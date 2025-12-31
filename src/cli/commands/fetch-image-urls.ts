@@ -36,7 +36,8 @@ interface FetchImagesOutput extends FetchImagesStats {
     activityId: string
     activity: string
     category: string
-    venue: string | null
+    placeName: string | null
+    placeQuery: string | null
     city: string | null
     country: string | null
     image: ImageResult | null
@@ -107,7 +108,8 @@ export async function cmdFetchImageUrls(args: CLIArgs, logger: Logger): Promise<
       activityId: a.activityId,
       activity: a.activity,
       category: a.category,
-      venue: a.venue,
+      placeName: a.placeName,
+      placeQuery: a.placeQuery,
       city: a.city,
       country: a.country,
       image: fetchResult.images.get(a.activityId) ?? null

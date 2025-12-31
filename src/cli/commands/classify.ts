@@ -23,17 +23,18 @@ export interface ClassifyOutputActivity {
   category: string
   messages: OutputMessage[]
   mentionCount: number
-  action: string | null
-  actionOriginal: string | null
-  object: string | null
-  objectOriginal: string | null
-  venue: string | null
+  placeName: string | null
+  placeQuery: string | null
   city: string | null
   region: string | null
   country: string | null
-  isCompound: boolean
   interestingScore: number
   funScore: number
+  image: {
+    stock: string
+    mediaKey: string | null
+    preferStock?: boolean
+  }
 }
 
 export interface ClassifyOutput {
@@ -53,17 +54,14 @@ export function toOutputActivity(a: ClassifiedActivity): ClassifyOutputActivity 
     category: a.category,
     messages: toOutputMessages(a.messages),
     mentionCount: a.messages.length,
-    action: a.action,
-    actionOriginal: a.actionOriginal,
-    object: a.object,
-    objectOriginal: a.objectOriginal,
-    venue: a.venue,
+    placeName: a.placeName,
+    placeQuery: a.placeQuery,
     city: a.city,
     region: a.region,
     country: a.country,
-    isCompound: a.isCompound,
     interestingScore: a.interestingScore,
-    funScore: a.funScore
+    funScore: a.funScore,
+    image: a.image
   }
 }
 

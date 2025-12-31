@@ -1,13 +1,13 @@
 /**
  * Images Module
  *
- * Fetches images for activities using a priority chain:
+ * Fetches images for activities using a priority chain based on preferStock:
+ *
  * 1. Google Places Photos (for venues with placeId)
- * 2. Media Library - Object match (curated images by object name/synonym)
- * 3. Pexels (primary stock source - higher quality)
- * 4. Pixabay (fallback stock source)
- * 5. Media Library - Action fallback (unambiguous action verbs)
- * 6. Category default (from media library)
+ * 2. If preferStock=false: try mediaKey first (generic activity = use curated image)
+ * 3. Stock photos via image.stock query (Pexels, then Pixabay)
+ * 4. If preferStock=true: try mediaKey as fallback (specific query failed)
+ * 5. Category default (from media library)
  *
  * Returns null if no image found.
  *
@@ -23,7 +23,6 @@ import type { GeocodedActivity } from '../types/place-lookup'
 import { fetchGooglePlacesPhoto } from './google-places'
 import {
   buildImageUrl,
-  findActionFallbackImage,
   findCategoryFallbackImage,
   findObjectImage,
   loadMediaIndex,
@@ -37,7 +36,6 @@ import type { ImageFetchConfig, ImageMeta, ImageResult, ImageSource } from './ty
 export { fetchGooglePlacesPhoto } from './google-places'
 export {
   buildImageUrl,
-  findActionFallbackImage,
   findCategoryFallbackImage,
   findObjectImage,
   IMAGE_SIZES,
@@ -72,13 +70,12 @@ let mediaIndexPath: string | null = null
 /**
  * Fetch an image for a single activity.
  *
- * Tries sources in priority order:
+ * Tries sources based on preferStock flag:
  * 1. Google Places (venue with placeId)
- * 2. Media Library - Object match
- * 3. Pexels (primary stock source - higher quality)
- * 4. Pixabay (fallback stock source)
- * 5. Media Library - Action fallback
- * 6. Category default
+ * 2. If preferStock=false: try mediaKey first
+ * 3. Stock photos (Pexels, then Pixabay) using image.stock query
+ * 4. If preferStock=true: try mediaKey as fallback
+ * 5. Category default
  *
  * Returns null if no image found from any source.
  *
@@ -104,9 +101,9 @@ export async function fetchImageForActivity(
   // Load media index (cached per session)
   const mediaIndex = config.skipMediaLibrary ? null : await getMediaIndex(config)
 
-  // 2. Try Media Library - Object match (if we have index)
-  if (mediaIndex) {
-    const result = await tryMediaLibraryObjectMatch(activity, mediaIndex, config)
+  // 2. If preferStock=false: try mediaKey FIRST (generic activity = curated image is good)
+  if (mediaIndex && activity.image.mediaKey && !activity.image.preferStock) {
+    const result = await tryMediaLibraryMatch(activity.image.mediaKey, mediaIndex, config)
     if (result) return result
   }
 
@@ -122,9 +119,9 @@ export async function fetchImageForActivity(
     if (result) return result
   }
 
-  // 5. Try Media Library - Action fallback
-  if (mediaIndex && activity.action) {
-    const result = await tryMediaLibraryActionFallback(activity, mediaIndex, config)
+  // 5. If preferStock=true: try mediaKey as FALLBACK (specific stock query failed)
+  if (mediaIndex && activity.image.mediaKey && activity.image.preferStock) {
+    const result = await tryMediaLibraryMatch(activity.image.mediaKey, mediaIndex, config)
     if (result) return result
   }
 
@@ -297,31 +294,17 @@ export function shouldShowAttribution(source: ImageSource, license?: string): bo
 }
 
 /**
- * Try to find an image from media library by object name/synonym.
+ * Try to find an image from media library by mediaKey.
  */
-async function tryMediaLibraryObjectMatch(
-  activity: GeocodedActivity,
+async function tryMediaLibraryMatch(
+  mediaKey: string,
   index: MediaIndex,
   config: ImageFetchConfig
 ): Promise<ImageResult | null> {
-  if (!activity.object) return null
-  const match = findObjectImage(activity.object, index, {
+  const match = findObjectImage(mediaKey, index, {
     countryCode: config.countryCode,
     localPath: config.mediaLibraryPath
   })
-  return match ? await matchToImageResult(match, config) : null
-}
-
-/**
- * Try to find an image from media library by action verb.
- */
-async function tryMediaLibraryActionFallback(
-  activity: GeocodedActivity,
-  index: MediaIndex,
-  config: ImageFetchConfig
-): Promise<ImageResult | null> {
-  if (!activity.action) return null
-  const match = findActionFallbackImage(activity.action, index)
   return match ? await matchToImageResult(match, config) : null
 }
 

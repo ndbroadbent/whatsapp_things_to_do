@@ -103,9 +103,9 @@ tasks:
       - bun run test:coverage
 
   test:e2e:
-    desc: Run CLI E2E tests
+    desc: Run CLI E2E tests (pass file pattern as CLI_ARGS)
     cmds:
-      - bun run vitest run --config src/cli/e2e/vitest.config.ts src/cli/e2e/
+      - bun run vitest run --config src/cli/e2e/vitest.config.ts {{.CLI_ARGS | default "src/cli/e2e/"}}
 
   # === Git Hooks ===
   hooks:install:

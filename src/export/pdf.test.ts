@@ -13,7 +13,7 @@ function createActivity(
   return createTestGeo({
     activity,
     category: category as GeocodedActivity['category'],
-    confidence: 0.9,
+    score: 0.9,
     messages: [
       {
         id,
@@ -198,7 +198,7 @@ describe('PDF Export', () => {
         ...createTestGeo({
           activity,
           category: category as GeocodedActivity['category'],
-          confidence: 0.9,
+          score: 0.9,
           messages: [
             {
               id,
@@ -279,7 +279,7 @@ describe('PDF Export', () => {
         ...createTestGeo({
           activity: 'Restaurant A',
           category: 'food',
-          confidence: 0.9,
+          score: 0.9,
           messages: [{ id: 1, sender: 'User', timestamp: new Date(), message: 'msg' }],
           latitude: 41.9,
           longitude: 12.5,
@@ -291,7 +291,7 @@ describe('PDF Export', () => {
         ...createTestGeo({
           activity: 'Restaurant B',
           category: 'food',
-          confidence: 0.9,
+          score: 0.9,
           messages: [{ id: 2, sender: 'User', timestamp: new Date(), message: 'msg' }],
           latitude: 48.8,
           longitude: 2.3,
@@ -303,7 +303,7 @@ describe('PDF Export', () => {
         ...createTestGeo({
           activity: 'Hike A',
           category: 'nature',
-          confidence: 0.9,
+          score: 0.9,
           messages: [{ id: 3, sender: 'User', timestamp: new Date(), message: 'msg' }],
           latitude: 41.9,
           longitude: 12.5,

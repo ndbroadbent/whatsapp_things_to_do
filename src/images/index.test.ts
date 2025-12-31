@@ -25,7 +25,7 @@ function createMockCache(): ResponseCache {
 function createMockActivity(overrides: Partial<GeocodedActivity> = {}): GeocodedActivity {
   return createGeocodedActivity({
     activity: 'Visit the coffee shop',
-    confidence: 0.8,
+    score: 0.8,
     category: 'food',
     ...overrides
   })
@@ -72,7 +72,7 @@ describe('Images Module', () => {
 
     it('skips Wikipedia when skipWikipedia is true', async () => {
       const cache = createMockCache()
-      const activity = createMockActivity({ venue: 'Eiffel Tower', city: 'Paris' })
+      const activity = createMockActivity({ placeName: 'Eiffel Tower', city: 'Paris' })
       const config: ImageFetchConfig = {
         skipGooglePlaces: true,
         skipWikipedia: true,
@@ -88,7 +88,9 @@ describe('Images Module', () => {
 
     it('skips Pexels when skipPexels is true', async () => {
       const cache = createMockCache()
-      const activity = createMockActivity({ action: 'hiking', object: 'mountains' })
+      const activity = createMockActivity({
+        image: { stock: 'hiking mountains', mediaKey: 'hiking', preferStock: true }
+      })
       const config: ImageFetchConfig = {
         skipGooglePlaces: true,
         skipWikipedia: true,
@@ -105,7 +107,9 @@ describe('Images Module', () => {
 
     it('skips Pexels when no API key provided', async () => {
       const cache = createMockCache()
-      const activity = createMockActivity({ action: 'hiking' })
+      const activity = createMockActivity({
+        image: { stock: 'hiking', mediaKey: 'hiking', preferStock: true }
+      })
       const config: ImageFetchConfig = {
         skipGooglePlaces: true,
         skipWikipedia: true,
@@ -121,7 +125,9 @@ describe('Images Module', () => {
 
     it('skips Pixabay when skipPixabay is true', async () => {
       const cache = createMockCache()
-      const activity = createMockActivity({ action: 'hiking', object: 'mountains' })
+      const activity = createMockActivity({
+        image: { stock: 'hiking mountains', mediaKey: 'hiking', preferStock: true }
+      })
       const config: ImageFetchConfig = {
         skipGooglePlaces: true,
         skipWikipedia: true,
@@ -138,7 +144,9 @@ describe('Images Module', () => {
 
     it('skips Pixabay when no API key provided', async () => {
       const cache = createMockCache()
-      const activity = createMockActivity({ action: 'hiking' })
+      const activity = createMockActivity({
+        image: { stock: 'hiking mountains', mediaKey: 'hiking', preferStock: true }
+      })
       const config: ImageFetchConfig = {
         skipGooglePlaces: true,
         skipWikipedia: true,

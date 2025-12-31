@@ -26,16 +26,22 @@ const MIN_IMAGE_WIDTH = 400
 /**
  * Fetch Wikipedia image for an activity.
  *
- * Tries venue, then city, then country.
+ * Tries wikiName, then placeName, then city, then country.
  * Only returns images with CC/PD licenses.
  */
 export async function fetchWikipediaImage(
   activity: GeocodedActivity,
   cache: ResponseCache
 ): Promise<ImageResult | null> {
-  // Try venue first (most specific)
-  if (activity.venue) {
-    const result = await fetchWikipediaArticleImage(activity.venue, cache)
+  // Try wikiName first (explicit Wikipedia article name)
+  if (activity.wikiName) {
+    const result = await fetchWikipediaArticleImage(activity.wikiName, cache)
+    if (result) return result
+  }
+
+  // Try placeName (venue/landmark name)
+  if (activity.placeName) {
+    const result = await fetchWikipediaArticleImage(activity.placeName, cache)
     if (result) return result
   }
 

@@ -296,8 +296,8 @@ export async function lookupActivityPlace(
     return activity
   }
 
-  // If we have a venue, use Places API Text Search (better for named places)
-  if (activity.venue) {
+  // If we have a placeName or placeQuery, use Places API Text Search (better for named places/venues)
+  if (activity.placeName || activity.placeQuery) {
     const result = await searchPlace(location, config, cache)
 
     if (result.ok) {

@@ -4,6 +4,31 @@
  * Parses AI classification responses from JSON into typed objects.
  */
 
+/**
+ * Image hints for the banner image pipeline.
+ * Non-location image hints only (locations are top-level).
+ */
+export interface ParsedImageHints {
+  /** Stock photo query string - ALWAYS required (e.g., "hot air balloon cappadocia sunrise") */
+  stock: string
+  /** Media library key (e.g., "hot air balloon", "restaurant", "concert") */
+  mediaKey: string | null
+  /** When true: prefer stock photo, use mediaKey as fallback. When false: try mediaKey first. */
+  preferStock: boolean
+}
+
+/**
+ * Link hints for generating clickable link widgets.
+ */
+export interface ParsedLinkHints {
+  /** Link type: movie, book, board_game, place, event, other */
+  type: string | null
+  /** Canonical title/name to search for (e.g., "The Matrix", "Blood on the Clocktower") */
+  query: string | null
+  /** URL if user provided one directly */
+  url: string | null
+}
+
 export interface ParsedClassification {
   msg: number
   /** Message offset - 0 for suggestions, negative for agreements pointing to earlier messages */
@@ -14,18 +39,26 @@ export interface ParsedClassification {
   /** How interesting/unique is this activity? 0.0-5.0 scale */
   int: number
   cat: string
-  conf: number
-  com: boolean
-  act: string | null
-  act_orig: string | null
-  obj: string | null
-  obj_orig: string | null
-  venue: string | null
+
+  // ===== Location fields (top-level, for geocoding + sometimes images) =====
+  /** Wikipedia topic name for "things" (bands, board games, concepts) */
+  wikiName: string | null
+  /** Canonical named place (valid Wikipedia title, e.g., "Waiheke Island", "Mount Fuji") */
+  placeName: string | null
+  /** Business/POI disambiguation string (Google Places only, e.g., "Dice Goblin Auckland") */
+  placeQuery: string | null
+  /** City name */
   city: string | null
+  /** Region name (state, province) */
   region: string | null
+  /** Country name */
   country: string | null
-  /** 3 keywords for stock photo search (different from act/obj/venue) */
-  kw: string[]
+
+  // ===== Image hints (non-location) =====
+  image: ParsedImageHints
+
+  // ===== Link hints =====
+  link: ParsedLinkHints | null
 }
 
 function extractJsonFromResponse(response: string): string {
@@ -74,9 +107,40 @@ function parseBoolean(val: unknown, fallback: boolean): boolean {
   return fallback
 }
 
-function parseStringArray(val: unknown): string[] {
-  if (!Array.isArray(val)) return []
-  return val.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+/**
+ * Parse the image hints object from AI response.
+ */
+function parseImageHints(obj: unknown): ParsedImageHints {
+  if (typeof obj !== 'object' || obj === null) {
+    return { stock: '', mediaKey: null, preferStock: false }
+  }
+  const imageObj = obj as Record<string, unknown>
+  return {
+    stock: parseString(imageObj.stock) ?? '',
+    mediaKey: parseString(imageObj.mediaKey),
+    preferStock: parseBoolean(imageObj.preferStock, false)
+  }
+}
+
+/**
+ * Parse the link hints object from AI response.
+ */
+function parseLinkHints(obj: unknown): ParsedLinkHints | null {
+  if (typeof obj !== 'object' || obj === null) {
+    return null
+  }
+  const linkObj = obj as Record<string, unknown>
+  const type = parseString(linkObj.type)
+  const query = parseString(linkObj.query)
+  // Only return link if at least type or query is present
+  if (!type && !query) {
+    return null
+  }
+  return {
+    type,
+    query,
+    url: parseString(linkObj.url)
+  }
 }
 
 function parseItem(obj: Record<string, unknown>): ParsedClassification {
@@ -87,17 +151,17 @@ function parseItem(obj: Record<string, unknown>): ParsedClassification {
     fun: parseNumber(obj.fun, 2.5, 5, 1), // 0-5 scale, 1 decimal
     int: parseNumber(obj.int, 2.5, 5, 1), // 0-5 scale, 1 decimal
     cat: typeof obj.cat === 'string' ? obj.cat : 'other',
-    conf: parseNumber(obj.conf, 0.5, 1, 2), // 0-1 scale, 2 decimals (percentage)
-    com: parseBoolean(obj.com, true),
-    act: parseString(obj.act),
-    act_orig: parseString(obj.act_orig),
-    obj: parseString(obj.obj),
-    obj_orig: parseString(obj.obj_orig),
-    venue: parseString(obj.venue),
+    // Location fields (top-level)
+    wikiName: parseString(obj.wikiName),
+    placeName: parseString(obj.placeName),
+    placeQuery: parseString(obj.placeQuery),
     city: parseString(obj.city),
     region: parseString(obj.region),
     country: parseString(obj.country),
-    kw: parseStringArray(obj.kw)
+    // Image hints (nested object)
+    image: parseImageHints(obj.image),
+    // Link hints (nested object)
+    link: parseLinkHints(obj.link)
   }
 }
 

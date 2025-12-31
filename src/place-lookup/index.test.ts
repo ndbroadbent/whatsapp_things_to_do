@@ -87,7 +87,7 @@ function createActivity(
   return createTestActivity({
     activity,
     category: 'food',
-    confidence: 0.9,
+    score: 0.9,
     messages: [
       {
         id,

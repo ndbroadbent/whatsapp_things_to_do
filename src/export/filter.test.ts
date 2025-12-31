@@ -5,14 +5,13 @@ import { filterActivities, matchesSender, normalizeCountry } from './filter'
 
 /**
  * Helper to create a test activity with common defaults.
+ * Note: Don't set a default score so tests can control it via funScore/interestingScore
  */
 function createTestActivity(
   overrides: Partial<GeocodedActivity> & { activity: string }
 ): GeocodedActivity {
-  // Scores are 0-5 scale
   return createGeocodedActivity({
     category: 'food',
-    confidence: 0.9,
     funScore: 2.5,
     interestingScore: 2.5,
     messages: [
@@ -355,7 +354,7 @@ describe('Filter Module', () => {
       const activities = [
         createTestActivity({
           activity: 'Specific Place',
-          venue: 'Coffee Lab',
+          placeName: 'Coffee Lab',
           city: 'Auckland',
           country: 'New Zealand'
         }),
@@ -366,7 +365,7 @@ describe('Filter Module', () => {
         }),
         createTestActivity({
           activity: 'Generic Activity',
-          venue: null,
+          placeName: null,
           city: null,
           region: null,
           country: null

@@ -223,13 +223,9 @@ function renderActivityList(
   doc: PDFKit.PDFDocument,
   items: readonly GeocodedActivity[],
   config: PDFConfig,
-  renderOptions: RenderOptions,
-  sortBy: 'confidence' | 'score' = 'confidence'
+  renderOptions: RenderOptions
 ): void {
-  const sorted =
-    sortBy === 'confidence'
-      ? [...items].sort((a, b) => b.confidence - a.confidence)
-      : [...items].sort((a, b) => b.score - a.score)
+  const sorted = [...items].sort((a, b) => b.score - a.score)
 
   for (const item of sorted) {
     const hasThumbnail = config.thumbnails?.has(item.activityId)
@@ -251,7 +247,7 @@ function renderFlatList(
   renderOptions: RenderOptions
 ): void {
   doc.moveDown(2)
-  renderActivityList(doc, activities, config, renderOptions, 'score')
+  renderActivityList(doc, activities, config, renderOptions)
 }
 
 /**
@@ -276,7 +272,7 @@ function renderCategorySection(
     .text(`${CATEGORY_NAMES[category]} (${items.length})`)
   doc.moveDown(0.5)
 
-  renderActivityList(doc, items, config, renderOptions, 'confidence')
+  renderActivityList(doc, items, config, renderOptions)
 }
 
 /**
@@ -355,7 +351,7 @@ function renderGroupedByCountry(
       fontSize: 16,
       renderContent: () => {
         doc.moveDown(0.5)
-        renderActivityList(doc, items, config, renderOptions, 'score')
+        renderActivityList(doc, items, config, renderOptions)
       }
     })
   }
