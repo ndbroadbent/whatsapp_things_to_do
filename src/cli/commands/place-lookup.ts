@@ -6,6 +6,7 @@
  */
 
 import { writeFile } from 'node:fs/promises'
+import { calculatePlacesLookupCost, formatMicrosAsDollars } from '../../costs'
 import { filterWithCoordinates } from '../../place-lookup/index'
 import { formatLocation, type GeocodedActivity } from '../../types'
 import type { CLIArgs } from '../args'
@@ -63,11 +64,15 @@ export async function cmdPlaceLookup(args: CLIArgs, logger: Logger): Promise<voi
 
   // Dry run: show stats and exit
   if (args.dryRun) {
+    const withLocation = classifiedActivities.filter((a) => formatLocation(a)).length
+    // Estimate cost: worst case all activities need place search
+    const estimatedCostMicros = calculatePlacesLookupCost(classifiedActivities.length)
+
     logger.log('\n📊 Place Lookup Estimate (dry run)')
     logger.log(`   Activities to look up: ${classifiedActivities.length}`)
-    const withLocation = classifiedActivities.filter((a) => formatLocation(a)).length
     logger.log(`   With location info: ${withLocation}`)
     logger.log(`   Without location: ${classifiedActivities.length - withLocation}`)
+    logger.log(`   Estimated cost (max): ${formatMicrosAsDollars(estimatedCostMicros)}`)
     return
   }
 

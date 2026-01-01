@@ -6,13 +6,17 @@
  */
 
 import { countTokens } from '../../classifier/tokenizer'
+import {
+  calculateEmbeddingCost,
+  DEFAULT_EMBEDDING_MODELS,
+  formatMicrosAsDollars
+} from '../../costs'
 import type { ParsedMessage } from '../../types'
 import type { CLIArgs } from '../args'
 import { initCommand } from '../helpers'
 import type { Logger } from '../logger'
 import { stepEmbed } from '../steps/embed'
 
-const EMBEDDING_COST_PER_MILLION_TOKENS = 0.13
 const MIN_MESSAGE_LENGTH = 10
 
 function analyzeMessages(messages: readonly ParsedMessage[]): {
@@ -48,7 +52,8 @@ export async function cmdEmbed(args: CLIArgs, logger: Logger): Promise<void> {
 
   // Analyze messages to embed
   const { toEmbed, skipped, totalTokens } = analyzeMessages(messages)
-  const estimatedCost = (totalTokens / 1_000_000) * EMBEDDING_COST_PER_MILLION_TOKENS
+  const embeddingModel = DEFAULT_EMBEDDING_MODELS.openai
+  const estimatedCostMicros = calculateEmbeddingCost(embeddingModel, totalTokens)
   const batchCount = Math.ceil(toEmbed / 100)
 
   logger.log(`\n📊 Embedding Stats`)
@@ -57,7 +62,8 @@ export async function cmdEmbed(args: CLIArgs, logger: Logger): Promise<void> {
   logger.log(`   Skipped (too short): ${skipped.toLocaleString()}`)
   logger.log(`   Total tokens: ${totalTokens.toLocaleString()}`)
   logger.log(`   API batches: ${batchCount}`)
-  logger.log(`   Estimated cost: $${estimatedCost.toFixed(4)}`)
+  logger.log(`   Model: ${embeddingModel}`)
+  logger.log(`   Estimated cost: ${formatMicrosAsDollars(estimatedCostMicros)}`)
 
   if (args.dryRun) {
     logger.log('\n🏃 Dry run - no API calls made')

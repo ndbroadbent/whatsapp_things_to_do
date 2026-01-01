@@ -7,6 +7,11 @@
 
 import { writeFile } from 'node:fs/promises'
 import { countTokens } from '../../classifier/tokenizer'
+import {
+  calculateEmbeddingCost,
+  DEFAULT_EMBEDDING_MODELS,
+  formatMicrosAsDollars
+} from '../../costs'
 import { extractCandidatesByEmbeddings, extractCandidatesByHeuristics } from '../../index'
 import type { CandidateMessage, ParsedMessage } from '../../types'
 import type { CLIArgs, ExtractionMethod } from '../args'
@@ -30,9 +35,10 @@ interface FilterStats {
   embeddingsMatches?: number | undefined
 }
 
-const EMBEDDING_COST_PER_MILLION_TOKENS = 0.13
-
-function estimateEmbeddingCost(messages: readonly ParsedMessage[], logger: Logger): void {
+function estimateEmbeddingCostForMessages(
+  messages: readonly ParsedMessage[],
+  logger: Logger
+): void {
   const messagesToEmbed = messages.filter((m) => m.content.length > 10)
   let totalTokens = 0
 
@@ -40,14 +46,15 @@ function estimateEmbeddingCost(messages: readonly ParsedMessage[], logger: Logge
     totalTokens += countTokens(msg.content)
   }
 
-  const costDollars = (totalTokens / 1_000_000) * EMBEDDING_COST_PER_MILLION_TOKENS
+  const embeddingModel = DEFAULT_EMBEDDING_MODELS.openai
+  const costMicros = calculateEmbeddingCost(embeddingModel, totalTokens)
   const batchCount = Math.ceil(messagesToEmbed.length / 100)
 
-  logger.log('\n📊 Embedding Cost Estimate (text-embedding-3-large)')
+  logger.log(`\n📊 Embedding Cost Estimate (${embeddingModel})`)
   logger.log(`   Messages to embed: ${messagesToEmbed.length.toLocaleString()}`)
   logger.log(`   Total tokens: ${totalTokens.toLocaleString()}`)
   logger.log(`   API batches: ${batchCount}`)
-  logger.log(`   Estimated cost: $${costDollars.toFixed(4)}`)
+  logger.log(`   Estimated cost: ${formatMicrosAsDollars(costMicros)}`)
 }
 
 function formatCandidatesText(output: FilterOutput, logger: Logger, showAll: boolean): void {
@@ -191,7 +198,7 @@ export async function cmdFilter(args: CLIArgs, logger: Logger): Promise<void> {
 
   // Dry run: show cost estimate and exit
   if (args.dryRun && (args.method === 'embeddings' || args.method === 'both')) {
-    estimateEmbeddingCost(parseResult.messages, logger)
+    estimateEmbeddingCostForMessages(parseResult.messages, logger)
     return
   }
 

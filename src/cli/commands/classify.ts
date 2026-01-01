@@ -6,6 +6,12 @@
  */
 
 import { writeFile } from 'node:fs/promises'
+import {
+  calculateAIInputCost,
+  calculateAIOutputCost,
+  ESTIMATION_DEFAULTS,
+  formatMicrosAsDollars
+} from '../../costs'
 import { type ClassifiedActivity, formatLocation } from '../../types'
 import type { CLIArgs } from '../args'
 import {
@@ -103,9 +109,26 @@ export async function cmdClassify(args: CLIArgs, logger: Logger): Promise<void> 
 
   // Dry run: show stats and exit
   if (args.dryRun) {
+    // Estimate classification cost
+    // Use default model for estimation (gemini-3-flash-preview)
+    const estimatedModel = 'gemini-3-flash-preview'
+    const batchSize = 30
+    const estimatedBatches = Math.ceil(candidates.length / batchSize)
+    // Rough estimate: ~100 tokens per candidate input, ~150 tokens per activity output
+    const estimatedInputTokens = candidates.length * 100
+    const estimatedOutputTokens = candidates.length * ESTIMATION_DEFAULTS.outputTokensPerActivity
+    const inputCostMicros = calculateAIInputCost(estimatedModel, estimatedInputTokens)
+    const outputCostMicros = calculateAIOutputCost(estimatedModel, estimatedOutputTokens)
+    const totalCostMicros = inputCostMicros + outputCostMicros
+
     logger.log('\n📊 Classification Estimate (dry run)')
     logger.log(`   Candidates to classify: ${candidates.length}`)
-    logger.log(`   Estimated batches: ${Math.ceil(candidates.length / 30)}`)
+    logger.log(`   Estimated batches: ${estimatedBatches}`)
+    logger.log(`   Model: ${estimatedModel}`)
+    logger.log(
+      `   Estimated tokens: ${estimatedInputTokens.toLocaleString()} in / ${estimatedOutputTokens.toLocaleString()} out`
+    )
+    logger.log(`   Estimated cost: ${formatMicrosAsDollars(totalCostMicros)}`)
     return
   }
 

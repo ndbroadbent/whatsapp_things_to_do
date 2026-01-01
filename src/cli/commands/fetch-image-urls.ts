@@ -10,6 +10,7 @@
  */
 
 import { writeFile } from 'node:fs/promises'
+import { calculatePlacesPhotoCost, formatMicrosAsDollars } from '../../costs'
 import type { ImageResult } from '../../images/types'
 import type { GeocodedActivity } from '../../types'
 import type { CLIArgs } from '../args'
@@ -58,6 +59,34 @@ function logStatsSummary(stats: FetchImagesStats, logger: Logger): void {
   if (stats.failed > 0) logger.log(`   Not found: ${stats.failed}`)
 }
 
+function getEnabledImageSources(args: CLIArgs): string[] {
+  const sources: string[] = []
+  if (!args.skipMediaLibrary) sources.push('Media Library')
+  if (!args.skipWikipedia) sources.push('Wikipedia')
+  if (!args.skipPexels && process.env.PEXELS_API_KEY) sources.push('Pexels')
+  if (!args.skipPixabay && process.env.PIXABAY_API_KEY) sources.push('Pixabay')
+  if (!args.skipGooglePlaces && process.env.GOOGLE_MAPS_API_KEY) sources.push('Google Places')
+  return sources
+}
+
+function logDryRunEstimate(activityCount: number, args: CLIArgs, logger: Logger): void {
+  const sources = getEnabledImageSources(args)
+  const willUseGooglePlaces = !args.skipGooglePlaces && !!process.env.GOOGLE_MAPS_API_KEY
+  const estimatedPhotoCostMicros = willUseGooglePlaces ? calculatePlacesPhotoCost(activityCount) : 0
+
+  logger.log('\n📊 Image Fetch Estimate (dry run)')
+  logger.log(`   Activities: ${activityCount}`)
+  logger.log(`   Sources: ${sources.join(', ') || 'none'}`)
+  if (willUseGooglePlaces) {
+    logger.log(
+      `   Estimated cost (if all from Google): ${formatMicrosAsDollars(estimatedPhotoCostMicros)}`
+    )
+    logger.log(`   Note: Free sources (Media Library, Pixabay, Pexels) are tried first`)
+  } else {
+    logger.log(`   Estimated cost: $0.00 (only free sources enabled)`)
+  }
+}
+
 export async function cmdFetchImageUrls(args: CLIArgs, logger: Logger): Promise<void> {
   const { ctx, config } = await initCommandContext('Fetch Image URLs', args, logger)
 
@@ -76,15 +105,7 @@ export async function cmdFetchImageUrls(args: CLIArgs, logger: Logger): Promise<
 
   // Dry run: show stats and exit
   if (args.dryRun) {
-    logger.log('\n📊 Image Fetch Estimate (dry run)')
-    logger.log(`   Activities: ${geocodedActivities.length}`)
-    const sources: string[] = []
-    if (!args.skipMediaLibrary) sources.push('Media Library')
-    if (!args.skipWikipedia) sources.push('Wikipedia')
-    if (!args.skipPexels && process.env.PEXELS_API_KEY) sources.push('Pexels')
-    if (!args.skipPixabay && process.env.PIXABAY_API_KEY) sources.push('Pixabay')
-    if (!args.skipGooglePlaces && process.env.GOOGLE_MAPS_API_KEY) sources.push('Google Places')
-    logger.log(`   Sources: ${sources.join(', ') || 'none'}`)
+    logDryRunEstimate(geocodedActivities.length, args, logger)
     return
   }
 
