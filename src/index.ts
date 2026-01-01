@@ -97,8 +97,7 @@ export {
   generateMonthlyChunks,
   getMonthKey,
   getMonthStart,
-  groupMessagesByMonth,
-  roundToMinute
+  groupMessagesByMonth
 } from './fingerprint/index'
 // Images module
 export type {

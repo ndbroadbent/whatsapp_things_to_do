@@ -29,6 +29,9 @@ pre-commit:
     file-length:
       run: ./scripts/check_file_length.sh {staged_files}
 
+    forbidden-names:
+      run: ./scripts/check_forbidden_names.sh {staged_files}
+
     biome-ignores:
       glob: "*.ts"
       run: |

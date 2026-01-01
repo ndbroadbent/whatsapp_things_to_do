@@ -1,5 +1,10 @@
 /**
  * Tests for Monthly Chunk Fingerprinting
+ *
+ * CRITICAL: Fingerprints do NOT include timestamps!
+ * WhatsApp exports are not idempotent - same message can have different timestamps
+ * across exports (±1-2 seconds drift between iOS/Desktop/etc).
+ * Identity comes from: who said what, in what order.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -10,8 +15,7 @@ import {
   generateMonthlyChunks,
   getMonthKey,
   getMonthStart,
-  groupMessagesByMonth,
-  roundToMinute
+  groupMessagesByMonth
 } from './chunker'
 
 // Helper to create test messages
@@ -31,48 +35,6 @@ function createMessage(
     source: 'whatsapp'
   }
 }
-
-describe('roundToMinute', () => {
-  it('should truncate to the minute (floor)', () => {
-    const ts = new Date('2024-01-15T10:30:15.000Z')
-    const rounded = roundToMinute(ts)
-    expect(rounded).toBe(new Date('2024-01-15T10:30:00.000Z').getTime())
-  })
-
-  it('should truncate even when seconds >= 30', () => {
-    const ts = new Date('2024-01-15T10:30:45.000Z')
-    const rounded = roundToMinute(ts)
-    // Floor, not round - so 10:30:45 becomes 10:30:00
-    expect(rounded).toBe(new Date('2024-01-15T10:30:00.000Z').getTime())
-  })
-
-  it('should handle WhatsApp timestamp drift (±1 second)', () => {
-    // Original export: 2:16:41
-    const original = new Date('2023-10-10T14:16:41.000Z')
-    // New export: 2:16:40 (1 second earlier)
-    const drifted = new Date('2023-10-10T14:16:40.000Z')
-
-    // Both should truncate to the same minute
-    expect(roundToMinute(original)).toBe(roundToMinute(drifted))
-  })
-
-  it('should handle edge case at exactly 30 seconds', () => {
-    const ts = new Date('2024-01-15T10:30:30.000Z')
-    const rounded = roundToMinute(ts)
-    // Floor, not round - so 30 seconds stays at :30:00
-    expect(rounded).toBe(new Date('2024-01-15T10:30:00.000Z').getTime())
-  })
-
-  it('should handle edge case at boundary (59 seconds drift to 00)', () => {
-    // This is the critical case: 20:09:30 drifted to 20:09:29
-    // With floor, both become 20:09:00
-    const original = new Date('2023-10-10T20:09:30.000Z')
-    const drifted = new Date('2023-10-10T20:09:29.000Z')
-
-    expect(roundToMinute(original)).toBe(roundToMinute(drifted))
-    expect(roundToMinute(original)).toBe(new Date('2023-10-10T20:09:00.000Z').getTime())
-  })
-})
 
 describe('getMonthStart', () => {
   it('should return first day of month at 00:00:00 UTC', () => {
@@ -191,7 +153,7 @@ describe('generateChunkFingerprint', () => {
     expect(fp1).not.toBe(fp2)
   })
 
-  it('should handle timestamp drift (±1 second) with same result', () => {
+  it('should produce same fingerprint regardless of timestamp drift', () => {
     // Original export timestamps
     const original: ParsedMessage[] = [
       createMessage(1, new Date('2023-10-10T14:16:41Z'), 'Nathan', "I'm having snap"),
@@ -199,7 +161,7 @@ describe('generateChunkFingerprint', () => {
       createMessage(3, new Date('2023-10-10T14:16:57Z'), 'Masha', 'Okay')
     ]
 
-    // New export timestamps (drifted by -1 second)
+    // New export timestamps (drifted by -1 second - common in WhatsApp exports)
     const drifted: ParsedMessage[] = [
       createMessage(1, new Date('2023-10-10T14:16:40Z'), 'Nathan', "I'm having snap"),
       createMessage(2, new Date('2023-10-10T14:16:43Z'), 'Nathan', 'A nap'),
@@ -210,7 +172,8 @@ describe('generateChunkFingerprint', () => {
     const fp1 = generateChunkFingerprint(original, octStart)
     const fp2 = generateChunkFingerprint(drifted, octStart)
 
-    // Should be the same because timestamps are rounded to minutes
+    // Same fingerprint because timestamps are NOT in the hash!
+    // Only sender + content + order matter.
     expect(fp1).toBe(fp2)
   })
 
@@ -450,45 +413,68 @@ describe('createDeduplicationPlan', () => {
   })
 })
 
-describe('real-world timestamp drift scenario', () => {
-  it('should handle actual WhatsApp export drift from user feedback', () => {
-    // Original export (from user feedback)
+describe('WhatsApp export instability (real-world data)', () => {
+  /**
+   * CRITICAL: WhatsApp exports are NOT idempotent!
+   *
+   * Real-world evidence from three exports of the SAME messages:
+   *   iOS export:           [10/10/2023, 2:16:42 PM]  (seconds +1)
+   *   Desktop (Jan 2026):   [10/10/23, 2:16:40 PM]    (seconds -1)
+   *   Desktop (Dec 2025):   [10/10/23, 2:16:41 PM]    (seconds 0)
+   *
+   * Key observations:
+   * 1. Same device class can change over time
+   * 2. Same message can legally appear with THREE different timestamps
+   * 3. The skew is consistent WITHIN an export, but not ACROSS exports
+   * 4. This is NOT leap seconds - it's WhatsApp's export layer doing lossy formatting
+   *
+   * What IS stable across exports:
+   * - ✅ Sender names identical
+   * - ✅ Message text identical
+   * - ✅ Message ordering identical
+   * - ❌ Timestamps drift by ±1-2 seconds
+   *
+   * DESIGN DECISION: Fingerprints use sender + content + order, NOT timestamps.
+   */
+  it('should deduplicate correctly across exports with different timestamps', () => {
+    // Original export (iOS, timestamps +1 second)
     const originalMessages: ParsedMessage[] = [
-      createMessage(1, new Date('2023-10-10T14:16:41Z'), 'Nathan Broadbent', "I'm having snap"),
-      createMessage(2, new Date('2023-10-10T14:16:44Z'), 'Nathan Broadbent', 'A nap'),
-      createMessage(3, new Date('2023-10-10T14:16:57Z'), 'Masha Broadbent', 'Okay'),
-      createMessage(4, new Date('2023-10-10T15:57:08Z'), 'Masha Broadbent', '😂😂😂$270 a week'),
-      createMessage(5, new Date('2023-10-10T15:57:25Z'), 'Masha Broadbent', 'They want me to pay'),
-      createMessage(6, new Date('2023-10-10T15:57:49Z'), 'Masha Broadbent', 'BUT! No limits'),
-      createMessage(7, new Date('2023-10-10T20:09:08Z'), 'Masha Broadbent', 'Oh the grasshopper'),
-      createMessage(8, new Date('2023-10-10T20:09:12Z'), 'Masha Broadbent', 'So sad'),
-      createMessage(9, new Date('2023-10-10T20:09:30Z'), 'Nathan Broadbent', 'Oh no'),
-      createMessage(10, new Date('2023-10-10T22:06:30Z'), 'Masha Broadbent', 'Okay ! I found')
+      createMessage(1, new Date('2023-10-10T14:16:42Z'), 'John Smith', 'Taking a break'),
+      createMessage(2, new Date('2023-10-10T14:16:45Z'), 'John Smith', 'Be back soon'),
+      createMessage(3, new Date('2023-10-10T14:16:58Z'), 'Jane Smith', 'Okay'),
+      createMessage(4, new Date('2023-10-10T15:57:09Z'), 'Jane Smith', 'Wow that is expensive'),
+      createMessage(5, new Date('2023-10-10T15:57:26Z'), 'Jane Smith', 'They want me to pay'),
+      createMessage(6, new Date('2023-10-10T15:57:50Z'), 'Jane Smith', 'But unlimited usage'),
+      createMessage(7, new Date('2023-10-10T20:09:09Z'), 'Jane Smith', 'Oh the weather'),
+      createMessage(8, new Date('2023-10-10T20:09:13Z'), 'Jane Smith', 'So nice'),
+      createMessage(9, new Date('2023-10-10T20:09:31Z'), 'John Smith', 'I know right'),
+      createMessage(10, new Date('2023-10-10T22:06:31Z'), 'Jane Smith', 'Okay I found it')
     ]
 
-    // New export (timestamps drifted by -1 second)
+    // New export (Desktop, timestamps -1 second from baseline)
     const newMessages: ParsedMessage[] = [
-      createMessage(1, new Date('2023-10-10T14:16:40Z'), 'Nathan Broadbent', "I'm having snap"),
-      createMessage(2, new Date('2023-10-10T14:16:43Z'), 'Nathan Broadbent', 'A nap'),
-      createMessage(3, new Date('2023-10-10T14:16:56Z'), 'Masha Broadbent', 'Okay'),
-      createMessage(4, new Date('2023-10-10T15:57:07Z'), 'Masha Broadbent', '😂😂😂$270 a week'),
-      createMessage(5, new Date('2023-10-10T15:57:24Z'), 'Masha Broadbent', 'They want me to pay'),
-      createMessage(6, new Date('2023-10-10T15:57:48Z'), 'Masha Broadbent', 'BUT! No limits'),
-      createMessage(7, new Date('2023-10-10T20:09:07Z'), 'Masha Broadbent', 'Oh the grasshopper'),
-      createMessage(8, new Date('2023-10-10T20:09:11Z'), 'Masha Broadbent', 'So sad'),
-      createMessage(9, new Date('2023-10-10T20:09:29Z'), 'Nathan Broadbent', 'Oh no'),
-      createMessage(10, new Date('2023-10-10T22:06:29Z'), 'Masha Broadbent', 'Okay ! I found')
+      createMessage(1, new Date('2023-10-10T14:16:40Z'), 'John Smith', 'Taking a break'),
+      createMessage(2, new Date('2023-10-10T14:16:43Z'), 'John Smith', 'Be back soon'),
+      createMessage(3, new Date('2023-10-10T14:16:56Z'), 'Jane Smith', 'Okay'),
+      createMessage(4, new Date('2023-10-10T15:57:07Z'), 'Jane Smith', 'Wow that is expensive'),
+      createMessage(5, new Date('2023-10-10T15:57:24Z'), 'Jane Smith', 'They want me to pay'),
+      createMessage(6, new Date('2023-10-10T15:57:48Z'), 'Jane Smith', 'But unlimited usage'),
+      createMessage(7, new Date('2023-10-10T20:09:07Z'), 'Jane Smith', 'Oh the weather'),
+      createMessage(8, new Date('2023-10-10T20:09:11Z'), 'Jane Smith', 'So nice'),
+      createMessage(9, new Date('2023-10-10T20:09:29Z'), 'John Smith', 'I know right'),
+      createMessage(10, new Date('2023-10-10T22:06:29Z'), 'Jane Smith', 'Okay I found it')
     ]
 
     const originalChunks = generateMonthlyChunks(originalMessages)
     const newChunks = generateMonthlyChunks(newMessages)
 
-    // The fingerprints should match despite timestamp drift
+    // The fingerprints MUST match despite 2-second timestamp difference!
+    // This is the whole point - timestamps are NOT in the hash.
     expect(originalChunks.length).toBe(1) // Just October
     expect(newChunks.length).toBe(1)
     expect(originalChunks[0]?.fingerprint).toBe(newChunks[0]?.fingerprint)
 
-    // Deduplication should work
+    // Deduplication must correctly identify the re-upload
     const originalFingerprint = originalChunks[0]?.fingerprint ?? ''
     const knownFingerprints = new Set([originalFingerprint])
     const plan = createDeduplicationPlan(newChunks, knownFingerprints)

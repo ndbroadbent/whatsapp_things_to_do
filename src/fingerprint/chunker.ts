@@ -3,6 +3,13 @@
  *
  * Groups messages by calendar month and generates fingerprints for deduplication.
  * See project_docs/CHAT_FINGERPRINTING.md for algorithm details.
+ *
+ * CRITICAL: Fingerprints do NOT include timestamps.
+ * WhatsApp exports are not idempotent - same message can have different timestamps
+ * across exports (±1-2 seconds drift). Identity comes from:
+ * - Who said what (sender + content)
+ * - In what order (first N messages of the month)
+ * - How many messages (count detects partial uploads)
  */
 
 import { createHash } from 'node:crypto'
@@ -11,17 +18,6 @@ import type { FingerprintConfig, MonthlyChunk } from './types'
 
 /** Default number of messages to sample from each month */
 const DEFAULT_SAMPLE_SIZE = 10
-
-/**
- * Truncate a timestamp to the minute (floor, not round).
- * This handles WhatsApp's ±1 second timestamp drift between exports.
- *
- * Using floor instead of round ensures that ±1 second drift never crosses
- * a minute boundary (e.g., 20:09:30 and 20:09:29 both become 20:09:00).
- */
-export function roundToMinute(timestamp: Date): number {
-  return Math.floor(timestamp.getTime() / 60000) * 60000
-}
 
 /**
  * Get the UTC month start date for a timestamp.
@@ -44,9 +40,14 @@ export function getMonthKey(timestamp: Date): string {
  * Generate a SHA-256 fingerprint for a monthly chunk.
  *
  * The fingerprint is based on:
- * - Month start date (ISO string)
+ * - Month key (YYYY-MM format)
  * - Message count (for detecting partial exports)
- * - First N messages (sender + content, with rounded timestamps)
+ * - First N messages (sender + content ONLY - no timestamps!)
+ *
+ * CRITICAL: Timestamps are NOT included in the fingerprint.
+ * WhatsApp exports are not idempotent - the same message can have different
+ * timestamps across exports (±1-2 seconds drift between iOS/Desktop/etc).
+ * Identity comes from: who said what, in what order.
  *
  * @param monthMessages - All messages in this month
  * @param monthStart - First day of the month (UTC)
@@ -64,21 +65,21 @@ export function generateChunkFingerprint(
   const samplesToTake = Math.min(sampleSize, monthMessages.length)
   const sample = monthMessages.slice(0, samplesToTake)
 
-  // Build fingerprint input from sample messages
-  const messageLines = sample.map((m) => {
-    const roundedTs = roundToMinute(m.timestamp)
-    // Include: rounded timestamp | sender | content
-    return `${roundedTs}|${m.sender}|${m.content}`
-  })
+  // Build fingerprint from sender + content ONLY (no timestamps!)
+  // Messages are separated by "---" to create clear boundaries
+  const messageLines = sample.map((m) => `${m.sender}\n${m.content}`).join('\n---\n')
 
-  // Combine: month_start | message_count (optional) | message lines
-  const parts: string[] = [monthStart.toISOString()]
+  // Month key in YYYY-MM format (e.g., "2024-01")
+  const monthKey = monthStart.toISOString().slice(0, 7)
+
+  // Combine: month_key | message_count (optional) | message content
+  const parts: string[] = [monthKey]
 
   if (includeCount) {
     parts.push(String(monthMessages.length))
   }
 
-  parts.push(...messageLines)
+  parts.push(messageLines)
 
   const fingerprintInput = parts.join('\n')
 

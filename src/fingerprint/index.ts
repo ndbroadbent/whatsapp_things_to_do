@@ -29,8 +29,7 @@ export {
   generateMonthlyChunks,
   getMonthKey,
   getMonthStart,
-  groupMessagesByMonth,
-  roundToMinute
+  groupMessagesByMonth
 } from './chunker'
 // Type exports
 export type { DeduplicationPlan, FingerprintConfig, MonthlyChunk } from './types'
