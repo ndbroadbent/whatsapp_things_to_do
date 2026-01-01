@@ -89,6 +89,17 @@ export {
   loadQueryEmbeddings,
   SUGGESTION_QUERIES
 } from './extraction/index'
+// Fingerprint module (for deduplication)
+export type { DeduplicationPlan, FingerprintConfig, MonthlyChunk } from './fingerprint/index'
+export {
+  createDeduplicationPlan,
+  generateChunkFingerprint,
+  generateMonthlyChunks,
+  getMonthKey,
+  getMonthStart,
+  groupMessagesByMonth,
+  roundToMinute
+} from './fingerprint/index'
 // Images module
 export type {
   ImageFetchConfig,
