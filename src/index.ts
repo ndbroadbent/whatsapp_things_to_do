@@ -19,8 +19,7 @@ export {
   generateGeocodeCacheKey,
   generatePlaceLookupCacheKey
 } from './caching/index'
-// Categories and default activities
-export { VALID_CATEGORIES } from './categories'
+// Categories (also available via ./shared/index)
 // Classifier module
 export type {
   ParsedClassification,
@@ -220,55 +219,6 @@ export {
   searchWikidata,
   tryHeuristicMatch
 } from './search/index'
-// Types (type-only exports)
-export type {
-  ActivityCategory,
-  ActivityLink,
-  ActivityLinkContext,
-  ActivityLinkMetadata,
-  ActivityLinkResult,
-  ActivityLinkType,
-  ActivityMessage,
-  ApiError,
-  ApiErrorType,
-  CandidateMessage,
-  CandidateSource,
-  ChatSource,
-  CLIOptions,
-  ClassifiedActivity,
-  ClassifiedImageHints,
-  ClassifiedLinkHints,
-  ClassifierConfig,
-  ClassifierProvider,
-  EmbeddedMessage,
-  EmbeddingConfig,
-  ExportMetadata,
-  ExtractorOptions,
-  ExtractorResult,
-  GeocodedActivity,
-  IntentSignals,
-  MapConfig,
-  MapStyle,
-  MediaType,
-  ParsedMessage,
-  ParseResult,
-  ParserOptions,
-  PDFConfig,
-  PlaceLookupConfig,
-  PlaceLookupResult,
-  PlaceLookupSource,
-  ProcessingStats,
-  ProviderConfig,
-  Result,
-  SemanticSearchConfig,
-  SocialPlatform,
-  UrlType,
-  WhatsAppFormat
-} from './types'
-// Type helper functions (value exports)
-export { CATEGORY_EMOJI, formatLocation, isMappable } from './types/classifier'
-
-/**
- * Library version.
- */
-export const VERSION = '0.1.0'
+// Shared module re-exports (types + pure functions for lightweight imports)
+// These are also available via `chat-to-map/shared` with zero heavy dependencies
+export * from './shared/index'

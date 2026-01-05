@@ -38,6 +38,11 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./shared": {
+      "types": "./dist/shared/index.d.ts",
+      "import": "./dist/shared/index.js",
+      "default": "./dist/shared/index.js"
+    },
     "./costs": {
       "types": "./dist/costs/index.d.ts",
       "import": "./dist/costs/index.js",
@@ -52,7 +57,7 @@
   "scripts": {
     "cli": "bun run src/cli.ts",
     "dev": "bun run --watch src/cli.ts",
-    "build": "bun build src/index.ts --outdir dist --target node && bun build src/costs/index.ts --outdir dist/costs --target node && bun build src/cli.ts --outdir dist --target node && tsc -p tsconfig.types.json",
+    "build": "bun build src/index.ts --outdir dist --target node && bun build src/shared/index.ts --outdir dist/shared --target node && bun build src/costs/index.ts --outdir dist/costs --target node && bun build src/cli.ts --outdir dist --target node && tsc -p tsconfig.types.json",
     "build:types": "tsc -p tsconfig.types.json",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:binary": "bun build src/cli.ts --compile --outfile chat-to-map",
