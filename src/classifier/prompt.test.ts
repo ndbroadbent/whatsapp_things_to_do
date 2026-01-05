@@ -133,7 +133,7 @@ describe('Classifier Prompt', () => {
 
       // With new schema, normalization rules for action/object are gone
       // But we still have specificity rules for image.mediaKey
-      expect(prompt).toContain('KEEP SPECIFICITY in image.mediaKey')
+      expect(prompt).toContain('KEEP mediaKey specificity')
     })
 
     it('includes adult content filter instructions', () => {

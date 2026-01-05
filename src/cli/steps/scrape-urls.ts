@@ -6,12 +6,11 @@
  */
 
 import { generateUrlCacheKey } from '../../caching/key'
-import { scrapeUrl } from '../../scraper/index'
 import { extractUrlsFromCandidates } from '../../scraper/metadata'
 import type { ScrapedMetadata } from '../../scraper/types'
 import type { CandidateMessage } from '../../types'
-import { runWorkerPool } from '../worker-pool'
 import type { PipelineContext } from './context'
+import { type CachedScrapeResult, isCachedError, scrapeUrlBatch } from './scrape-helper'
 
 const DEFAULT_TIMEOUT_MS = 4000
 const DEFAULT_CONCURRENCY = 5
@@ -54,18 +53,6 @@ interface ScrapeOptions {
 interface CachedScrapeData {
   readonly entries: Array<[string, ScrapedMetadata]>
   readonly allUrls: readonly string[]
-}
-
-/** Marker for cached errors */
-interface CachedError {
-  error: true
-  message: string
-}
-
-type CachedScrapeResult = ScrapedMetadata | CachedError
-
-function isCachedError(data: CachedScrapeResult): data is CachedError {
-  return 'error' in data && data.error === true
 }
 
 /**
@@ -150,81 +137,20 @@ export async function stepScrapeUrls(
     logger.log(`   (${cachedCount} cached, ${uncachedUrls.length} to fetch)`)
   }
 
-  // Scrape uncached URLs in parallel using worker pool
-  const poolResult = await runWorkerPool(
-    uncachedUrls,
-    async (url) => {
-      const cacheKey = generateUrlCacheKey(url)
+  // Scrape uncached URLs in parallel using shared helper
+  const freshlyScraped = await scrapeUrlBatch(uncachedUrls, apiCache, logger, {
+    timeout,
+    concurrency,
+    progressFrequency: 10
+  })
 
-      try {
-        const result = await scrapeUrl(url, { timeout })
-
-        if (result.ok) {
-          await apiCache.set(cacheKey, { data: result.metadata, cachedAt: Date.now() })
-          return { url, metadata: result.metadata, success: true }
-        }
-
-        // Scrape failed - check if we got a redirect URL
-        const errorMsg = result.error?.message ?? 'Unknown error'
-        const finalUrl = result.error?.finalUrl
-
-        if (finalUrl) {
-          // Create minimal metadata with redirect URL
-          const minimalMetadata: ScrapedMetadata = {
-            canonicalUrl: finalUrl,
-            contentId: null,
-            title: null,
-            description: null,
-            hashtags: [],
-            creator: null,
-            imageUrl: null,
-            categories: [],
-            suggestedKeywords: []
-          }
-          await apiCache.set(cacheKey, { data: minimalMetadata, cachedAt: Date.now() })
-          return { url, metadata: minimalMetadata, success: true, error: errorMsg }
-        }
-
-        // No redirect - cache the error
-        await apiCache.set(cacheKey, {
-          data: { error: true, message: errorMsg } as CachedError,
-          cachedAt: Date.now()
-        })
-        return { url, metadata: null, success: false, error: errorMsg }
-      } catch (e) {
-        const errorMsg = e instanceof Error ? e.message : 'Timeout'
-        await apiCache.set(cacheKey, {
-          data: { error: true, message: errorMsg } as CachedError,
-          cachedAt: Date.now()
-        })
-        return { url, metadata: null, success: false, error: errorMsg }
-      }
-    },
-    {
-      concurrency,
-      onProgress: ({ completed, total }) => {
-        if (completed % 10 === 0 || completed === total) {
-          const percent = Math.floor((completed / total) * 100)
-          logger.log(`   ${percent}% scraped (${completed}/${total} URLs)`)
-        }
-      }
-    }
-  )
-
-  // Collect results
-  let successCount = cachedCount > 0 ? metadataMap.size : 0
-  let failedCount = 0
-
-  for (const result of poolResult.successes) {
-    if (result.metadata) {
-      metadataMap.set(result.url, result.metadata)
-      successCount++
-    } else {
-      failedCount++
-    }
+  // Merge fresh results with cached
+  for (const [url, metadata] of freshlyScraped) {
+    metadataMap.set(url, metadata)
   }
 
-  failedCount += poolResult.errorCount
+  const successCount = metadataMap.size
+  const failedCount = uncachedUrls.length - freshlyScraped.size
 
   const stats: ScrapeStats = {
     urlCount: urls.length,

@@ -316,6 +316,14 @@ export function createProgram(): Command {
       .argument('<input>', 'Chat export (.zip, directory, or .txt file)')
   )
 
+  // ============ RESOLVE-LINKS ============
+  addClassifyOptions(
+    program
+      .command('resolve-links')
+      .description('Resolve entity hints (movies, books, games) to canonical URLs')
+      .argument('<input>', 'Chat export (.zip, directory, or .txt file)')
+  )
+
   // ============ FETCH-IMAGE-URLS ============
   program
     .command('fetch-image-urls')

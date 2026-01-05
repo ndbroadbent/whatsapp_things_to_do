@@ -184,6 +184,42 @@ export {
   scrapeUrls,
   scrapeYouTube
 } from './scraper/index'
+// Search/Entity Resolution module
+export type {
+  AIClassificationConfig,
+  ClassificationResult,
+  DeferredItem,
+  EntitySource,
+  EntityType,
+  ExternalIdType,
+  GoogleSearchConfig,
+  GoogleSearchResult,
+  HeuristicMatch,
+  OpenLibraryResult,
+  ResolvedEntity,
+  ResolverConfig,
+  WikidataResult
+} from './search/index'
+export {
+  applyHeuristics,
+  buildCanonicalUrl,
+  buildSearchQuery,
+  classificationToMatch,
+  classifyItem,
+  classifyItems,
+  extractContentWords,
+  getBestUrl,
+  getCanonicalUrl,
+  getSource,
+  normalizeUnicode,
+  resolveBook,
+  resolveEntity,
+  searchGoogle,
+  searchGoogleForEntity,
+  searchOpenLibrary,
+  searchWikidata,
+  tryHeuristicMatch
+} from './search/index'
 // Types (type-only exports)
 export type {
   ActivityCategory,

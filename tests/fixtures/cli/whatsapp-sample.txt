@@ -26,6 +26,9 @@
 [10/11/23, 9:32:27 PM] Alice Smith: Yay
 [10/11/23, 9:36:36 PM] John Smith: We should go to a play or something
 [10/11/23, 9:36:44 PM] John Smith: Or concert
+[10/11/23, 9:37:00 PM] Alice Smith: Oh have you listened to the new Taylor Swift album?
+[10/11/23, 9:37:15 PM] John Smith: The Tortured Poets Department? Not yet
+[10/11/23, 9:37:30 PM] Alice Smith: It's really good, we should listen to it together
 [10/11/23, 9:53:36 PM] Alice Smith: Yeah
 [10/12/23, 8:05:11 AM] John Smith: Have a good day
 [10/12/23, 8:05:22 AM] Alice Smith: You too!
@@ -94,6 +97,9 @@
 [2/11/24, 12:04:48 PM] John Smith: Hello! I don't know if we will go to the color thing today
 [2/11/24, 12:04:50 PM] John Smith: Maybe not
 [2/11/24, 12:04:56 PM] John Smith: We are playing Heat
+[2/11/24, 12:05:00 PM] Alice Smith: I want to play Baldur's Gate 3 sometime
+[2/11/24, 12:05:05 PM] John Smith: Oh that's the big RPG everyone's been talking about right?
+[2/11/24, 12:05:10 PM] Alice Smith: Yeah it won game of the year!
 [2/11/24, 12:05:15 PM] Alice Smith: Ok have fun!
 [2/11/24, 12:05:22 PM] John Smith: Will do
 [2/15/24, 9:22:05 AM] John Smith: Almost the weekend
@@ -196,6 +202,10 @@ https://maps.app.goo.gl/JHKspRDJ5m6bhzFT9?g_st=iw
 [10/10/24, 6:30:30 PM] John Smith: Maybe a movie
 [10/10/24, 6:30:42 PM] Alice Smith: We should go see a movie at the cinema sometime
 [10/10/24, 6:30:55 PM] John Smith: Yeah that would be fun!
+[10/10/24, 6:31:10 PM] Alice Smith: Have you seen Oppenheimer yet?
+[10/10/24, 6:31:25 PM] John Smith: No not yet! We should watch it
+[10/10/24, 6:31:40 PM] Alice Smith: I heard it's really good, like 3 hours long though
+[10/10/24, 6:31:55 PM] John Smith: Worth it I think
 [10/10/24, 9:13:11 PM] John Smith: there are a few sequels to this too
 [10/10/24, 9:13:11 PM] John Smith: https://en.wikipedia.org/wiki/The_Matrix
 [10/10/24, 9:15:22 PM] Alice Smith: Oh wow didn't know that
@@ -221,6 +231,10 @@ https://maps.app.goo.gl/JHKspRDJ5m6bhzFT9?g_st=iw
 [11/15/24, 8:30:25 AM] John Smith: Hey
 [11/15/24, 8:30:38 AM] Alice Smith: How's your week going?
 [11/15/24, 8:30:52 AM] John Smith: Busy but good
+[11/15/24, 8:31:05 AM] Alice Smith: I want to read Project Hail Mary, have you heard of it?
+[11/15/24, 8:31:20 AM] John Smith: Yes! It's by the guy who wrote The Martian
+[11/15/24, 8:31:35 AM] Alice Smith: Oh perfect, I loved that one
+[11/15/24, 8:31:50 AM] John Smith: You should definitely read it
 [11/15/24, 2:15:33 PM] Alice Smith: lets go for a hike this weekend in Karangahake Gorge
 [11/15/24, 2:15:50 PM] John Smith: Yes! I've been wanting to go back there
 [11/15/24, 2:16:02 PM] Alice Smith: The tunnel walk was so cool last time
@@ -264,11 +278,17 @@ https://maps.app.goo.gl/JHKspRDJ5m6bhzFT9?g_st=iw
 [3/22/25, 2:16:32 PM] John Smith: Yes! That would be so fun
 [3/22/25, 2:16:45 PM] Alice Smith: Cool I'll look up places
 [3/22/25, 2:16:58 PM] John Smith: Sounds good
+[3/22/25, 2:17:00 PM] Alice Smith: Oh btw we should play Wingspan next game night
+[3/22/25, 2:17:05 PM] John Smith: Oh the bird game? I've been wanting to try that!
+[3/22/25, 2:17:08 PM] Alice Smith: Yeah it's supposed to be really relaxing
 [3/22/25, 2:17:11 PM] Alice Smith: How's your afternoon going?
 [3/22/25, 2:17:25 PM] John Smith: Pretty quiet actually
 [3/22/25, 2:17:38 PM] Alice Smith: Same here
 [3/22/25, 2:17:52 PM] John Smith: Want to watch something tonight?
 [3/22/25, 2:18:05 PM] Alice Smith: Sure, you pick
+[3/22/25, 2:18:20 PM] John Smith: Let's watch The Bear, it's supposed to be amazing
+[3/22/25, 2:18:35 PM] Alice Smith: Oh the cooking show? I've heard good things
+[3/22/25, 2:18:50 PM] John Smith: Yeah it's intense but really good apparently
 [5/18/25, 7:15:33 AM] John Smith: Good morning
 [5/18/25, 7:15:50 AM] Alice Smith: Morning!
 [5/18/25, 7:16:02 AM] John Smith: Morning! I just saw this blog post, we should totally do this: https://tinyurl.com/a6vzxrj4

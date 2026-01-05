@@ -9,6 +9,7 @@
 
 import { VALID_CATEGORIES } from '../categories'
 import type { ScrapedMetadata } from '../scraper/types'
+import { VALID_LINK_TYPES } from '../search/types'
 import type { CandidateMessage, ContextMessage } from '../types'
 
 // Re-export parsing function (types re-exported from ./index.ts)
@@ -196,10 +197,10 @@ ${offsetField}    "title": "<activity description, under 100 chars, fix any typo
       "preferStock": <true if stock query is more specific than generic mediaKey>
     },
 
-    // Link hints (for generating clickable link widgets) - optional
+    // Link hints (for resolving media entities to canonical URLs) - use for movies, books, games, music, etc.
     "link": {
-      "type": "<movie|book|board_game|place|event|other>",
-      "query": "<canonical title to search (e.g., 'The Matrix', 'Blood on the Clocktower')>",
+      "type": "<${VALID_LINK_TYPES.join('|')}>",
+      "query": "<canonical title (e.g., 'The Matrix', 'Project Hail Mary', 'Wingspan')>",
       "url": "<URL if user provided one>"
     }
   }
@@ -209,40 +210,31 @@ ${offsetField}    "title": "<activity description, under 100 chars, fix any typo
 (OMIT fields that would be null - don't include them. placeName and placeQuery are mutually exclusive - prefer placeName for canonical places.)`
 }
 
-const SHARED_IMAGE_SECTION = `IMAGE HINTS (image.stock is ALWAYS required):
-image.stock: Stock photo query - ALWAYS REQUIRED. Be specific! Include location/context when relevant.
-image.mediaKey: Media library key for the activity type (e.g., "hot air balloon", "restaurant").
-image.preferStock: Set to true when stock query is MORE SPECIFIC than a generic mediaKey image.
+const SHARED_IMAGE_SECTION = `IMAGE HINTS:
+image.stock: ALWAYS REQUIRED - specific stock photo query with location context when relevant.
+image.mediaKey: Media library key (e.g., "hot air balloon", "restaurant").
+image.preferStock: true if stock is more specific than mediaKey (e.g., "balloon in Cappadocia" vs generic balloon).`
 
-WHEN TO USE preferStock:
-- preferStock:true → "hot air balloon in Cappadocia" - stock photo of Cappadocia is better than generic balloon
-- preferStock:false (or omit) → "go to a restaurant" - generic restaurant image is fine, save API call
-
-The pipeline tries: mediaKey (if preferStock=false) → stock API → mediaKey (if preferStock=true) → category default`
+const SHARED_LINK_SECTION = `LINK HINTS (specific media titles only): Types: ${VALID_LINK_TYPES.join(', ')}
+- "watch Oppenheimer" → link:{type:"movie", query:"Oppenheimer"}
+- "play Wingspan" → link:{type:"physical_game", query:"Wingspan"}
+DON'T use for: generic ("go to movies"), places (use placeName), bands (use wikiName).`
 
 function buildLocationSection(homeCountry: string): string {
-  return `LOCATION FIELDS (fill only if explicitly mentioned):
-wikiName: Wikipedia topic for bands/games/concepts with CC images. NOT for movies/books (use link instead).
-placeName: Canonical place with Wikipedia article (e.g., "Waiheke Island", "Mount Fuji"). Clean names only.
-placeQuery: ONE SPECIFIC business/POI for Google Places (e.g., "Dice Goblin Auckland"). Must be unambiguous.
-city/region/country: Fill if explicitly mentioned. For ambiguous names, assume ${homeCountry}.
-RULES: placeName and placeQuery are MUTUALLY EXCLUSIVE. Never guess venues.
-IMPORTANT: placeQuery is ONLY for a specific named business. "geothermal park in Rotorua" is NOT a placeQuery - there are many parks. Use city:"Rotorua" + image.object:"geothermal park" instead.`
+  return `LOCATION FIELDS (only if explicitly mentioned):
+wikiName: Wikipedia topic for bands/games/concepts (NOT movies/books - use link).
+placeName: Canonical place with Wikipedia article (e.g., "Waiheke Island"). Mutually exclusive with placeQuery.
+placeQuery: SPECIFIC named business for Google Places (e.g., "Dice Goblin Auckland"). NOT generic searches.
+city/region/country: For ambiguous names, assume ${homeCountry}.`
 }
 
 const SHARED_CATEGORIES_SECTION = `CATEGORIES: ${VALID_CATEGORIES.join(', ')}
 ("other" should be used only as a last resort. Only use it if no other category applies.)`
 
 const SHARED_NORMALIZATION = `NORMALIZATION:
-- Keep distinct categories: cafe≠restaurant, bar≠restaurant
-- KEEP SPECIFICITY in image.mediaKey: Don't strip qualifying words:
-  - "glow worm caves" → mediaKey:"glow worm cave" (NOT just "cave")
-  - "hot air balloon" → mediaKey:"hot air balloon" (NOT just "balloon")
-  - "escape room" → mediaKey:"escape room" (NOT just "room")
-- DISAMBIGUATION: Use context to pick the right mediaKey:
-  - "play pool" or "shoot pool" → mediaKey:"billiards" (the cue game, NOT swimming pool)
-  - "swim in pool" → mediaKey:"swimming pool"
-- Regional terms are handled by our system - just use the term from the message`
+- Distinct categories: cafe≠restaurant, bar≠restaurant
+- KEEP mediaKey specificity: "glow worm cave" not "cave", "hot air balloon" not "balloon"
+- Disambiguation: "play pool"→"billiards" (cue game), "swim in pool"→"swimming pool"`
 
 const SHARED_COMPOUND_SECTION = `COMPOUND vs MULTIPLE: For complex activities that one JSON object can't fully represent (e.g., "Go to Iceland and see the aurora"), emit ONE object. For truly separate activities, emit multiple objects.`
 
@@ -304,6 +296,8 @@ ${buildLocationSection(context.homeCountry)}
 
 ${SHARED_IMAGE_SECTION}
 
+${SHARED_LINK_SECTION}
+
 ${SHARED_CATEGORIES_SECTION}
 
 ${SHARED_NORMALIZATION}
@@ -363,6 +357,8 @@ ${buildJsonSchemaSection(true)}
 ${buildLocationSection(context.homeCountry)}
 
 ${SHARED_IMAGE_SECTION}
+
+${SHARED_LINK_SECTION}
 
 ${SHARED_CATEGORIES_SECTION}
 

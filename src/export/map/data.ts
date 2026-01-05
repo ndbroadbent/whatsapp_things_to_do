@@ -9,10 +9,11 @@ import {
   formatLocation,
   type GeocodedActivity,
   type ImageAttribution,
+  type LinkPreview,
   type MapConfig
 } from '../../types'
 import { formatDate } from '../utils'
-import type { MapActivity, MapData, MapImageAttribution } from './types'
+import type { MapActivity, MapData, MapImageAttribution, MapLinkPreview } from './types'
 import { calculateCenter, DEFAULT_ZOOM, extractUrl, MARKER_COLORS } from './utils'
 
 /**
@@ -97,7 +98,8 @@ function toMapActivities(
         sender: m.sender,
         date: formatDate(m.timestamp),
         message: m.message.slice(0, 200)
-      }))
+      })),
+      linkPreview: s.linkPreview ? formatLinkPreview(s.linkPreview) : null
     })
   }
 
@@ -114,5 +116,18 @@ function formatAttribution(attr: ImageAttribution): MapImageAttribution {
     authorUrl: attr.authorUrl,
     license: attr.license,
     source: attr.source
+  }
+}
+
+/**
+ * Format link preview for display.
+ */
+function formatLinkPreview(preview: LinkPreview): MapLinkPreview {
+  return {
+    url: preview.url,
+    title: preview.title,
+    description: preview.description,
+    imageUrl: preview.imageUrl,
+    domain: preview.domain
   }
 }

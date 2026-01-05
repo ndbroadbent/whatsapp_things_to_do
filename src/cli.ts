@@ -21,6 +21,7 @@ import { cmdList } from './cli/commands/list'
 import { cmdParse } from './cli/commands/parse'
 import { cmdPlaceLookup } from './cli/commands/place-lookup'
 import { cmdPreview } from './cli/commands/preview'
+import { cmdResolveLinks } from './cli/commands/resolve-links'
 import { cmdScan } from './cli/commands/scan'
 import { cmdScrapeUrls } from './cli/commands/scrape-urls'
 import { createLogger } from './cli/logger'
@@ -74,6 +75,10 @@ async function main(): Promise<void> {
 
       case 'place-lookup':
         await cmdPlaceLookup(args, logger)
+        break
+
+      case 'resolve-links':
+        await cmdResolveLinks(args, logger)
         break
 
       case 'fetch-image-urls':

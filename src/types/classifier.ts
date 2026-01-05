@@ -10,6 +10,7 @@ export { CATEGORY_EMOJI, VALID_CATEGORIES } from '../categories'
 
 import type { ActivityCategory } from '../categories'
 import type { ScrapedMetadata } from '../scraper/types'
+import type { EntityType } from '../search/types'
 
 /** A message that mentioned this activity. */
 export interface ActivityMessage {
@@ -43,13 +44,14 @@ export interface ClassifiedImageHints {
 
 /**
  * Link hints for generating clickable link widgets.
+ * Used to resolve media entities (movies, books, games, etc.) to canonical URLs.
  */
 export interface ClassifiedLinkHints {
-  /** Link type: movie, book, board_game, place, event, other */
-  readonly type: string
-  /** Canonical title/name to search for */
+  /** Entity type for resolution (movie, book, video_game, etc.) */
+  readonly type: EntityType
+  /** Canonical title/name to search for (e.g., "The Matrix", "Project Hail Mary") */
   readonly query: string
-  /** URL if user provided one directly */
+  /** URL if user provided one directly (rare - usually resolved later) */
   readonly url: string | null
 }
 

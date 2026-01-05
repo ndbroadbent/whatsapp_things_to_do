@@ -38,6 +38,9 @@ describe('analyze command', () => {
     expect(stdout).toContain('Filtering')
     expect(stdout).toContain('Classifying')
     expect(stdout).toContain('Looking up places')
+    expect(stdout).toContain('Resolving links')
+    expect(stdout).toContain('Scraping previews')
+    // Note: Both steps show "Fetching images" - one for URLs, one for actual downloads
     expect(stdout).toContain('Fetching images')
 
     // Check export output

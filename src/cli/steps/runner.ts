@@ -7,6 +7,7 @@
 
 import type { ImageResult } from '../../images/types'
 import type { ScrapedMetadata } from '../../scraper/types'
+import type { ResolvedEntity } from '../../search'
 import type {
   CandidateMessage,
   ClassifiedActivity,
@@ -30,6 +31,11 @@ interface StepOutputs {
   scrapeUrls: { metadataMap: Map<string, ScrapedMetadata> }
   classify: { activities: readonly ClassifiedActivity[] }
   placeLookup: { activities: readonly GeocodedActivity[] }
+  resolveLinks: {
+    activities: readonly GeocodedActivity[]
+    resolvedEntities: ReadonlyMap<string, ResolvedEntity>
+  }
+  scrapePreviews: { activities: readonly GeocodedActivity[] }
   fetchImageUrls: { images: Map<string, ImageResult | null> }
   fetchImages: {
     thumbnails: Map<string, Buffer>
@@ -100,6 +106,10 @@ export class StepRunner {
         return this.runClassify() as Promise<StepOutputs[K]>
       case 'placeLookup':
         return this.runPlaceLookup() as Promise<StepOutputs[K]>
+      case 'resolveLinks':
+        return this.runResolveLinks() as Promise<StepOutputs[K]>
+      case 'scrapePreviews':
+        return this.runScrapePreviews() as Promise<StepOutputs[K]>
       case 'fetchImageUrls':
         return this.runFetchImageUrls() as Promise<StepOutputs[K]>
       case 'fetchImages':
@@ -192,9 +202,30 @@ export class StepRunner {
     return { activities: result.activities }
   }
 
-  private async runFetchImageUrls(): Promise<StepOutputs['fetchImageUrls']> {
+  private async runResolveLinks(): Promise<StepOutputs['resolveLinks']> {
     // Dependency: placeLookup
     const { activities } = await this.run('placeLookup')
+
+    const { stepResolveLinks } = await import('./resolve-links')
+    const result = await stepResolveLinks(this.ctx, activities)
+    return { activities: result.activities, resolvedEntities: result.resolvedEntities }
+  }
+
+  private async runScrapePreviews(): Promise<StepOutputs['scrapePreviews']> {
+    // Dependencies: resolveLinks, scrapeUrls (for existing metadata)
+    const [{ activities, resolvedEntities }, { metadataMap }] = await Promise.all([
+      this.run('resolveLinks'),
+      this.run('scrapeUrls')
+    ])
+
+    const { stepScrapePreviews } = await import('./scrape-previews')
+    const result = await stepScrapePreviews(this.ctx, activities, metadataMap, resolvedEntities)
+    return { activities: result.activities }
+  }
+
+  private async runFetchImageUrls(): Promise<StepOutputs['fetchImageUrls']> {
+    // Dependency: scrapePreviews (which includes link previews)
+    const { activities } = await this.run('scrapePreviews')
 
     // Media library path can come from CLI arg or config
     const mediaLibraryPath = this.args.mediaLibraryPath ?? this.config?.mediaLibraryPath
@@ -224,8 +255,8 @@ export class StepRunner {
   }
 
   private async runExport(): Promise<StepOutputs['export']> {
-    // Dependencies: placeLookup, and optionally fetchImages (if --images flag)
-    const { activities } = await this.run('placeLookup')
+    // Dependencies: scrapePreviews, and optionally fetchImages (if --images flag)
+    const { activities } = await this.run('scrapePreviews')
 
     // Fetch images if requested via --images flag or config
     let thumbnails: Map<string, Buffer> = new Map()

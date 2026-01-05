@@ -9,6 +9,7 @@ import {
   type ActivityMessage,
   type CandidateMessage,
   type ClassifiedActivity,
+  type ClassifiedLinkHints,
   calculateCombinedScore
 } from '../types'
 import { generateActivityId } from '../types/activity-id'
@@ -88,7 +89,7 @@ export function createActivity(
       preferStock: false
     },
     // Link hints
-    link: null as { type: string; query: string; url: string | null } | null,
+    link: null as ClassifiedLinkHints | null,
     ...rest
   }
 

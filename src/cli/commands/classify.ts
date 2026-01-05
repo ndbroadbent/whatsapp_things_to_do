@@ -41,6 +41,13 @@ export interface ClassifyOutputActivity {
     mediaKey: string | null
     preferStock?: boolean
   }
+  link?:
+    | {
+        type: string
+        query: string
+        url: string | null
+      }
+    | undefined
 }
 
 export interface ClassifyOutput {
@@ -67,7 +74,8 @@ export function toOutputActivity(a: ClassifiedActivity): ClassifyOutputActivity 
     country: a.country,
     interestingScore: a.interestingScore,
     funScore: a.funScore,
-    image: a.image
+    image: a.image,
+    link: a.link ?? undefined
   }
 }
 

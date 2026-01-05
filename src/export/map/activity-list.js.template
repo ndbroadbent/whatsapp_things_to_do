@@ -14,7 +14,8 @@ var activities = mapData.activities.map(function (p) {
     imageAttribution: p.imageAttribution,
     placeId: p.placeId,
     url: p.url,
-    messages: p.messages
+    messages: p.messages,
+    linkPreview: p.linkPreview
   }
 })
 
@@ -60,6 +61,29 @@ function renderActivityList(sorted) {
         ': ' +
         senderInfo.display +
         '</span>'
+      // Build link preview widget if available
+      var linkPreviewHtml = ''
+      if (a.linkPreview && (a.linkPreview.title || a.linkPreview.url)) {
+        var previewThumb = a.linkPreview.imageUrl
+          ? '<img src="' + a.linkPreview.imageUrl + '" class="link-preview-thumb" alt="" />'
+          : '<div class="link-preview-thumb-placeholder"></div>'
+        var previewTitle = a.linkPreview.title
+          ? '<div class="link-preview-title">' + escapeHtml(a.linkPreview.title) + '</div>'
+          : ''
+        var previewDomain = '<div class="link-preview-domain">' + escapeHtml(a.linkPreview.domain) + '</div>'
+        var previewDesc = a.linkPreview.description
+          ? '<div class="link-preview-desc">' + escapeHtml(a.linkPreview.description.slice(0, 120)) + '</div>'
+          : ''
+        linkPreviewHtml =
+          '<a href="' + a.linkPreview.url + '" target="_blank" class="link-preview">' +
+          previewThumb +
+          '<div class="link-preview-content">' +
+          previewTitle +
+          previewDomain +
+          previewDesc +
+          '</div></a>'
+      }
+
       return (
         '<div class="activity-row">' +
         thumb +
@@ -76,6 +100,7 @@ function renderActivityList(sorted) {
         '<div class="activity-links">' +
         links +
         '</div>' +
+        linkPreviewHtml +
         '</div></div>'
       )
     })

@@ -24,6 +24,20 @@ export interface MapImageAttribution {
   source: 'wikipedia' | 'unsplash' | 'pixabay' | 'google_places'
 }
 
+/** Link preview for display in activity rows */
+export interface MapLinkPreview {
+  /** Canonical URL to link to */
+  url: string
+  /** Page title from og:title or entity resolution */
+  title: string | null
+  /** Description from og:description or entity data */
+  description: string | null
+  /** Image URL from og:image (for preview widget) */
+  imageUrl: string | null
+  /** Domain for display (e.g., "imdb.com") */
+  domain: string
+}
+
 export interface MapActivity {
   lat: number | null
   lng: number | null
@@ -46,6 +60,8 @@ export interface MapActivity {
   imageAttribution: MapImageAttribution | null
   placeId: string | null
   messages: MapMessage[]
+  /** Link preview for display (resolved entity or scraped URL) */
+  linkPreview: MapLinkPreview | null
 }
 
 export interface MapData {

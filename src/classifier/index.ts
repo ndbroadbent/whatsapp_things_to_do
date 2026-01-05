@@ -7,6 +7,7 @@
 
 import { generateClassifierCacheKey } from '../caching/key'
 import type { ResponseCache } from '../caching/types'
+import { type EntityType, VALID_LINK_TYPES } from '../search/types'
 import {
   type ActivityCategory,
   type CandidateMessage,
@@ -84,11 +85,13 @@ function toClassifiedActivity(
   const interestingScore = response.int
   const score = calculateCombinedScore(funScore, interestingScore)
 
-  // Build link hints if present
+  // Build link hints if present and type is valid
+  const linkType = response.link?.type
+  const isValidLinkType = linkType && VALID_LINK_TYPES.includes(linkType as EntityType)
   const link =
-    response.link?.type && response.link.query
+    isValidLinkType && response.link?.query
       ? {
-          type: response.link.type,
+          type: linkType as EntityType,
           query: response.link.query,
           url: response.link.url
         }

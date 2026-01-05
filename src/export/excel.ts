@@ -52,6 +52,7 @@ export async function exportToExcel(activities: readonly GeocodedActivity[]): Pr
     { header: 'Score', key: 'score', width: 12 },
     { header: 'Category', key: 'category', width: 15 },
     { header: 'Map Link', key: 'map_link', width: 45 },
+    { header: 'Link Preview URL', key: 'link_preview_url', width: 45 },
     { header: 'Mentions', key: 'mentions', width: 10 },
     { header: 'Status', key: 'status', width: 10 }
   ]
@@ -71,6 +72,7 @@ export async function exportToExcel(activities: readonly GeocodedActivity[]): Pr
     if (!a) continue
 
     const mapLink = googleMapsLink(a.latitude, a.longitude)
+    const linkPreviewUrl = a.linkPreview?.url ?? ''
     const firstMessage = a.messages[0]
 
     const row = worksheet.addRow({
@@ -85,6 +87,7 @@ export async function exportToExcel(activities: readonly GeocodedActivity[]): Pr
       score: a.score,
       category: a.category,
       map_link: mapLink,
+      link_preview_url: linkPreviewUrl,
       mentions: a.messages.length,
       status: 'pending'
     })
@@ -97,6 +100,16 @@ export async function exportToExcel(activities: readonly GeocodedActivity[]): Pr
         hyperlink: mapLink
       }
       mapLinkCell.font = { color: { argb: 'FF0000FF' }, underline: true }
+    }
+
+    // Add hyperlink to link preview URL cell
+    if (linkPreviewUrl) {
+      const linkPreviewCell = row.getCell('link_preview_url')
+      linkPreviewCell.value = {
+        text: linkPreviewUrl,
+        hyperlink: linkPreviewUrl
+      }
+      linkPreviewCell.font = { color: { argb: 'FF0000FF' }, underline: true }
     }
 
     // Conditional formatting for score (0-5 scale)
