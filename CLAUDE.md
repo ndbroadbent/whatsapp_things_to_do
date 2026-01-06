@@ -75,7 +75,7 @@ The Python prototype in `src/*.py` serves as the reference implementation:
 
 | Rule | Limit |
 |------|-------|
-| File length (code) | 500 lines max |
+| File length (code) | 500 lines max (NEVER remove comments to reduce - REFACTOR and SPLIT the file) |
 | File length (tests) | 1000 lines max |
 | Function length | 50 lines max |
 | Line length | 100 chars max |

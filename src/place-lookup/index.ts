@@ -6,10 +6,13 @@
  */
 
 import countries from 'i18n-iso-countries'
+import en from 'i18n-iso-countries/langs/en.json'
 import { generatePlaceLookupCacheKey } from '../caching/key'
 import type { ResponseCache } from '../caching/types'
+
 import { extractGoogleMapsCoords } from '../extraction/heuristics/url-classifier'
 import { guardedFetch, type HttpResponse } from '../http'
+
 import {
   type ClassifiedActivity,
   formatLocation,
@@ -18,6 +21,9 @@ import {
   type PlaceLookupResult,
   type Result
 } from '../types'
+
+// Register English locale for country name lookups
+countries.registerLocale(en)
 
 const PLACES_TEXT_SEARCH_API = 'https://maps.googleapis.com/maps/api/place/textsearch/json'
 const GEOCODING_API = 'https://maps.googleapis.com/maps/api/geocode/json'
