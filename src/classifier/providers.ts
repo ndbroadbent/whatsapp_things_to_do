@@ -50,7 +50,10 @@ interface GoogleAIResponse {
 /**
  * Call Google AI (Gemini) API for classification.
  */
-async function callGoogleAI(prompt: string, config: ProviderConfig): Promise<Result<ProviderResult>> {
+async function callGoogleAI(
+  prompt: string,
+  config: ProviderConfig
+): Promise<Result<ProviderResult>> {
   const model = config.model ?? DEFAULT_MODELS.google
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${config.apiKey}`
 
@@ -87,7 +90,10 @@ async function callGoogleAI(prompt: string, config: ProviderConfig): Promise<Res
 /**
  * Call Anthropic Claude API for classification.
  */
-async function callAnthropic(prompt: string, config: ProviderConfig): Promise<Result<ProviderResult>> {
+async function callAnthropic(
+  prompt: string,
+  config: ProviderConfig
+): Promise<Result<ProviderResult>> {
   const model = config.model ?? DEFAULT_MODELS.anthropic
 
   try {
