@@ -39,6 +39,7 @@ export type {
 // Message types
 // Config types
 // Result types
+// Usage types (for metering/billing)
 export type {
   ActivityLink,
   ActivityLinkContext,
@@ -64,6 +65,7 @@ export type {
   ExtractorResult,
   GeocodedActivity,
   IntentSignals,
+  LlmUsage,
   MapConfig,
   MapStyle,
   MediaType,
@@ -74,13 +76,23 @@ export type {
   PlaceLookupConfig,
   PlaceLookupResult,
   PlaceLookupSource,
+  PlaceLookupUsage,
   ProcessingStats,
   ProviderConfig,
   Result,
+  ResultWithUsage,
   SemanticSearchConfig,
   SocialPlatform,
   UrlType,
   WhatsAppFormat
+} from '../types'
+
+// Usage helper functions
+export {
+  addLlmUsage,
+  addPlaceLookupUsage,
+  EMPTY_LLM_USAGE,
+  EMPTY_PLACE_LOOKUP_USAGE
 } from '../types'
 
 // === Pure Utility Functions ===

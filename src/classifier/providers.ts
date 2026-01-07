@@ -8,8 +8,15 @@
 import { generateClassifierCacheKey } from '../caching/key'
 import type { ResponseCache } from '../caching/types'
 import { emptyResponseError, handleHttpError, handleNetworkError, httpFetch } from '../http'
-import type { ClassifierConfig, ProviderConfig, Result } from '../types'
+import type { ClassifierConfig, LlmUsage, ProviderConfig, Result } from '../types'
+import { EMPTY_LLM_USAGE } from '../types'
 import { DEFAULT_MODELS } from './models'
+
+/** Result from a provider call including usage data */
+export interface ProviderResult {
+  readonly text: string
+  readonly usage: LlmUsage
+}
 
 interface ProviderCallOptions {
   cache?: ResponseCache | undefined
@@ -43,7 +50,7 @@ interface GoogleAIResponse {
 /**
  * Call Google AI (Gemini) API for classification.
  */
-async function callGoogleAI(prompt: string, config: ProviderConfig): Promise<Result<string>> {
+async function callGoogleAI(prompt: string, config: ProviderConfig): Promise<Result<ProviderResult>> {
   const model = config.model ?? DEFAULT_MODELS.google
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${config.apiKey}`
 
@@ -64,7 +71,14 @@ async function callGoogleAI(prompt: string, config: ProviderConfig): Promise<Res
 
     const data = (await response.json()) as GoogleAIResponse
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text
-    return text ? { ok: true, value: text } : emptyResponseError()
+    if (!text) return emptyResponseError()
+
+    const usage: LlmUsage = {
+      inputTokens: data.usageMetadata?.promptTokenCount ?? 0,
+      outputTokens: data.usageMetadata?.candidatesTokenCount ?? 0
+    }
+
+    return { ok: true, value: { text, usage } }
   } catch (error) {
     return handleNetworkError(error)
   }
@@ -73,7 +87,7 @@ async function callGoogleAI(prompt: string, config: ProviderConfig): Promise<Res
 /**
  * Call Anthropic Claude API for classification.
  */
-async function callAnthropic(prompt: string, config: ProviderConfig): Promise<Result<string>> {
+async function callAnthropic(prompt: string, config: ProviderConfig): Promise<Result<ProviderResult>> {
   const model = config.model ?? DEFAULT_MODELS.anthropic
 
   try {
@@ -95,7 +109,14 @@ async function callAnthropic(prompt: string, config: ProviderConfig): Promise<Re
 
     const data = (await response.json()) as AnthropicResponse
     const text = data.content[0]?.text
-    return text ? { ok: true, value: text } : emptyResponseError()
+    if (!text) return emptyResponseError()
+
+    const usage: LlmUsage = {
+      inputTokens: data.usage?.input_tokens ?? 0,
+      outputTokens: data.usage?.output_tokens ?? 0
+    }
+
+    return { ok: true, value: { text, usage } }
   } catch (error) {
     return handleNetworkError(error)
   }
@@ -110,7 +131,7 @@ async function callOpenAICompatible(
   config: ProviderConfig,
   defaultModel: string,
   isOpenRouter = false
-): Promise<Result<string>> {
+): Promise<Result<ProviderResult>> {
   const model = config.model ?? defaultModel
 
   // Build request body
@@ -145,21 +166,35 @@ async function callOpenAICompatible(
 
     const data = (await response.json()) as OpenAIResponse
     const text = data.choices[0]?.message?.content
-    return text ? { ok: true, value: text } : emptyResponseError()
+    if (!text) return emptyResponseError()
+
+    const usage: LlmUsage = {
+      inputTokens: data.usage?.prompt_tokens ?? 0,
+      outputTokens: data.usage?.completion_tokens ?? 0
+    }
+
+    return { ok: true, value: { text, usage } }
   } catch (error) {
     return handleNetworkError(error)
   }
 }
 
+/** Cached response data (text only, usage is 0 for cache hits) */
+interface CachedProviderResponse {
+  text: string
+}
+
 /**
  * Call a single AI provider with optional caching.
  * Caching happens here at the HTTP layer where we have both prompt and response.
+ *
+ * Note: Usage is EMPTY for cache hits (0 tokens) because no API call was made.
  */
 async function callProvider(
   prompt: string,
   providerConfig: ProviderConfig,
   options?: ProviderCallOptions
-): Promise<Result<string>> {
+): Promise<Result<ProviderResult>> {
   const model = providerConfig.model ?? DEFAULT_MODELS[providerConfig.provider]
   const cache = options?.cache
 
@@ -172,15 +207,15 @@ async function callProvider(
     }))
     cacheKey = generateClassifierCacheKey(providerConfig.provider, model, messages)
 
-    // Check cache
-    const cached = await cache.get<string>(cacheKey)
+    // Check cache - usage is 0 for cache hits
+    const cached = await cache.get<CachedProviderResponse>(cacheKey)
     if (cached) {
-      return { ok: true, value: cached.data }
+      return { ok: true, value: { text: cached.data.text, usage: EMPTY_LLM_USAGE } }
     }
   }
 
   // Make the actual API call
-  let result: Result<string>
+  let result: Result<ProviderResult>
   switch (providerConfig.provider) {
     case 'google':
       result = await callGoogleAI(prompt, providerConfig)
@@ -215,9 +250,9 @@ async function callProvider(
       }
   }
 
-  // Cache successful response + prompt
+  // Cache successful response text (not usage - that's per-request)
   if (result.ok && cache && cacheKey) {
-    await cache.set(cacheKey, { data: result.value, cachedAt: Date.now() })
+    await cache.set(cacheKey, { data: { text: result.value.text }, cachedAt: Date.now() })
     await cache.setPrompt?.(cacheKey, prompt)
   }
 
@@ -227,12 +262,14 @@ async function callProvider(
 /**
  * Call provider with automatic fallback on rate limit errors.
  * Tries the primary provider first, then each fallback in order.
+ *
+ * Returns ProviderResult which includes both the text response and usage data.
  */
 export async function callProviderWithFallbacks(
   prompt: string,
   config: ClassifierConfig,
   options?: ProviderCallOptions
-): Promise<Result<string>> {
+): Promise<Result<ProviderResult>> {
   const primaryConfig: ProviderConfig = {
     provider: config.provider,
     apiKey: config.apiKey,

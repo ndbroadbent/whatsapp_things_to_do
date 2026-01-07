@@ -10,10 +10,13 @@ import type { ResponseCache } from '../caching/types'
 import { type EntityType, VALID_LINK_TYPES } from '../search/types'
 import {
   type ActivityCategory,
+  addLlmUsage,
   type CandidateMessage,
   type ClassifiedActivity,
   type ClassifierConfig,
   calculateCombinedScore,
+  EMPTY_LLM_USAGE,
+  type LlmUsage,
   type Result
 } from '../types'
 import { DEFAULT_MODELS } from './models'
@@ -26,6 +29,18 @@ import {
 import { callProviderWithFallbacks } from './providers'
 import type { ParsedClassification } from './response-parser'
 import { countTokens, MAX_BATCH_TOKENS } from './tokenizer'
+
+/** Result from classifyBatch including activities and usage data */
+export interface ClassifyBatchResult {
+  readonly activities: ClassifiedActivity[]
+  readonly usage: LlmUsage
+}
+
+/** Result from classifyMessages including activities and total usage */
+export interface ClassifyMessagesResult {
+  readonly activities: ClassifiedActivity[]
+  readonly usage: LlmUsage
+}
 
 export { createSmartBatches, groupCandidatesByProximity } from './batching'
 export type { ResolvedModel } from './models'
@@ -149,13 +164,14 @@ function toClassifiedActivity(
  * @param config Classifier configuration
  * @param cache Optional response cache
  * @param promptType Optional prompt type override (auto-detected if not specified)
+ * @returns Result with activities AND usage data (usage is 0 for cache hits)
  */
 export async function classifyBatch(
   candidates: readonly CandidateMessage[],
   config: ClassifierConfig,
   cache?: ResponseCache,
   promptType?: PromptType
-): Promise<Result<ClassifiedActivity[]>> {
+): Promise<Result<ClassifyBatchResult>> {
   const prompt = buildClassificationPrompt(
     candidates,
     {
@@ -191,7 +207,7 @@ export async function classifyBatch(
 
   try {
     const expectedIds = candidates.map((c) => c.messageId)
-    const parsed = parseClassificationResponse(responseResult.value, expectedIds)
+    const parsed = parseClassificationResponse(responseResult.value.text, expectedIds)
 
     // Map responses to candidates, filtering out invalid classifications
     const suggestions: ClassifiedActivity[] = []
@@ -206,7 +222,10 @@ export async function classifyBatch(
       }
     }
 
-    return { ok: true, value: suggestions }
+    return {
+      ok: true,
+      value: { activities: suggestions, usage: responseResult.value.usage }
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     return {
@@ -233,6 +252,12 @@ function createBatches(
   return batches
 }
 
+/** Internal result from processBatches */
+interface ProcessBatchesResult {
+  activities: ClassifiedActivity[]
+  usage: LlmUsage
+}
+
 /**
  * Process batches of a specific type.
  */
@@ -244,8 +269,9 @@ async function processBatches(
   model: string,
   batchIndexOffset: number,
   totalBatches: number
-): Promise<Result<ClassifiedActivity[]>> {
+): Promise<Result<ProcessBatchesResult>> {
   const results: ClassifiedActivity[] = []
+  let totalUsage: LlmUsage = EMPTY_LLM_USAGE
 
   for (let i = 0; i < batches.length; i++) {
     const batch = batches[i]
@@ -281,14 +307,15 @@ async function processBatches(
     config.onBatchComplete?.({
       batchIndex: globalBatchIndex,
       totalBatches,
-      activityCount: result.value.length,
+      activityCount: result.value.activities.length,
       durationMs
     })
 
-    results.push(...result.value)
+    results.push(...result.value.activities)
+    totalUsage = addLlmUsage(totalUsage, result.value.usage)
   }
 
-  return { ok: true, value: results }
+  return { ok: true, value: { activities: results, usage: totalUsage } }
 }
 
 /**
@@ -300,13 +327,13 @@ async function processBatches(
  * @param candidates Candidate messages to classify
  * @param config Classifier configuration
  * @param cache Optional response cache to prevent duplicate API calls
- * @returns Classified suggestions or error
+ * @returns Classified activities with aggregated usage data, or error
  */
 export async function classifyMessages(
   candidates: readonly CandidateMessage[],
   config: ClassifierConfig,
   cache?: ResponseCache
-): Promise<Result<ClassifiedActivity[]>> {
+): Promise<Result<ClassifyMessagesResult>> {
   const batchSize = config.batchSize ?? DEFAULT_BATCH_SIZE
   const model = config.model ?? DEFAULT_MODELS[config.provider]
 
@@ -319,6 +346,7 @@ export async function classifyMessages(
   const totalBatches = suggestionBatches.length + agreementBatches.length
 
   const results: ClassifiedActivity[] = []
+  let totalUsage: LlmUsage = EMPTY_LLM_USAGE
 
   // Process suggestion batches first
   if (suggestionBatches.length > 0) {
@@ -334,7 +362,8 @@ export async function classifyMessages(
     if (!suggestionResult.ok) {
       return suggestionResult
     }
-    results.push(...suggestionResult.value)
+    results.push(...suggestionResult.value.activities)
+    totalUsage = addLlmUsage(totalUsage, suggestionResult.value.usage)
   }
 
   // Process agreement batches
@@ -351,10 +380,11 @@ export async function classifyMessages(
     if (!agreementResult.ok) {
       return agreementResult
     }
-    results.push(...agreementResult.value)
+    results.push(...agreementResult.value.activities)
+    totalUsage = addLlmUsage(totalUsage, agreementResult.value.usage)
   }
 
-  return { ok: true, value: results }
+  return { ok: true, value: { activities: results, usage: totalUsage } }
 }
 
 /**

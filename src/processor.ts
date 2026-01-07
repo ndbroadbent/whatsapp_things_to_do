@@ -171,7 +171,7 @@ export class RealChatProcessor implements ChatProcessor {
     const costCents = candidates.length * COST_ESTIMATES.classificationPerMessage
 
     return {
-      activities: result.value,
+      activities: result.value.activities,
       costCents
     }
   }
@@ -202,13 +202,15 @@ export class RealChatProcessor implements ChatProcessor {
       apiKey: config.googleMapsApiKey
     }
 
-    const geocoded = await lookupActivityPlaces(mappable, placeLookupConfig)
+    const geocodeResult = await lookupActivityPlaces(mappable, placeLookupConfig)
 
-    const geocodedCount = geocoded.filter((a: GeocodedActivity) => a.latitude !== undefined).length
+    const geocodedCount = geocodeResult.activities.filter(
+      (a: GeocodedActivity) => a.latitude !== undefined
+    ).length
     const costCents = geocodedCount * COST_ESTIMATES.geocodingPerRequest
 
     // Merge geocoded results back with non-mappable activities
-    const geocodedMap = new Map(geocoded.map((g) => [g.activityId, g]))
+    const geocodedMap = new Map(geocodeResult.activities.map((g) => [g.activityId, g]))
     const result = activities.map((a) => geocodedMap.get(a.activityId) ?? (a as GeocodedActivity))
 
     return {

@@ -96,7 +96,7 @@ async function stepClassify(
   }
 
   // Sort by score (interesting prioritized over fun)
-  const sorted = sortActivitiesByScore(classifyResult.value)
+  const sorted = sortActivitiesByScore(classifyResult.value.activities)
 
   const stats: PreviewStats = {
     candidatesClassified: candidates.length,

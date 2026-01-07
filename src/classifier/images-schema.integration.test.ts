@@ -74,7 +74,7 @@ describe('Classifier Images Schema (IMAGES.md Examples)', () => {
     expect(result.ok).toBe(true)
     if (!result.ok) throw new Error(result.error.message)
 
-    const activity = result.value[0]
+    const activity = result.value.activities[0]
     expect(activity).toBeDefined()
     if (!activity) throw new Error('No activity')
 
@@ -115,7 +115,7 @@ describe('Classifier Images Schema (IMAGES.md Examples)', () => {
     expect(result.ok).toBe(true)
     if (!result.ok) throw new Error(result.error.message)
 
-    const activity = result.value[0]
+    const activity = result.value.activities[0]
     expect(activity).toBeDefined()
     if (!activity) throw new Error('No activity')
 
@@ -155,7 +155,7 @@ describe('Classifier Images Schema (IMAGES.md Examples)', () => {
     expect(result.ok).toBe(true)
     if (!result.ok) throw new Error(result.error.message)
 
-    const activity = result.value[0]
+    const activity = result.value.activities[0]
     expect(activity).toBeDefined()
     if (!activity) throw new Error('No activity')
 
@@ -197,7 +197,7 @@ describe('Classifier Images Schema (IMAGES.md Examples)', () => {
     expect(result.ok).toBe(true)
     if (!result.ok) throw new Error(result.error.message)
 
-    const activity = result.value[0]
+    const activity = result.value.activities[0]
     expect(activity).toBeDefined()
     if (!activity) throw new Error('No activity')
 
@@ -237,7 +237,7 @@ describe('Classifier Images Schema (IMAGES.md Examples)', () => {
     expect(result.ok).toBe(true)
     if (!result.ok) throw new Error(result.error.message)
 
-    const activity = result.value[0]
+    const activity = result.value.activities[0]
     expect(activity).toBeDefined()
     if (!activity) throw new Error('No activity')
 
@@ -277,7 +277,7 @@ describe('Classifier Images Schema (IMAGES.md Examples)', () => {
     expect(result.ok).toBe(true)
     if (!result.ok) throw new Error(result.error.message)
 
-    const activity = result.value[0]
+    const activity = result.value.activities[0]
     expect(activity).toBeDefined()
     if (!activity) throw new Error('No activity')
 
@@ -321,7 +321,7 @@ describe('Classifier Images Schema (IMAGES.md Examples)', () => {
     expect(result.ok).toBe(true)
     if (!result.ok) throw new Error(result.error.message)
 
-    const activity = result.value[0]
+    const activity = result.value.activities[0]
     expect(activity).toBeDefined()
     if (!activity) throw new Error('No activity')
 

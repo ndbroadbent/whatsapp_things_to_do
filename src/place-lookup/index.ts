@@ -14,13 +14,34 @@ import { extractGoogleMapsCoords } from '../extraction/heuristics/url-classifier
 import { guardedFetch, type HttpResponse } from '../http'
 
 import {
+  addPlaceLookupUsage,
   type ClassifiedActivity,
+  EMPTY_PLACE_LOOKUP_USAGE,
   formatLocation,
   type GeocodedActivity,
   type PlaceLookupConfig,
   type PlaceLookupResult,
+  type PlaceLookupUsage,
   type Result
 } from '../types'
+
+/** Result from looking up a single activity including usage */
+export interface LookupActivityResult {
+  readonly activity: GeocodedActivity
+  readonly usage: PlaceLookupUsage
+}
+
+/** Result from looking up multiple activities including total usage */
+export interface LookupActivitiesResult {
+  readonly activities: GeocodedActivity[]
+  readonly usage: PlaceLookupUsage
+}
+
+/** Internal result that includes cache hit info */
+interface PlaceLookupInternalResult {
+  result: Result<PlaceLookupResult>
+  cacheHit: boolean
+}
 
 // Register English locale for country name lookups
 countries.registerLocale(en)
@@ -166,17 +187,18 @@ function addRegionBias(params: URLSearchParams, config: PlaceLookupConfig): void
 /**
  * Look up a place using Google Places Text Search API.
  * Best for venue names, landmarks, and named places.
+ * Returns cacheHit=true if result was from cache (no API call made).
  */
 async function searchPlace(
   query: string,
   config: PlaceLookupConfig,
   cache?: ResponseCache
-): Promise<Result<PlaceLookupResult>> {
+): Promise<PlaceLookupInternalResult> {
   const cacheKey = generatePlaceLookupCacheKey('places', query, config.regionBias)
   if (cache) {
     const cached = await cache.get<PlaceLookupResult>(cacheKey)
     if (cached) {
-      return { ok: true, value: cached.data }
+      return { result: { ok: true, value: cached.data }, cacheHit: true }
     }
   }
 
@@ -188,11 +210,11 @@ async function searchPlace(
       `${PLACES_TEXT_SEARCH_API}?${params.toString()}`,
       config
     )
-    if (!fetchResult.ok) return fetchResult
+    if (!fetchResult.ok) return { result: fetchResult, cacheHit: false }
 
     const data = (await fetchResult.value.json()) as GooglePlacesTextSearchResponse
     const statusError = handleApiStatus(data, query, 'Places')
-    if (statusError) return statusError
+    if (statusError) return { result: statusError, cacheHit: false }
 
     // Safe to access - handleApiStatus ensures results[0] exists
     const result = data.results[0] as GooglePlacesTextSearchResponse['results'][0]
@@ -205,26 +227,27 @@ async function searchPlace(
     }
 
     await cacheResult(cache, cacheKey, lookupResult)
-    return { ok: true, value: lookupResult }
+    return { result: { ok: true, value: lookupResult }, cacheHit: false }
   } catch (error) {
-    return wrapNetworkError(error)
+    return { result: wrapNetworkError(error), cacheHit: false }
   }
 }
 
 /**
  * Geocode an address using Google Geocoding API.
  * Best for street addresses, cities, regions.
+ * Returns cacheHit=true if result was from cache (no API call made).
  */
 async function geocodeAddress(
   address: string,
   config: PlaceLookupConfig,
   cache?: ResponseCache
-): Promise<Result<PlaceLookupResult>> {
+): Promise<PlaceLookupInternalResult> {
   const cacheKey = generatePlaceLookupCacheKey('geocode', address, config.regionBias)
   if (cache) {
     const cached = await cache.get<PlaceLookupResult>(cacheKey)
     if (cached) {
-      return { ok: true, value: cached.data }
+      return { result: { ok: true, value: cached.data }, cacheHit: true }
     }
   }
 
@@ -233,11 +256,11 @@ async function geocodeAddress(
 
   try {
     const fetchResult = await fetchGoogleApi(`${GEOCODING_API}?${params.toString()}`, config)
-    if (!fetchResult.ok) return fetchResult
+    if (!fetchResult.ok) return { result: fetchResult, cacheHit: false }
 
     const data = (await fetchResult.value.json()) as GoogleGeocodingResponse
     const statusError = handleApiStatus(data, address, 'Geocoding')
-    if (statusError) return statusError
+    if (statusError) return { result: statusError, cacheHit: false }
 
     // Safe to access - handleApiStatus ensures results[0] exists
     const result = data.results[0] as GoogleGeocodingResponse['results'][0]
@@ -249,9 +272,9 @@ async function geocodeAddress(
     }
 
     await cacheResult(cache, cacheKey, lookupResult)
-    return { ok: true, value: lookupResult }
+    return { result: { ok: true, value: lookupResult }, cacheHit: false }
   } catch (error) {
-    return wrapNetworkError(error)
+    return { result: wrapNetworkError(error), cacheHit: false }
   }
 }
 
@@ -294,107 +317,136 @@ function tryExtractFromUrl(activity: ClassifiedActivity): PlaceLookupResult | nu
  * 3. Fall back to Geocoding API (for addresses/cities)
  *
  * Exported for CLI worker pool parallelism.
+ * Returns both the geocoded activity AND usage data for metering.
  */
 export async function lookupActivityPlace(
   activity: ClassifiedActivity,
   config: PlaceLookupConfig,
   cache?: ResponseCache
-): Promise<GeocodedActivity> {
+): Promise<LookupActivityResult> {
+  let usage: PlaceLookupUsage = EMPTY_PLACE_LOOKUP_USAGE
+
   // First, try to extract coords from Google Maps URL
   const urlCoords = tryExtractFromUrl(activity)
   if (urlCoords) {
     return {
-      ...activity,
-      latitude: urlCoords.latitude,
-      longitude: urlCoords.longitude,
-      formattedAddress: urlCoords.formattedAddress || formatLocation(activity) || undefined,
-      placeLookupSource: 'google_maps_url'
+      activity: {
+        ...activity,
+        latitude: urlCoords.latitude,
+        longitude: urlCoords.longitude,
+        formattedAddress: urlCoords.formattedAddress || formatLocation(activity) || undefined,
+        placeLookupSource: 'google_maps_url'
+      },
+      usage
     }
   }
 
   const location = formatLocation(activity)
   if (!location) {
-    return activity
+    return { activity, usage }
   }
 
   // If we have a placeName or placeQuery, use Places API Text Search (better for named places/venues)
   if (activity.placeName || activity.placeQuery) {
-    const result = await searchPlace(location, config, cache)
+    const { result, cacheHit } = await searchPlace(location, config, cache)
+    if (!cacheHit) {
+      usage = { ...usage, placesSearchCalls: usage.placesSearchCalls + 1 }
+    }
 
     if (result.ok) {
       return {
-        ...activity,
-        latitude: result.value.latitude,
-        longitude: result.value.longitude,
-        formattedAddress: result.value.formattedAddress,
-        placeId: result.value.placeId,
-        placeLookupSource: 'places_api',
-        isVenuePlaceId: true
+        activity: {
+          ...activity,
+          latitude: result.value.latitude,
+          longitude: result.value.longitude,
+          formattedAddress: result.value.formattedAddress,
+          placeId: result.value.placeId,
+          placeLookupSource: 'places_api',
+          isVenuePlaceId: true
+        },
+        usage
       }
     }
   }
 
   // Fall back to Geocoding API (better for addresses/cities)
-  const geocodeResult = await geocodeAddress(location, config, cache)
+  const geocode = await geocodeAddress(location, config, cache)
+  if (!geocode.cacheHit) {
+    usage = { ...usage, geocodingCalls: usage.geocodingCalls + 1 }
+  }
 
-  if (geocodeResult.ok) {
+  if (geocode.result.ok) {
     return {
-      ...activity,
-      latitude: geocodeResult.value.latitude,
-      longitude: geocodeResult.value.longitude,
-      formattedAddress: geocodeResult.value.formattedAddress,
-      placeId: geocodeResult.value.placeId,
-      placeLookupSource: 'geocoding_api',
-      isVenuePlaceId: false
+      activity: {
+        ...activity,
+        latitude: geocode.result.value.latitude,
+        longitude: geocode.result.value.longitude,
+        formattedAddress: geocode.result.value.formattedAddress,
+        placeId: geocode.result.value.placeId,
+        placeLookupSource: 'geocoding_api',
+        isVenuePlaceId: false
+      },
+      usage
     }
   }
 
   // If location lookup fails, try searching the activity text as a place
-  const activityResult = await searchPlace(activity.activity, config, cache)
+  const activitySearch = await searchPlace(activity.activity, config, cache)
+  if (!activitySearch.cacheHit) {
+    usage = { ...usage, placesSearchCalls: usage.placesSearchCalls + 1 }
+  }
 
-  if (activityResult.ok) {
+  if (activitySearch.result.ok) {
     return {
-      ...activity,
-      latitude: activityResult.value.latitude,
-      longitude: activityResult.value.longitude,
-      formattedAddress: activityResult.value.formattedAddress,
-      placeId: activityResult.value.placeId,
-      placeLookupSource: 'places_api',
-      isVenuePlaceId: true
+      activity: {
+        ...activity,
+        latitude: activitySearch.result.value.latitude,
+        longitude: activitySearch.result.value.longitude,
+        formattedAddress: activitySearch.result.value.formattedAddress,
+        placeId: activitySearch.result.value.placeId,
+        placeLookupSource: 'places_api',
+        isVenuePlaceId: true
+      },
+      usage
     }
   }
 
   // Could not look up - return without coordinates
-  return activity
+  return { activity, usage }
 }
 
 /**
  * Look up places for all activities.
+ * Returns activities with coordinates AND total usage data for metering.
  */
 export async function lookupActivityPlaces(
   activities: readonly ClassifiedActivity[],
   config: PlaceLookupConfig,
   cache?: ResponseCache
-): Promise<GeocodedActivity[]> {
+): Promise<LookupActivitiesResult> {
   const results: GeocodedActivity[] = []
+  let totalUsage: PlaceLookupUsage = EMPTY_PLACE_LOOKUP_USAGE
 
   for (const activity of activities) {
-    const geocoded = await lookupActivityPlace(activity, config, cache)
+    const { activity: geocoded, usage } = await lookupActivityPlace(activity, config, cache)
     results.push(geocoded)
+    totalUsage = addPlaceLookupUsage(totalUsage, usage)
   }
 
-  return results
+  return { activities: results, usage: totalUsage }
 }
 
 /**
  * Look up a single location string.
  * Uses Places API Text Search.
+ * Note: Does not return usage data - use lookupActivityPlace for metering.
  */
 export async function lookupPlace(
   query: string,
   config: PlaceLookupConfig
 ): Promise<Result<PlaceLookupResult>> {
-  return searchPlace(query, config)
+  const { result } = await searchPlace(query, config)
+  return result
 }
 
 /**

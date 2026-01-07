@@ -205,9 +205,9 @@ describe('Cache Integration', () => {
 
       // Results should have same content (timestamps may differ due to JSON serialization)
       if (result1.ok && result2.ok) {
-        expect(result2.value).toHaveLength(result1.value.length)
-        expect(result2.value[0]?.activity).toBe(result1.value[0]?.activity)
-        expect(result2.value[0]?.city).toBe(result1.value[0]?.city)
+        expect(result2.value.activities).toHaveLength(result1.value.activities.length)
+        expect(result2.value.activities[0]?.activity).toBe(result1.value.activities[0]?.activity)
+        expect(result2.value.activities[0]?.city).toBe(result1.value.activities[0]?.city)
       }
     })
 

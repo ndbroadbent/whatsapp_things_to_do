@@ -86,3 +86,50 @@ export interface ProcessingStats {
     readonly total: number
   }
 }
+
+// API Usage Types (for metering/billing)
+
+/** Token usage from LLM API calls */
+export interface LlmUsage {
+  readonly inputTokens: number
+  readonly outputTokens: number
+}
+
+/** Empty LLM usage for cache hits or no-op calls */
+export const EMPTY_LLM_USAGE: LlmUsage = { inputTokens: 0, outputTokens: 0 }
+
+/** Add two LLM usage objects together */
+export function addLlmUsage(a: LlmUsage, b: LlmUsage): LlmUsage {
+  return {
+    inputTokens: a.inputTokens + b.inputTokens,
+    outputTokens: a.outputTokens + b.outputTokens
+  }
+}
+
+/** API call counts from place lookup */
+export interface PlaceLookupUsage {
+  /** Number of Places API Text Search calls */
+  readonly placesSearchCalls: number
+  /** Number of Geocoding API calls */
+  readonly geocodingCalls: number
+}
+
+/** Empty place lookup usage for cache hits */
+export const EMPTY_PLACE_LOOKUP_USAGE: PlaceLookupUsage = {
+  placesSearchCalls: 0,
+  geocodingCalls: 0
+}
+
+/** Add two place lookup usage objects together */
+export function addPlaceLookupUsage(a: PlaceLookupUsage, b: PlaceLookupUsage): PlaceLookupUsage {
+  return {
+    placesSearchCalls: a.placesSearchCalls + b.placesSearchCalls,
+    geocodingCalls: a.geocodingCalls + b.geocodingCalls
+  }
+}
+
+/** Result with usage data for metered API calls */
+export interface ResultWithUsage<T, U> {
+  readonly result: Result<T>
+  readonly usage: U
+}

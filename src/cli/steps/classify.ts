@@ -161,7 +161,7 @@ export async function stepClassify(
       onProgress: ({ index, total, completed, result, durationMs }) => {
         const percent = Math.floor((completed / total) * 100)
         logger.log(
-          `   ${percent}% [${completed}/${total}] ✓ Batch ${index + 1}: ${result.length} activities (${durationMs}ms)`
+          `   ${percent}% [${completed}/${total}] ✓ Batch ${index + 1}: ${result.activities.length} activities (${durationMs}ms)`
         )
       },
       onError: ({ index, error, total }) => {
@@ -174,7 +174,7 @@ export async function stepClassify(
   // Flatten all activities
   const allActivities: ClassifiedActivity[] = []
   for (const batchResult of poolResult.successes) {
-    allActivities.push(...batchResult)
+    allActivities.push(...batchResult.activities)
   }
 
   // Deduplicate, filter, and sort activities by score (interesting prioritized over fun)

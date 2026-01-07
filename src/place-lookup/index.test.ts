@@ -259,10 +259,10 @@ describe('Geocoder Module', () => {
         apiKey: 'test-key'
       })
 
-      expect(results).toHaveLength(1)
-      expect(results[0]?.latitude).toBeCloseTo(41.9, 2)
-      expect(results[0]?.longitude).toBeCloseTo(12.5, 2)
-      expect(results[0]?.placeLookupSource).toBe('geocoding_api')
+      expect(results.activities).toHaveLength(1)
+      expect(results.activities[0]?.latitude).toBeCloseTo(41.9, 2)
+      expect(results.activities[0]?.longitude).toBeCloseTo(12.5, 2)
+      expect(results.activities[0]?.placeLookupSource).toBe('geocoding_api')
     })
 
     it('extracts coordinates from Google Maps URL', async () => {
@@ -277,9 +277,9 @@ describe('Geocoder Module', () => {
         apiKey: 'test-key'
       })
 
-      expect(results[0]?.latitude).toBeCloseTo(41.9028, 2)
-      expect(results[0]?.longitude).toBeCloseTo(12.4964, 2)
-      expect(results[0]?.placeLookupSource).toBe('google_maps_url')
+      expect(results.activities[0]?.latitude).toBeCloseTo(41.9028, 2)
+      expect(results.activities[0]?.longitude).toBeCloseTo(12.4964, 2)
+      expect(results.activities[0]?.placeLookupSource).toBe('google_maps_url')
       // Should not call the API since we got coords from URL
       expect(mockFetch).not.toHaveBeenCalled()
     })
@@ -292,7 +292,7 @@ describe('Geocoder Module', () => {
       })
 
       // Should attempt to extract from URL pattern
-      expect(results).toHaveLength(1)
+      expect(results.activities).toHaveLength(1)
     })
 
     it('falls back to activity text when location fails', async () => {
@@ -315,8 +315,8 @@ describe('Geocoder Module', () => {
         apiKey: 'test-key'
       })
 
-      expect(results[0]?.latitude).toBeCloseTo(48.8, 1)
-      expect(results[0]?.placeLookupSource).toBe('places_api')
+      expect(results.activities[0]?.latitude).toBeCloseTo(48.8, 1)
+      expect(results.activities[0]?.placeLookupSource).toBe('places_api')
     })
 
     it('returns activity without coordinates when all geocoding fails', async () => {
@@ -332,9 +332,9 @@ describe('Geocoder Module', () => {
         apiKey: 'test-key'
       })
 
-      expect(results).toHaveLength(1)
-      expect(results[0]?.latitude).toBeUndefined()
-      expect(results[0]?.longitude).toBeUndefined()
+      expect(results.activities).toHaveLength(1)
+      expect(results.activities[0]?.latitude).toBeUndefined()
+      expect(results.activities[0]?.longitude).toBeUndefined()
     })
 
     it('handles activities without location', async () => {
@@ -344,8 +344,8 @@ describe('Geocoder Module', () => {
         apiKey: 'test-key'
       })
 
-      expect(results).toHaveLength(1)
-      expect(results[0]?.latitude).toBeUndefined()
+      expect(results.activities).toHaveLength(1)
+      expect(results.activities[0]?.latitude).toBeUndefined()
       expect(mockFetch).not.toHaveBeenCalled()
     })
 
@@ -366,7 +366,7 @@ describe('Geocoder Module', () => {
         apiKey: 'test-key'
       })
 
-      expect(results).toHaveLength(3)
+      expect(results.activities).toHaveLength(3)
       expect(mockFetch).toHaveBeenCalledTimes(3)
     })
   })

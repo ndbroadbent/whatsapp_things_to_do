@@ -26,6 +26,8 @@ export {
 // Categories (also available via ./shared/index)
 // Classifier module
 export type {
+  ClassifyBatchResult,
+  ClassifyMessagesResult,
   ParsedClassification,
   ParsedImageHints,
   ParsedLinkHints,
@@ -155,6 +157,7 @@ export {
   parseWhatsAppChatStream
 } from './parser/index'
 // Place Lookup module
+export type { LookupActivitiesResult, LookupActivityResult } from './place-lookup/index'
 export {
   calculateCenter,
   countWithCoordinates,

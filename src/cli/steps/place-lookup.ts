@@ -158,8 +158,8 @@ export async function stepPlaceLookup(
     }
   )
 
-  // Collect results - successes are in order
-  const geocodedActivities: GeocodedActivity[] = poolResult.successes
+  // Collect results - successes are in order, extract activities from LookupActivityResult
+  const geocodedActivities: GeocodedActivity[] = poolResult.successes.map((r) => r.activity)
 
   const stats = calculateStats(geocodedActivities)
 

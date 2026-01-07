@@ -87,20 +87,20 @@ describe('Geocoder Integration', () => {
       const result = await lookupActivityPlace(activity, getConfig(recorder))
 
       // Should have coordinates
-      expect(result.latitude).toBeDefined()
-      expect(result.longitude).toBeDefined()
+      expect(result.activity.latitude).toBeDefined()
+      expect(result.activity.longitude).toBeDefined()
 
       // Activities with venue use Places API, which returns venue name
       // The formattedAddress may just be the area ("Queenstown 9300")
       // but isVenuePlaceId should be true and placeId should be for the ski area
-      expect(result.isVenuePlaceId).toBe(true)
-      expect(result.placeLookupSource).toBe('places_api')
+      expect(result.activity.isVenuePlaceId).toBe(true)
+      expect(result.activity.placeLookupSource).toBe('places_api')
 
       // The placeId should be for The Remarkables, not Queenstown city
       // Queenstown city placeId: ChIJX96o1_Ed1akRAKZ5hIbvAAU
       // The Remarkables placeId: ChIJAR4O0_Tf1KkR9P9FTBp_iBo
-      expect(result.placeId).not.toBe('ChIJX96o1_Ed1akRAKZ5hIbvAAU')
-      expect(result.placeId).toBe('ChIJAR4O0_Tf1KkR9P9FTBp_iBo')
+      expect(result.activity.placeId).not.toBe('ChIJX96o1_Ed1akRAKZ5hIbvAAU')
+      expect(result.activity.placeId).toBe('ChIJAR4O0_Tf1KkR9P9FTBp_iBo')
     })
   })
 })

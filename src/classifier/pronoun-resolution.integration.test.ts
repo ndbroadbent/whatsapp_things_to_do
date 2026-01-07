@@ -79,7 +79,7 @@ describe('Classifier Pronoun Resolution', () => {
 
     // Verify the structure without checking exact timestamp (timezone-dependent)
     expect(result.value).toHaveLength(1)
-    const activity = result.value[0]
+    const activity = result.value.activities[0]
     expect(activity).toBeDefined()
     if (!activity) throw new Error('No activity found')
 
