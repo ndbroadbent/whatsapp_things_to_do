@@ -226,7 +226,11 @@ export async function scrapeYouTube(
     if (!videoId) {
       return {
         ok: false,
-        error: { type: 'parse', message: 'Could not extract video ID from URL', url }
+        error: {
+          type: 'parse',
+          message: 'Could not extract video ID from URL',
+          url
+        }
       }
     }
 
@@ -266,7 +270,11 @@ export async function scrapeYouTube(
     if (!playerResponse) {
       return {
         ok: false,
-        error: { type: 'parse', message: 'Could not find video data in page', url }
+        error: {
+          type: 'parse',
+          message: 'Could not find video data in page',
+          url
+        }
       }
     }
 

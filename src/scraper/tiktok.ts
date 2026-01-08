@@ -234,8 +234,20 @@ function parseTikTokData(
   // Extract categories/labels
   const diversificationLabels = (vd.diversificationLabels ?? []) as string[]
 
-  // Extract suggested keywords
-  const suggestedWords = (vd.suggestedWords ?? []) as string[]
+  // Extract suggested keywords from suggestedWords or videoSuggestWordsList
+  let suggestedWords = (vd.suggestedWords ?? []) as string[]
+  if (suggestedWords.length === 0) {
+    // Fallback: extract from videoSuggestWordsList structure
+    const wordsList = vd.videoSuggestWordsList as
+      | {
+          video_suggest_words_struct?: Array<{
+            words?: Array<{ word?: string }>
+          }>
+        }
+      | undefined
+    const wordsStruct = wordsList?.video_suggest_words_struct?.[0]?.words ?? []
+    suggestedWords = wordsStruct.map((w) => w.word).filter((w): w is string => !!w)
+  }
 
   // Extract thumbnail
   const video = vd.video as Record<string, unknown> | undefined
@@ -300,7 +312,11 @@ export async function scrapeTikTok(
       if (response.status === 403 || response.status === 429) {
         return {
           ok: false,
-          error: { type: 'blocked', message: `Blocked by TikTok (${response.status})`, url }
+          error: {
+            type: 'blocked',
+            message: `Blocked by TikTok (${response.status})`,
+            url
+          }
         }
       }
       return {
@@ -316,7 +332,11 @@ export async function scrapeTikTok(
     if (!jsonData) {
       return {
         ok: false,
-        error: { type: 'parse', message: 'Could not find video data in page', url }
+        error: {
+          type: 'parse',
+          message: 'Could not find video data in page',
+          url
+        }
       }
     }
 

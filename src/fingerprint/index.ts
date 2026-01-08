@@ -32,4 +32,8 @@ export {
   groupMessagesByMonth
 } from './chunker'
 // Type exports
-export type { DeduplicationPlan, FingerprintConfig, MonthlyChunk } from './types'
+export type {
+  DeduplicationPlan,
+  FingerprintConfig,
+  MonthlyChunk
+} from './types'

@@ -45,7 +45,6 @@ export interface ClassifyOutputActivity {
     | {
         type: string
         query: string
-        url: string | null
       }
     | undefined
 }
@@ -84,7 +83,12 @@ export function toOutputActivity(a: ClassifiedActivity): ClassifyOutputActivity 
  * Extracted for testability.
  */
 export function buildClassifyOutput(
-  stats: { candidatesClassified: number; activitiesFound: number; model: string; provider: string },
+  stats: {
+    candidatesClassified: number
+    activitiesFound: number
+    model: string
+    provider: string
+  },
   activities: readonly ClassifiedActivity[]
 ): ClassifyOutput {
   return {

@@ -176,7 +176,9 @@ describe('Candidate Extractor', () => {
           createMessage(1, 'This restaurant looks amazing!')
         ]
 
-        const result = extractCandidatesByHeuristics(messages, { minConfidence: 0.8 })
+        const result = extractCandidatesByHeuristics(messages, {
+          minConfidence: 0.8
+        })
 
         // Only high-confidence matches should remain
         for (const candidate of result.candidates) {
@@ -262,7 +264,9 @@ describe('Candidate Extractor', () => {
           createMessage(0, 'Check this', 'User', ['https://yelp.com/biz/restaurant'])
         ]
 
-        const result = extractCandidatesByHeuristics(messages, { includeUrlBased: false })
+        const result = extractCandidatesByHeuristics(messages, {
+          includeUrlBased: false
+        })
 
         expect(result.urlMatches).toBe(0)
       })

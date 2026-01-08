@@ -110,7 +110,10 @@ export async function cmdScrapeUrls(args: CLIArgs, logger: Logger): Promise<void
     successCount: scrapeResult.stats.successCount,
     failedCount: scrapeResult.stats.failedCount,
     cachedCount: scrapeResult.stats.cachedCount,
-    metadata: [...scrapeResult.metadataMap.entries()].map(([url, data]) => ({ url, data }))
+    metadata: [...scrapeResult.metadataMap.entries()].map(([url, data]) => ({
+      url,
+      data
+    }))
   }
 
   if (args.jsonOutput) {

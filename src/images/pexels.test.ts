@@ -34,7 +34,11 @@ function createMockActivity(overrides: Partial<GeocodedActivity> = {}): Geocoded
     activity: 'Go hiking',
     score: 0.8,
     category: 'nature',
-    image: { stock: 'hiking mountains nature', mediaKey: 'hiking', preferStock: true },
+    image: {
+      stock: 'hiking mountains nature',
+      mediaKey: 'hiking',
+      preferStock: true
+    },
     ...overrides
   })
 }
@@ -76,7 +80,11 @@ describe('Pexels Image Fetching', () => {
     it('makes API call with correct query from image.stock', async () => {
       const cache = createMockCache()
       const activity = createMockActivity({
-        image: { stock: 'hiking trail Auckland', mediaKey: 'hiking', preferStock: true },
+        image: {
+          stock: 'hiking trail Auckland',
+          mediaKey: 'hiking',
+          preferStock: true
+        },
         city: 'Auckland'
       })
 

@@ -58,7 +58,9 @@ export function parseJSON(json: string): JsonExport {
   }
 
   if (typeof data.metadata.generatedAt === 'string') {
-    Object.assign(data.metadata, { generatedAt: new Date(data.metadata.generatedAt) })
+    Object.assign(data.metadata, {
+      generatedAt: new Date(data.metadata.generatedAt)
+    })
   }
 
   return data

@@ -127,7 +127,10 @@ describe('estimateProcessingCost', () => {
   })
 
   it('should include images when requested', () => {
-    const estimate = estimateProcessingCost({ messageCount: 1000, includeImages: true })
+    const estimate = estimateProcessingCost({
+      messageCount: 1000,
+      includeImages: true
+    })
 
     expect(estimate.breakdown.images).toBeDefined()
     expect(estimate.breakdown.images?.requests).toBeGreaterThan(0)
@@ -226,7 +229,11 @@ describe('formatEstimate', () => {
       highEstimateCents: 180,
       breakdown: {
         embedding: { tokens: 1000, costMicros: 100 },
-        classification: { inputTokens: 1000, outputTokens: 100, costMicros: 200 },
+        classification: {
+          inputTokens: 1000,
+          outputTokens: 100,
+          costMicros: 200
+        },
         geocoding: { requests: 10, costMicros: 300 }
       },
       assumptions: {
@@ -257,7 +264,10 @@ describe('formatEstimateDetailed', () => {
   })
 
   it('should include images when present', () => {
-    const estimate = estimateProcessingCost({ messageCount: 10000, includeImages: true })
+    const estimate = estimateProcessingCost({
+      messageCount: 10000,
+      includeImages: true
+    })
     const formatted = formatEstimateDetailed(estimate)
 
     expect(formatted).toContain('Images:')

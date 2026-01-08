@@ -37,7 +37,10 @@ const GEOIP_APIS = [
     url: 'https://ipapi.co/json/',
     parseCountry: (data: unknown) => (data as GeoIpResponse).country_name
   },
-  { url: 'https://ipinfo.io/country', parseCountry: (data: unknown) => (data as string).trim() }
+  {
+    url: 'https://ipinfo.io/country',
+    parseCountry: (data: unknown) => (data as string).trim()
+  }
 ]
 const LOCALTIME_PATH = '/etc/localtime'
 

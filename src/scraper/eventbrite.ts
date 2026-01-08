@@ -139,7 +139,11 @@ export async function scrapeEventbrite(
     if (!eventId) {
       return {
         ok: false,
-        error: { type: 'parse', message: 'Could not extract event ID from URL', url }
+        error: {
+          type: 'parse',
+          message: 'Could not extract event ID from URL',
+          url
+        }
       }
     }
 

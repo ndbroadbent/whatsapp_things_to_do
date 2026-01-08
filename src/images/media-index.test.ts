@@ -128,7 +128,9 @@ describe('findObjectImage', () => {
   })
 
   it('applies regional override for US', () => {
-    const result = findObjectImage('football', TEST_INDEX, { countryCode: 'US' })
+    const result = findObjectImage('football', TEST_INDEX, {
+      countryCode: 'US'
+    })
     expect(result).not.toBeNull()
     expect(result?.itemName).toBe('american football')
     expect(result?.matchType).toBe('object')

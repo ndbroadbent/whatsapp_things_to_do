@@ -167,7 +167,12 @@ export async function stepFetchImages(
       thumbnails,
       mediumImages,
       lightboxImages,
-      stats: { total: tasks.length, fetched: 0, failed: 0, cached: cachedCount }
+      stats: {
+        total: tasks.length,
+        fetched: 0,
+        failed: 0,
+        cached: cachedCount
+      }
     }
   }
 

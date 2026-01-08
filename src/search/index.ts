@@ -24,8 +24,17 @@ import type {
 import { DEFAULT_USER_AGENT, EXTERNAL_ID_URL_TEMPLATES } from './types'
 import { searchWikidata, type WikidataSearchConfig } from './wikidata'
 
-export { classificationToMatch, classifyItem, classifyItems, getBestUrl } from './classification'
-export { buildSearchQuery, searchGoogle, searchGoogleForEntity } from './google'
+export {
+  classificationToMatch,
+  classifyItem,
+  classifyItems,
+  getBestUrl
+} from './classification'
+export {
+  buildSearchQuery,
+  searchGoogle,
+  searchGoogleForEntity
+} from './google'
 export {
   applyHeuristics,
   extractContentWords,
@@ -41,10 +50,65 @@ export * from './types'
 export { searchWikidata } from './wikidata'
 
 /**
+ * Build canonical URL from Wikidata external IDs based on entity type.
+ * Returns the preferred URL for the entity type, falling back to Wikipedia.
+ */
+function buildCanonicalUrlFromExternalIds(
+  result: WikidataResult,
+  type: EntityType
+): { url: string; externalIds: Partial<Record<string, string>> } {
+  const externalIds: Partial<Record<string, string>> = {}
+  let url: string | null = null
+
+  // Extract external IDs and build preferred URL based on entity type
+  if (result.externalIds) {
+    const { imdbId, steamId, bggId, spotifyAlbumId, musicbrainzReleaseGroupId } = result.externalIds
+
+    // Movies and TV shows: prefer IMDB
+    if ((type === 'movie' || type === 'tv_show') && imdbId) {
+      externalIds.imdb = imdbId
+      url = `https://www.imdb.com/title/${imdbId}/`
+    }
+
+    // Video games: prefer Steam
+    if (type === 'video_game' && steamId) {
+      externalIds.steam = steamId
+      url = `https://store.steampowered.com/app/${steamId}`
+    }
+
+    // Board games: prefer BoardGameGeek
+    if (type === 'physical_game' && bggId) {
+      externalIds.bgg = bggId
+      url = `https://boardgamegeek.com/boardgame/${bggId}`
+    }
+
+    // Albums: prefer Spotify
+    if (type === 'album' && spotifyAlbumId) {
+      externalIds.spotify_album = spotifyAlbumId
+      url = `https://open.spotify.com/album/${spotifyAlbumId}`
+    }
+
+    // Albums fallback: MusicBrainz
+    if (type === 'album' && !url && musicbrainzReleaseGroupId) {
+      externalIds.musicbrainz_release_group = musicbrainzReleaseGroupId
+      url = `https://musicbrainz.org/release-group/${musicbrainzReleaseGroupId}`
+    }
+  }
+
+  // Fallback to Wikipedia or Wikidata
+  if (!url) {
+    url = result.wikipediaUrl ?? `https://www.wikidata.org/wiki/${result.qid}`
+  }
+
+  return { url, externalIds }
+}
+
+/**
  * Convert Wikidata result to ResolvedEntity.
+ * Uses external IDs to build canonical URLs when available.
  */
 function wikidataToEntity(result: WikidataResult, title: string, type: EntityType): ResolvedEntity {
-  const url = result.wikipediaUrl ?? `https://www.wikidata.org/wiki/${result.qid}`
+  const { url, externalIds } = buildCanonicalUrlFromExternalIds(result, type)
 
   return {
     id: result.qid,
@@ -55,7 +119,7 @@ function wikidataToEntity(result: WikidataResult, title: string, type: EntityTyp
     description: result.description,
     imageUrl: result.imageUrl,
     wikipediaUrl: result.wikipediaUrl,
-    externalIds: {}
+    externalIds
   }
 }
 

@@ -152,7 +152,9 @@ describe('URL Fixtures', () => {
   })
 
   it('extracts URL-based candidates', () => {
-    const result = extractCandidatesByHeuristics(messages, { includeUrlBased: true })
+    const result = extractCandidatesByHeuristics(messages, {
+      includeUrlBased: true
+    })
 
     // Should have URL-type candidates
     const urlCandidates = result.candidates.filter((c) => c.source.type === 'url')

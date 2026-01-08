@@ -124,12 +124,18 @@ export async function handleHttpError(response: HttpResponse): Promise<Result<ne
   }
 
   if (response.status === 401) {
-    return { ok: false, error: { type: 'auth', message: `Authentication failed: ${errorText}` } }
+    return {
+      ok: false,
+      error: { type: 'auth', message: `Authentication failed: ${errorText}` }
+    }
   }
 
   return {
     ok: false,
-    error: { type: 'network', message: `API error ${response.status}: ${errorText}` }
+    error: {
+      type: 'network',
+      message: `API error ${response.status}: ${errorText}`
+    }
   }
 }
 
@@ -138,12 +144,18 @@ export async function handleHttpError(response: HttpResponse): Promise<Result<ne
  */
 export function handleNetworkError(error: unknown): Result<never> {
   const message = error instanceof Error ? error.message : String(error)
-  return { ok: false, error: { type: 'network', message: `Network error: ${message}` } }
+  return {
+    ok: false,
+    error: { type: 'network', message: `Network error: ${message}` }
+  }
 }
 
 /**
  * Create an error result for empty API responses.
  */
 export function emptyResponseError(): Result<never> {
-  return { ok: false, error: { type: 'invalid_response', message: 'Empty response from API' } }
+  return {
+    ok: false,
+    error: { type: 'invalid_response', message: 'Empty response from API' }
+  }
 }

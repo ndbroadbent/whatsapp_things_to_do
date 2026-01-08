@@ -1,5 +1,10 @@
 {
-  "entry": ["src/cli/steps/index.ts", "src/test-support/index.ts"],
+  "entry": [
+    "src/cli/steps/index.ts",
+    "src/test-support/index.ts",
+    "src/search/index.ts",
+    "src/scraper/index.ts"
+  ],
   "project": ["src/**/*.ts"],
   "ignore": [
     "src/**/*.test.ts",

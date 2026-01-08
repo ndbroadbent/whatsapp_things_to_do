@@ -153,7 +153,11 @@ export interface CostEstimate {
   /** Breakdown by stage */
   breakdown: {
     embedding: { tokens: number; costMicros: MicroDollars }
-    classification: { inputTokens: number; outputTokens: number; costMicros: MicroDollars }
+    classification: {
+      inputTokens: number
+      outputTokens: number
+      costMicros: MicroDollars
+    }
     geocoding: { requests: number; costMicros: MicroDollars }
     images?: { requests: number; costMicros: MicroDollars }
   }

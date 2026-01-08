@@ -138,7 +138,10 @@ describe('scrapeTikTok', () => {
 
     const mockFetch = createMockFetch(async (url, options) => {
       if (url.includes('vt.tiktok.com') && options?.method === 'HEAD') {
-        return mockResponse({ status: 302, headers: { Location: redirectUrl } })
+        return mockResponse({
+          status: 302,
+          headers: { Location: redirectUrl }
+        })
       }
       if (url.includes('tiktok.com/@') && options?.method === 'HEAD') {
         return mockResponse({ status: 200 })
@@ -146,7 +149,9 @@ describe('scrapeTikTok', () => {
       return mockResponse({ text: SAMPLE_HTML })
     })
 
-    const result = await scrapeTikTok('https://vt.tiktok.com/ZS6myoDYu/', { fetch: mockFetch })
+    const result = await scrapeTikTok('https://vt.tiktok.com/ZS6myoDYu/', {
+      fetch: mockFetch
+    })
 
     expect(result.ok).toBe(true)
     if (result.ok) {

@@ -18,15 +18,13 @@ export interface ParsedImageHints {
 }
 
 /**
- * Link hints for generating clickable link widgets.
+ * Link hints for resolving media entities to canonical URLs.
  */
 export interface ParsedLinkHints {
   /** Link type: movie, book, board_game, place, event, other */
   type: string | null
   /** Canonical title/name to search for (e.g., "The Matrix", "Blood on the Clocktower") */
   query: string | null
-  /** URL if user provided one directly */
-  url: string | null
 }
 
 export interface ParsedClassification {
@@ -138,8 +136,7 @@ function parseLinkHints(obj: unknown): ParsedLinkHints | null {
   }
   return {
     type,
-    query,
-    url: parseString(linkObj.url)
+    query
   }
 }
 

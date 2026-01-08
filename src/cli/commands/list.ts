@@ -27,7 +27,11 @@ async function readChatMetadata(dirPath: string): Promise<ProcessedChat | null> 
     const jsonPath = join(dirPath, 'activities.json')
     const content = await readFile(jsonPath, 'utf-8')
     const data = JSON.parse(content) as {
-      metadata?: { generatedAt?: string; activityCount?: number; geocodedCount?: number }
+      metadata?: {
+        generatedAt?: string
+        activityCount?: number
+        geocodedCount?: number
+      }
       activities?: unknown[]
     }
 

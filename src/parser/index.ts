@@ -9,7 +9,11 @@ import { parseIMessageChat, parseIMessageChatStream } from './imessage'
 import { parseWhatsAppChat, parseWhatsAppChatStream } from './whatsapp'
 
 export { parseIMessageChat, parseIMessageChatStream } from './imessage'
-export { detectFormat, parseWhatsAppChat, parseWhatsAppChatStream } from './whatsapp'
+export {
+  detectFormat,
+  parseWhatsAppChat,
+  parseWhatsAppChatStream
+} from './whatsapp'
 
 /** Maximum characters per message chunk */
 export const MAX_CHUNK_LENGTH = 280

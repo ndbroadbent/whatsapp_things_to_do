@@ -57,13 +57,24 @@ export class HttpRecorder {
     const method = init?.method ?? 'GET'
     const fixturePath = this.getFixturePath(method, url)
 
-    // Check for gzipped fixture first, then legacy uncompressed
+    // Check for gzipped fixture first
     if (existsSync(fixturePath)) {
       return this.replay(fixturePath, true)
     }
+    // Check legacy uncompressed (no hash)
     const legacyPath = fixturePath.replace(/\.gz$/, '')
     if (existsSync(legacyPath)) {
       return this.replay(legacyPath, false)
+    }
+    // Check legacy gzipped (without hash suffix)
+    const legacyGzPath = this.getLegacyFixturePath(method, url)
+    if (existsSync(legacyGzPath)) {
+      return this.replay(legacyGzPath, true)
+    }
+    // Check legacy uncompressed (without hash suffix)
+    const legacyUncompressedPath = legacyGzPath.replace(/\.gz$/, '')
+    if (existsSync(legacyUncompressedPath)) {
+      return this.replay(legacyUncompressedPath, false)
     }
 
     return this.record(url, method, input, init, fixturePath)
@@ -80,7 +91,9 @@ export class HttpRecorder {
       headers: new Headers(fixture.headers)
     })
     // Set the final URL after redirects (Response.url is read-only, so we use Object.defineProperty)
-    Object.defineProperty(response, 'url', { value: fixture.finalUrl ?? fixture.url })
+    Object.defineProperty(response, 'url', {
+      value: fixture.finalUrl ?? fixture.url
+    })
     return response
   }
 
@@ -123,11 +136,33 @@ export class HttpRecorder {
   }
 
   private getFixturePath(method: string, url: string): string {
+    // Use hash for uniqueness when URLs are long (e.g., SPARQL queries)
+    const hash = this.hashString(url).slice(0, 16)
+    const safeUrl = url
+      .replace(/^https?:\/\//, '')
+      .replace(/[^a-zA-Z0-9.-]/g, '_')
+      .slice(0, 60)
+    const filename = `${method.toLowerCase()}_${safeUrl}_${hash}.json.gz`
+    return join(this.fixturesDir, filename)
+  }
+
+  private getLegacyFixturePath(method: string, url: string): string {
+    // Old format: no hash, 100 char limit
     const safeUrl = url
       .replace(/^https?:\/\//, '')
       .replace(/[^a-zA-Z0-9.-]/g, '_')
       .slice(0, 100)
     const filename = `${method.toLowerCase()}_${safeUrl}.json.gz`
     return join(this.fixturesDir, filename)
+  }
+
+  private hashString(str: string): string {
+    // Simple hash function for fixture naming (not cryptographic)
+    let hash = 0
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i)
+      hash = ((hash << 5) - hash + char) | 0
+    }
+    return Math.abs(hash).toString(16).padStart(8, '0')
   }
 }

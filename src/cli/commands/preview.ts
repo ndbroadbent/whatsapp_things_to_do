@@ -41,7 +41,11 @@ async function stepClassify(
     urlMetadata?: Map<string, ScrapedMetadata> | undefined
   },
   logger: Logger
-): Promise<{ activities: ClassifiedActivity[]; stats: PreviewStats; fromCache: boolean }> {
+): Promise<{
+  activities: ClassifiedActivity[]
+  stats: PreviewStats
+  fromCache: boolean
+}> {
   const { pipelineCache, apiCache } = ctx
 
   // Check cache
@@ -179,7 +183,11 @@ export async function cmdPreview(args: CLIArgs, logger: Logger): Promise<void> {
   }
 
   if (args.debug) {
-    const prompt = buildClassificationPrompt(topCandidates, { homeCountry, timezone, urlMetadata })
+    const prompt = buildClassificationPrompt(topCandidates, {
+      homeCountry,
+      timezone,
+      urlMetadata
+    })
     logger.log('\n--- DEBUG: Classifier Prompt ---')
     logger.log(prompt)
     logger.log('--- END DEBUG ---\n')

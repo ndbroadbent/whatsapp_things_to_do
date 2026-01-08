@@ -153,7 +153,9 @@ describe('FilesystemCache', () => {
       const path = join(testDir, 'requests', hash.slice(0, 2), `${hash}.json`)
 
       // Create corrupted file
-      mkdirSync(join(testDir, 'requests', hash.slice(0, 2)), { recursive: true })
+      mkdirSync(join(testDir, 'requests', hash.slice(0, 2)), {
+        recursive: true
+      })
       const { writeFileSync } = await import('node:fs')
       writeFileSync(path, 'not valid json{{{')
 

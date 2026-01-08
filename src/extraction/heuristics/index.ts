@@ -32,7 +32,11 @@ export {
   HIGH_SIGNAL_KEYWORDS,
   SUGGESTION_KEYWORDS
 } from './activity-links'
-export { ACTIVITY_KEYWORDS, ACTIVITY_PATTERNS, EXCLUSION_PATTERNS } from './patterns'
+export {
+  ACTIVITY_KEYWORDS,
+  ACTIVITY_PATTERNS,
+  EXCLUSION_PATTERNS
+} from './patterns'
 export {
   classifyUrl,
   extractGoogleMapsCoords,
@@ -338,13 +342,18 @@ export function extractCandidatesByHeuristics(
   const candidateMap = new Map<number, CandidateMessage>()
 
   for (const match of regexMatches) {
-    upsertCandidate(candidateMap, match, { type: 'regex', pattern: match.patternName })
+    upsertCandidate(candidateMap, match, {
+      type: 'regex',
+      pattern: match.patternName
+    })
   }
 
   for (const match of urlMatches) {
     const source: CandidateSource = {
       type: 'url',
-      urlType: match.urlType as CandidateSource & { type: 'url' } extends { urlType: infer T }
+      urlType: match.urlType as CandidateSource & { type: 'url' } extends {
+        urlType: infer T
+      }
         ? T
         : never
     }

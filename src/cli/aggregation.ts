@@ -82,17 +82,41 @@ function venueMatches(a: string | null, b: string | null): boolean {
 }
 
 /**
+ * Check if link hints match.
+ * Both null = match, both have same type+query = match, otherwise no match.
+ */
+function linksMatch(a: ClassifiedActivity, b: ClassifiedActivity): boolean {
+  const aLink = a.link
+  const bLink = b.link
+
+  // Both null - match (generic activities)
+  if (!aLink && !bLink) return true
+
+  // One has link, other doesn't - no match (specific vs generic)
+  if (!aLink || !bLink) return false
+
+  // Both have links - must match type and query
+  return aLink.type === bLink.type && normalizeString(aLink.query) === normalizeString(bLink.query)
+}
+
+/**
  * Check if two activities should be grouped together.
  *
  * Matching criteria:
  * 1. Exact title match (>= 95% similarity) - always merge
- * 2. OR: Both are non-compound AND all structured fields match
- *    - action, object: exact match (null/empty is wildcard)
+ * 2. OR: All structured fields match
+ *    - mediaKey: exact match (null/empty is wildcard)
  *    - venue: 95% similarity (null/empty is wildcard)
  *    - city, region, country: exact match (null/empty is wildcard)
+ *    - link: must be identical (type + query) or both null
  *    - category excluded (AI picks randomly)
  */
 function shouldGroup(a: ClassifiedActivity, b: ClassifiedActivity): boolean {
+  // Links must always match - specific media entities should never merge with generic activities
+  if (!linksMatch(a, b)) {
+    return false
+  }
+
   // Exact title match (>= 95% similarity) - always merge
   if (similarity(a.activity, b.activity) >= 0.95) {
     return true

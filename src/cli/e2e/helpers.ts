@@ -137,7 +137,9 @@ function compressCacheFixture(sourceDir: string): void {
 
   if (dirs.length === 0) return
 
-  execSync(`tar -czf ${CACHE_FIXTURE} -C ${sourceDir} ${dirs.join(' ')}`, { encoding: 'utf-8' })
+  execSync(`tar -czf ${CACHE_FIXTURE} -C ${sourceDir} ${dirs.join(' ')}`, {
+    encoding: 'utf-8'
+  })
 }
 
 /**
@@ -207,7 +209,11 @@ function buildCliEnv(): NodeJS.ProcessEnv {
  * Run CLI command and return output.
  * Throws immediately if stderr has content (surfaces errors clearly).
  */
-export function runCli(args: string): { stdout: string; stderr: string; exitCode: number } {
+export function runCli(args: string): {
+  stdout: string
+  stderr: string
+  exitCode: number
+} {
   const parsedArgs = parseArgs(args)
   const debug = !!process.env.DEBUG_E2E
 

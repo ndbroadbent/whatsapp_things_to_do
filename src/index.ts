@@ -10,7 +10,11 @@
  */
 
 // Cache module
-export type { CachedResponse, CacheKeyComponents, ResponseCache } from './caching/index'
+export type {
+  CachedResponse,
+  CacheKeyComponents,
+  ResponseCache
+} from './caching/index'
 export {
   FilesystemCache,
   generateCacheKey,
@@ -58,7 +62,10 @@ export {
   type SortOrder
 } from './export/index'
 // Extraction module (heuristics + embeddings)
-export type { ExtractCandidatesConfig, ExtractCandidatesResult } from './extraction/index'
+export type {
+  ExtractCandidatesConfig,
+  ExtractCandidatesResult
+} from './extraction/index'
 export {
   ACTIVITY_KEYWORDS,
   ACTIVITY_PATTERNS,
@@ -89,7 +96,11 @@ export {
   SUGGESTION_QUERIES
 } from './extraction/index'
 // Fingerprint module (for deduplication)
-export type { DeduplicationPlan, FingerprintConfig, MonthlyChunk } from './fingerprint/index'
+export type {
+  DeduplicationPlan,
+  FingerprintConfig,
+  MonthlyChunk
+} from './fingerprint/index'
 export {
   createDeduplicationPlan,
   generateChunkFingerprint,
@@ -167,7 +178,11 @@ export { RealChatProcessor } from './processor'
 export type { QuickScanOptions, QuickScanResult } from './scanner/index'
 export { quickScan, quickScanMessages } from './scanner/index'
 // Scraper module (social media metadata extraction)
-export type { ScrapedMetadata, ScrapeOutcome, ScraperConfig } from './scraper/index'
+export type {
+  ScrapedMetadata,
+  ScrapeOutcome,
+  ScraperConfig
+} from './scraper/index'
 export {
   buildYouTubeUrl,
   detectPlatform,

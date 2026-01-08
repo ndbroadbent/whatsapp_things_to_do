@@ -50,12 +50,16 @@ export function buildSearchQuery(title: string, category: EntityType): string {
       return `${title} podcast`
     case 'artist':
       return `${title} musician artist`
-    case 'play':
+    case 'theatre':
       return `${title} play theatre`
     case 'comic':
       return `${title} comic`
     case 'web_series':
       return `${title} web series`
+    case 'media':
+      return `${title} movie tv show`
+    case 'game':
+      return `${title} video game board game`
     default:
       return title
   }

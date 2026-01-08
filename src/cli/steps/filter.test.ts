@@ -39,7 +39,12 @@ function createCandidate(
     source:
       source === 'heuristics'
         ? { type: 'regex', pattern: 'test' }
-        : { type: 'semantic', similarity: 0.5, query: 'test', queryType: 'suggestion' }
+        : {
+            type: 'semantic',
+            similarity: 0.5,
+            query: 'test',
+            queryType: 'suggestion'
+          }
   }
 }
 

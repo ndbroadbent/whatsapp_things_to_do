@@ -539,7 +539,9 @@ Hi there!`
       })()
 
       const messages = []
-      for await (const msg of parseChatStream(lines, 'whatsapp', { format: 'ios' })) {
+      for await (const msg of parseChatStream(lines, 'whatsapp', {
+        format: 'ios'
+      })) {
         messages.push(msg)
       }
 

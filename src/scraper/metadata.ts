@@ -115,7 +115,11 @@ function isCachedError(data: CachedScrapeResult): data is CachedError {
 async function scrapeWithCache(
   url: string,
   options: FetchOptions
-): Promise<{ url: string; metadata: ScrapedMetadata | null; error?: string | undefined }> {
+): Promise<{
+  url: string
+  metadata: ScrapedMetadata | null
+  error?: string | undefined
+}> {
   const cache = options.cache
   const cacheKey = generateUrlCacheKey(url)
 
@@ -155,7 +159,10 @@ async function scrapeWithCache(
         suggestedKeywords: []
       }
       if (cache) {
-        await cache.set(cacheKey, { data: minimalMetadata, cachedAt: Date.now() })
+        await cache.set(cacheKey, {
+          data: minimalMetadata,
+          cachedAt: Date.now()
+        })
       }
       return { url, metadata: minimalMetadata, error: errorMsg }
     }

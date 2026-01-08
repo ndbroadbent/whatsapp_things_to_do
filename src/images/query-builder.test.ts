@@ -10,7 +10,11 @@ describe('buildStockImageQuery', () => {
   it('returns the image.stock query from activity', () => {
     const activity = createGeocodedActivity({
       activity: 'Go hiking in mountains',
-      image: { stock: 'hiking mountains sunrise', mediaKey: 'hiking', preferStock: true }
+      image: {
+        stock: 'hiking mountains sunrise',
+        mediaKey: 'hiking',
+        preferStock: true
+      }
     })
 
     const query = buildStockImageQuery(activity)

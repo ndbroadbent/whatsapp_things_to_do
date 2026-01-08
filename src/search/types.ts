@@ -14,12 +14,14 @@ import type { ResponseCache } from '../caching/types'
 export type EntityType =
   | 'movie'
   | 'tv_show'
+  | 'media'
   | 'web_series'
   | 'video_game'
   | 'physical_game'
+  | 'game'
   | 'book'
   | 'comic'
-  | 'play'
+  | 'theatre'
   | 'album'
   | 'song'
   | 'podcast'
@@ -32,12 +34,14 @@ export type EntityType =
 export const VALID_LINK_TYPES: readonly EntityType[] = [
   'movie',
   'tv_show',
+  'media',
   'web_series',
   'video_game',
   'physical_game',
+  'game',
   'book',
   'comic',
-  'play',
+  'theatre',
   'album',
   'song',
   'podcast',
@@ -77,6 +81,36 @@ export type ExternalIdType =
   | 'playstation_eu'
   | 'xbox'
   | 'official_website'
+
+/**
+ * SINGLE SOURCE OF TRUTH: wikidata-ids.json
+ *
+ * All external ID definitions (Wikidata properties, URL templates) are in wikidata-ids.json.
+ * This file is read by TypeScript, Rust (wikidata-search), and SaaS.
+ */
+import externalIdsJson from './wikidata-ids.json'
+
+/** Build lookup maps from JSON */
+const externalIdEntries = externalIdsJson.externalIds as Array<{
+  name: ExternalIdType
+  wikidataProperty: string
+  urlTemplate: string | null
+}>
+
+/** Wikidata property IDs (e.g., imdb -> P345) */
+export const WIKIDATA_PROPERTY_IDS: Record<ExternalIdType, string> = Object.fromEntries(
+  externalIdEntries.map((e) => [e.name, e.wikidataProperty])
+) as Record<ExternalIdType, string>
+
+/** URL templates for constructing canonical URLs from external IDs */
+export const EXTERNAL_ID_URL_TEMPLATES: Partial<Record<ExternalIdType, string>> =
+  Object.fromEntries(
+    externalIdEntries.filter((e) => e.urlTemplate !== null).map((e) => [e.name, e.urlTemplate])
+  ) as Partial<Record<ExternalIdType, string>>
+
+/** Priority order for selecting the best URL for link previews */
+export const LINK_PREVIEW_PRIORITY: ExternalIdType[] =
+  externalIdsJson.linkPreviewPriority as ExternalIdType[]
 
 /**
  * Source of the resolved entity.
@@ -150,6 +184,24 @@ export interface ResolverConfig {
 }
 
 /**
+ * External IDs from Wikidata for building canonical URLs.
+ */
+export interface WikidataExternalIds {
+  /** IMDb ID (e.g., "tt1234567") */
+  imdbId?: string | undefined
+  /** Steam application ID (e.g., "1234567") */
+  steamId?: string | undefined
+  /** BoardGameGeek ID (e.g., "12345") */
+  bggId?: string | undefined
+  /** Spotify artist ID */
+  spotifyArtistId?: string | undefined
+  /** Spotify album ID */
+  spotifyAlbumId?: string | undefined
+  /** MusicBrainz release group ID */
+  musicbrainzReleaseGroupId?: string | undefined
+}
+
+/**
  * Result from Wikidata API search.
  */
 export interface WikidataResult {
@@ -163,6 +215,8 @@ export interface WikidataResult {
   imageUrl?: string | undefined
   /** Wikipedia URL */
   wikipediaUrl?: string | undefined
+  /** External IDs for building canonical URLs */
+  externalIds?: WikidataExternalIds | undefined
 }
 
 /**
@@ -248,23 +302,14 @@ export interface ClassificationResult {
 /**
  * Wikidata type QIDs for each entity category.
  * Used in SPARQL queries to filter by type.
+ * Single source of truth: wikidata-ids.json
  */
-export const WIKIDATA_TYPE_QIDS: Partial<Record<EntityType, string[]>> = {
-  // Film types
-  movie: ['Q11424', 'Q506240', 'Q24862', 'Q93204', 'Q202866'],
-  // TV types
-  tv_show: ['Q5398426', 'Q1259759', 'Q3464665', 'Q526877', 'Q21191270'],
-  // Book types
-  book: ['Q571', 'Q7725634', 'Q8261', 'Q49084', 'Q277759', 'Q747381'],
-  // Video game types
-  video_game: ['Q7889'],
-  // Board game types
-  physical_game: ['Q131436', 'Q11410', 'Q142714'],
-  // Album types
-  album: ['Q482994', 'Q169930'],
-  // Song types
-  song: ['Q7366', 'Q134556']
-}
+export const WIKIDATA_TYPE_QIDS: Partial<Record<EntityType, string[]>> = Object.fromEntries(
+  Object.entries(externalIdsJson.entityTypeRoots as Record<string, number[]>).map(([cat, qids]) => [
+    cat,
+    qids.map((q) => `Q${q}`)
+  ])
+) as Partial<Record<EntityType, string[]>>
 
 /**
  * Preferred sources by category for heuristic matching.
@@ -276,6 +321,10 @@ export const PREFERRED_SOURCES: Partial<Record<EntityType, [string, string][]>> 
     ['wikipedia.org', 'wikipedia']
   ],
   tv_show: [
+    ['imdb.com', 'imdb'],
+    ['wikipedia.org', 'wikipedia']
+  ],
+  media: [
     ['imdb.com', 'imdb'],
     ['wikipedia.org', 'wikipedia']
   ],
@@ -294,6 +343,12 @@ export const PREFERRED_SOURCES: Partial<Record<EntityType, [string, string][]>> 
     ['boardgamegeek.com', 'bgg'],
     ['wikipedia.org', 'wikipedia']
   ],
+  game: [
+    ['store.steampowered.com', 'steam'],
+    ['boardgamegeek.com', 'bgg'],
+    ['igdb.com', 'igdb'],
+    ['wikipedia.org', 'wikipedia']
+  ],
   album: [
     ['open.spotify.com', 'spotify'],
     ['musicbrainz.org', 'musicbrainz'],
@@ -303,23 +358,6 @@ export const PREFERRED_SOURCES: Partial<Record<EntityType, [string, string][]>> 
     ['open.spotify.com', 'spotify'],
     ['musicbrainz.org', 'musicbrainz']
   ]
-}
-
-/**
- * URL templates for constructing canonical URLs from external IDs.
- */
-export const EXTERNAL_ID_URL_TEMPLATES: Partial<Record<ExternalIdType, string>> = {
-  imdb: 'https://www.imdb.com/title/{id}/',
-  tmdb_movie: 'https://www.themoviedb.org/movie/{id}',
-  tmdb_tv: 'https://www.themoviedb.org/tv/{id}',
-  letterboxd: 'https://letterboxd.com/film/{id}/',
-  bgg: 'https://boardgamegeek.com/boardgame/{id}',
-  steam: 'https://store.steampowered.com/app/{id}',
-  spotify_artist: 'https://open.spotify.com/artist/{id}',
-  spotify_album: 'https://open.spotify.com/album/{id}',
-  goodreads: 'https://www.goodreads.com/book/show/{id}',
-  openlibrary: 'https://openlibrary.org/works/{id}',
-  apple_podcasts: 'https://podcasts.apple.com/podcast/id{id}'
 }
 
 /**

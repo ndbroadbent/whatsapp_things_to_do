@@ -200,8 +200,7 @@ ${offsetField}    "title": "<activity description, under 100 chars, fix any typo
     // Link hints (for resolving media entities to canonical URLs) - use for movies, books, games, music, etc.
     "link": {
       "type": "<${VALID_LINK_TYPES.join('|')}>",
-      "query": "<canonical title (e.g., 'The Matrix', 'Project Hail Mary', 'Wingspan')>",
-      "url": "<URL if user provided one>"
+      "query": "<canonical title (e.g., 'The Matrix', 'Project Hail Mary', 'Wingspan')>"
     }
   }
 ]
@@ -217,7 +216,10 @@ image.preferStock: true if stock is more specific than mediaKey (e.g., "balloon 
 
 const SHARED_LINK_SECTION = `LINK HINTS (specific media titles only): Types: ${VALID_LINK_TYPES.join(', ')}
 - "watch Oppenheimer" → link:{type:"movie", query:"Oppenheimer"}
+- "watch The Bear" → link:{type:"tv_show", query:"The Bear"}
 - "play Wingspan" → link:{type:"physical_game", query:"Wingspan"}
+- "play Baldur's Gate 3" → link:{type:"video_game", query:"Baldur's Gate 3"}
+Use "media" when UNSURE if movie or TV show. Use "game" when UNSURE if video game or board game.
 DON'T use for: generic ("go to movies"), places (use placeName), bands (use wikiName).`
 
 function buildLocationSection(homeCountry: string): string {
@@ -246,9 +248,11 @@ const SHARED_EXAMPLES = `EXAMPLES:
 4. "see Infected Mushroom in Auckland" → wikiName:"Infected Mushroom", city:"Auckland", cat:"music", image:{stock:"psytrance rave edm concert", mediaKey:"concert", preferStock:true}
 5. "visit geothermal park in Rotorua" → city:"Rotorua", cat:"nature", image:{stock:"rotorua mud pools geyser geothermal", mediaKey:"geothermal park", preferStock:true}
 6. "watch The Matrix" → cat:"entertainment", link:{type:"movie", query:"The Matrix"}, image:{stock:"movie night popcorn", mediaKey:"movie night"}
-7. "go to the theatre" → cat:"entertainment", image:{stock:"theatre stage performance", mediaKey:"theatre"}
-8. "hot air balloon ride" (generic) → cat:"experiences", image:{stock:"hot air balloon sunrise", mediaKey:"hot air balloon"}
-9. "hot air balloon in Turkey" → country:"Turkey", cat:"experiences", image:{stock:"cappadocia hot air balloon sunrise", mediaKey:"hot air balloon", preferStock:true}`
+7. "watch Severance" (unsure if movie/TV) → cat:"entertainment", link:{type:"media", query:"Severance"}, image:{stock:"tv show streaming", mediaKey:"movie night"}
+8. "play Exploding Kittens" (unsure if video/board game) → cat:"gaming", link:{type:"game", query:"Exploding Kittens"}, image:{stock:"card game friends", mediaKey:"card game"}
+9. "go to the theatre" → cat:"entertainment", image:{stock:"theatre stage performance", mediaKey:"theatre"}
+10. "hot air balloon ride" (generic) → cat:"experiences", image:{stock:"hot air balloon sunrise", mediaKey:"hot air balloon"}
+11. "hot air balloon in Turkey" → country:"Turkey", cat:"experiences", image:{stock:"cappadocia hot air balloon sunrise", mediaKey:"hot air balloon", preferStock:true}`
 
 // ============================================================================
 // SUGGESTION PROMPT (regular candidates)

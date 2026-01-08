@@ -29,7 +29,12 @@ import { countTokens, MAX_BATCH_TOKENS } from './tokenizer'
 
 export { createSmartBatches, groupCandidatesByProximity } from './batching'
 export type { ResolvedModel } from './models'
-export { DEFAULT_MODEL_ID, getRequiredApiKeyEnvVar, getValidModelIds, resolveModel } from './models'
+export {
+  DEFAULT_MODEL_ID,
+  getRequiredApiKeyEnvVar,
+  getValidModelIds,
+  resolveModel
+} from './models'
 export {
   buildClassificationPrompt,
   type ClassificationContext,
@@ -92,8 +97,7 @@ function toClassifiedActivity(
     isValidLinkType && response.link?.query
       ? {
           type: linkType as EntityType,
-          query: response.link.query,
-          url: response.link.url
+          query: response.link.query
         }
       : null
 
@@ -207,7 +211,10 @@ export async function classifyBatch(
     const message = error instanceof Error ? error.message : String(error)
     return {
       ok: false,
-      error: { type: 'invalid_response', message: `Failed to parse response: ${message}` }
+      error: {
+        type: 'invalid_response',
+        message: `Failed to parse response: ${message}`
+      }
     }
   }
 }
@@ -247,7 +254,10 @@ async function processBatches(
     const globalBatchIndex = batchIndexOffset + i
 
     // Check cache BEFORE calling onBatchStart
-    const messages = batch.map((c) => ({ messageId: c.messageId, content: c.content }))
+    const messages = batch.map((c) => ({
+      messageId: c.messageId,
+      content: c.content
+    }))
     const cacheKey = generateClassifierCacheKey(config.provider, model, messages)
     const cached = cache ? await cache.get<string>(cacheKey) : null
 

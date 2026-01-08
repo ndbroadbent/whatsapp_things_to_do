@@ -40,10 +40,16 @@ const MODEL_MAP: Record<string, ResolvedModel> = {
   // Google AI (direct API) - primary for SaaS
   'gemini-3-flash': { provider: 'google', apiModel: LATEST_GOOGLE_SMALL },
   // OpenRouter fallback (same model via OpenRouter)
-  'gemini-3-flash-or': { provider: 'openrouter', apiModel: `google/${LATEST_GOOGLE_SMALL}` },
+  'gemini-3-flash-or': {
+    provider: 'openrouter',
+    apiModel: `google/${LATEST_GOOGLE_SMALL}`
+  },
   // Anthropic
   'haiku-4.5': { provider: 'anthropic', apiModel: LATEST_ANTHROPIC_SMALL },
-  'haiku-4.5-or': { provider: 'openrouter', apiModel: 'anthropic/claude-3-5-haiku-latest' },
+  'haiku-4.5-or': {
+    provider: 'openrouter',
+    apiModel: 'anthropic/claude-3-5-haiku-latest'
+  },
   // OpenAI
   'gpt-5-mini': { provider: 'openai', apiModel: LATEST_OPENAI_SMALL }
 }

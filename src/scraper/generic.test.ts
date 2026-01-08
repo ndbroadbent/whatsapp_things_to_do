@@ -97,7 +97,9 @@ describe('scrapeGeneric', () => {
             url,
             ok: false,
             status: 301,
-            headers: { get: (name: string) => (name === 'location' ? finalUrl : null) },
+            headers: {
+              get: (name: string) => (name === 'location' ? finalUrl : null)
+            },
             text: async () => ''
           }
         }
@@ -187,6 +189,72 @@ describe('scrapeGeneric', () => {
       if (result.ok) {
         expect(result.metadata.canonicalUrl).toBe(url3)
         expect(result.metadata.title).toBe('Final')
+      }
+    })
+  })
+
+  describe('HTML entity decoding', () => {
+    it('decodes HTML entities in og:description', async () => {
+      const url = 'https://example.com/page'
+
+      const mockFetch = createMockFetch(
+        new Map([
+          [
+            url,
+            {
+              status: 200,
+              body: `
+                <html>
+                  <head>
+                    <meta property="og:title" content="Dungeons &amp; Dragons">
+                    <meta property="og:description" content="A story-rich RPG set in the universe of Dungeons &amp;amp; Dragons, where your choices &lt;matter&gt;">
+                  </head>
+                </html>
+              `
+            }
+          ]
+        ])
+      )
+
+      const result = await scrapeGeneric(url, { fetch: mockFetch })
+
+      expect(result.ok).toBe(true)
+      if (result.ok) {
+        expect(result.metadata.title).toBe('Dungeons & Dragons')
+        expect(result.metadata.description).toBe(
+          'A story-rich RPG set in the universe of Dungeons & Dragons, where your choices <matter>'
+        )
+      }
+    })
+
+    it('decodes numeric and hex HTML entities', async () => {
+      const url = 'https://example.com/page'
+
+      const mockFetch = createMockFetch(
+        new Map([
+          [
+            url,
+            {
+              status: 200,
+              body: `
+                <html>
+                  <head>
+                    <meta property="og:title" content="Test &#39;quotes&#39; and &#x27;hex&#x27;">
+                    <meta property="og:description" content="Copyright &#169; 2025">
+                  </head>
+                </html>
+              `
+            }
+          ]
+        ])
+      )
+
+      const result = await scrapeGeneric(url, { fetch: mockFetch })
+
+      expect(result.ok).toBe(true)
+      if (result.ok) {
+        expect(result.metadata.title).toBe("Test 'quotes' and 'hex'")
+        expect(result.metadata.description).toBe('Copyright © 2025')
       }
     })
   })

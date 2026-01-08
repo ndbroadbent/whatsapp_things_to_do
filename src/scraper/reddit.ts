@@ -92,7 +92,9 @@ async function resolveRedirectUrl(
 function parseRedditJson(data: unknown, canonicalUrl: string): ScrapedMetadata | null {
   if (!Array.isArray(data) || data.length === 0) return null
 
-  const listing = data[0] as { data?: { children?: Array<{ data?: unknown }> } }
+  const listing = data[0] as {
+    data?: { children?: Array<{ data?: unknown }> }
+  }
   const children = listing?.data?.children
   if (!children || children.length === 0) return null
 
@@ -168,7 +170,11 @@ export async function scrapeReddit(
   if (!postId) {
     return {
       ok: false,
-      error: { type: 'parse', message: 'Could not extract post ID from URL', url }
+      error: {
+        type: 'parse',
+        message: 'Could not extract post ID from URL',
+        url
+      }
     }
   }
 
@@ -188,12 +194,19 @@ export async function scrapeReddit(
 
     if (!response.ok) {
       if (response.status === 404) {
-        return { ok: false, error: { type: 'not_found', message: 'Post not found', url } }
+        return {
+          ok: false,
+          error: { type: 'not_found', message: 'Post not found', url }
+        }
       }
       if (response.status === 403 || response.status === 429) {
         return {
           ok: false,
-          error: { type: 'blocked', message: `Blocked by Reddit (${response.status})`, url }
+          error: {
+            type: 'blocked',
+            message: `Blocked by Reddit (${response.status})`,
+            url
+          }
         }
       }
       return {
@@ -208,7 +221,11 @@ export async function scrapeReddit(
     if (!metadata) {
       return {
         ok: false,
-        error: { type: 'parse', message: 'Could not parse Reddit response', url }
+        error: {
+          type: 'parse',
+          message: 'Could not parse Reddit response',
+          url
+        }
       }
     }
 

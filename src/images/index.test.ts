@@ -72,7 +72,10 @@ describe('Images Module', () => {
 
     it('skips Wikipedia when skipWikipedia is true', async () => {
       const cache = createMockCache()
-      const activity = createMockActivity({ placeName: 'Eiffel Tower', city: 'Paris' })
+      const activity = createMockActivity({
+        placeName: 'Eiffel Tower',
+        city: 'Paris'
+      })
       const config: ImageFetchConfig = {
         skipGooglePlaces: true,
         skipWikipedia: true,
@@ -89,7 +92,11 @@ describe('Images Module', () => {
     it('skips Pexels when skipPexels is true', async () => {
       const cache = createMockCache()
       const activity = createMockActivity({
-        image: { stock: 'hiking mountains', mediaKey: 'hiking', preferStock: true }
+        image: {
+          stock: 'hiking mountains',
+          mediaKey: 'hiking',
+          preferStock: true
+        }
       })
       const config: ImageFetchConfig = {
         skipGooglePlaces: true,
@@ -126,7 +133,11 @@ describe('Images Module', () => {
     it('skips Pixabay when skipPixabay is true', async () => {
       const cache = createMockCache()
       const activity = createMockActivity({
-        image: { stock: 'hiking mountains', mediaKey: 'hiking', preferStock: true }
+        image: {
+          stock: 'hiking mountains',
+          mediaKey: 'hiking',
+          preferStock: true
+        }
       })
       const config: ImageFetchConfig = {
         skipGooglePlaces: true,
@@ -145,7 +156,11 @@ describe('Images Module', () => {
     it('skips Pixabay when no API key provided', async () => {
       const cache = createMockCache()
       const activity = createMockActivity({
-        image: { stock: 'hiking mountains', mediaKey: 'hiking', preferStock: true }
+        image: {
+          stock: 'hiking mountains',
+          mediaKey: 'hiking',
+          preferStock: true
+        }
       })
       const config: ImageFetchConfig = {
         skipGooglePlaces: true,

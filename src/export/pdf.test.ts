@@ -51,7 +51,9 @@ describe('PDF Export', () => {
     it('uses custom title when provided', async () => {
       const activities = [createActivity(1, 'Test', 'food', 41.9, 12.5)]
 
-      const result = await exportToPDF(activities, { title: 'My Custom Title' })
+      const result = await exportToPDF(activities, {
+        title: 'My Custom Title'
+      })
 
       expect(result.length).toBeGreaterThan(100)
     })
@@ -93,7 +95,9 @@ describe('PDF Export', () => {
         createActivity(2, 'Hike 1', 'nature', 40.7, -74.0)
       ]
 
-      const result = await exportToPDF(activities, { filterByCategory: ['food'] })
+      const result = await exportToPDF(activities, {
+        filterByCategory: ['food']
+      })
 
       expect(result.length).toBeGreaterThan(100)
     })
@@ -314,7 +318,9 @@ describe('PDF Export', () => {
     ]
 
     it('filters by country when filterByCountry is specified', async () => {
-      const result = await exportToPDF(activities, { filterByCountry: ['Italy'] })
+      const result = await exportToPDF(activities, {
+        filterByCountry: ['Italy']
+      })
 
       expect(result).toBeInstanceOf(Uint8Array)
       expect(result.length).toBeGreaterThan(100)
@@ -331,7 +337,9 @@ describe('PDF Export', () => {
     })
 
     it('handles case-insensitive country filter', async () => {
-      const result = await exportToPDF(activities, { filterByCountry: ['italy'] })
+      const result = await exportToPDF(activities, {
+        filterByCountry: ['italy']
+      })
 
       expect(result).toBeInstanceOf(Uint8Array)
       expect(result.length).toBeGreaterThan(100)
@@ -349,7 +357,9 @@ describe('PDF Export', () => {
     })
 
     it('respects includeThumbnails option when disabled', async () => {
-      const result = await exportToPDF(activities, { includeThumbnails: false })
+      const result = await exportToPDF(activities, {
+        includeThumbnails: false
+      })
 
       expect(result).toBeInstanceOf(Uint8Array)
       expect(result.length).toBeGreaterThan(100)

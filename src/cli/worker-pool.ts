@@ -80,7 +80,10 @@ interface WorkerPoolResult<R> {
   /** Successfully completed results only, in original order */
   readonly successes: R[]
   /** Errors that occurred */
-  readonly errors: ReadonlyArray<{ readonly index: number; readonly error: Error }>
+  readonly errors: ReadonlyArray<{
+    readonly index: number
+    readonly error: Error
+  }>
   /** Total tasks processed */
   readonly total: number
   /** Number of successful tasks */
@@ -106,7 +109,14 @@ export async function runWorkerPool<T, R>(
   options: WorkerPoolOptions<T, R> = {}
 ): Promise<WorkerPoolResult<R>> {
   if (tasks.length === 0) {
-    return { results: [], successes: [], errors: [], total: 0, successCount: 0, errorCount: 0 }
+    return {
+      results: [],
+      successes: [],
+      errors: [],
+      total: 0,
+      successCount: 0,
+      errorCount: 0
+    }
   }
 
   const concurrency = options.concurrency ?? DEFAULT_CONCURRENCY

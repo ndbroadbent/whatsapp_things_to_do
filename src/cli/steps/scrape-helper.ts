@@ -57,7 +57,10 @@ export async function scrapeUrlBatch(
         const result = await scrapeUrl(url, { timeout })
 
         if (result.ok) {
-          await apiCache.set(cacheKey, { data: result.metadata, cachedAt: Date.now() })
+          await apiCache.set(cacheKey, {
+            data: result.metadata,
+            cachedAt: Date.now()
+          })
           return { url, metadata: result.metadata, success: true }
         }
 
@@ -78,7 +81,10 @@ export async function scrapeUrlBatch(
             categories: [],
             suggestedKeywords: []
           }
-          await apiCache.set(cacheKey, { data: minimalMetadata, cachedAt: Date.now() })
+          await apiCache.set(cacheKey, {
+            data: minimalMetadata,
+            cachedAt: Date.now()
+          })
           return { url, metadata: minimalMetadata, success: true }
         }
 

@@ -61,6 +61,32 @@ export function extractJsonLd(html: string): unknown[] {
 }
 
 /**
+ * Decode common HTML entities in text.
+ * Handles &amp; &lt; &gt; &quot; &#39; and numeric entities.
+ * Decodes repeatedly until stable to handle double-encoded content.
+ */
+function decodeHtmlEntities(text: string): string {
+  let result = text
+  let prev = ''
+
+  // Decode until stable (handles double/triple encoding)
+  while (result !== prev) {
+    prev = result
+    result = result
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&apos;/g, "'")
+      .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+      .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+  }
+
+  return result
+}
+
+/**
  * Extract Open Graph meta tags from HTML.
  */
 export function extractOpenGraph(html: string): Record<string, string> {
@@ -70,13 +96,13 @@ export function extractOpenGraph(html: string): Record<string, string> {
   for (const match of html.matchAll(
     /<meta[^>]*property="og:([^"]+)"[^>]*content="([^"]*)"[^>]*>/gi
   )) {
-    if (match[1] && match[2]) og[match[1]] = match[2]
+    if (match[1] && match[2]) og[match[1]] = decodeHtmlEntities(match[2])
   }
   // content="Y" property="og:X"
   for (const match of html.matchAll(
     /<meta[^>]*content="([^"]*)"[^>]*property="og:([^"]+)"[^>]*>/gi
   )) {
-    if (match[1] && match[2]) og[match[2]] = match[1]
+    if (match[1] && match[2]) og[match[2]] = decodeHtmlEntities(match[1])
   }
 
   return og
@@ -161,13 +187,23 @@ export function handleHttpError(
   if (response.ok) return null
 
   if (response.status === 404) {
-    return { ok: false, error: { type: 'not_found', message: notFoundMessage, url } }
+    return {
+      ok: false,
+      error: { type: 'not_found', message: notFoundMessage, url }
+    }
   }
   if (response.status === 403 || response.status === 429) {
     return {
       ok: false,
-      error: { type: 'blocked', message: `Blocked by ${platformName} (${response.status})`, url }
+      error: {
+        type: 'blocked',
+        message: `Blocked by ${platformName} (${response.status})`,
+        url
+      }
     }
   }
-  return { ok: false, error: { type: 'network', message: `HTTP ${response.status}`, url } }
+  return {
+    ok: false,
+    error: { type: 'network', message: `HTTP ${response.status}`, url }
+  }
 }

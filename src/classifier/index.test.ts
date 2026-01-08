@@ -31,16 +31,25 @@ vi.mock('../http', () => ({
       }
     }
     if (response.status === 401) {
-      return { ok: false, error: { type: 'auth', message: `Authentication failed: ${errorText}` } }
+      return {
+        ok: false,
+        error: { type: 'auth', message: `Authentication failed: ${errorText}` }
+      }
     }
     return {
       ok: false,
-      error: { type: 'network', message: `API error ${response.status}: ${errorText}` }
+      error: {
+        type: 'network',
+        message: `API error ${response.status}: ${errorText}`
+      }
     }
   },
   handleNetworkError: (error: unknown) => {
     const message = error instanceof Error ? error.message : String(error)
-    return { ok: false, error: { type: 'network', message: `Network error: ${message}` } }
+    return {
+      ok: false,
+      error: { type: 'network', message: `Network error: ${message}` }
+    }
   },
   emptyResponseError: () => ({
     ok: false,
@@ -289,7 +298,9 @@ describe('Classifier Module', () => {
         ok: false,
         status: 429,
         text: async () => 'Rate limited',
-        headers: { get: (name: string) => (name === 'retry-after' ? '60' : null) }
+        headers: {
+          get: (name: string) => (name === 'retry-after' ? '60' : null)
+        }
       })
 
       const candidates = [createCandidate(1, 'Test')]

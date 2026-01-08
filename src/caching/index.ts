@@ -12,4 +12,8 @@ export {
   generateGeocodeCacheKey,
   generatePlaceLookupCacheKey
 } from './key'
-export type { CachedResponse, CacheKeyComponents, ResponseCache } from './types'
+export type {
+  CachedResponse,
+  CacheKeyComponents,
+  ResponseCache
+} from './types'

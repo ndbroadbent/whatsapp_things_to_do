@@ -72,7 +72,7 @@ function renderActivityList(sorted) {
           : ''
         var previewDomain = '<div class="link-preview-domain">' + escapeHtml(a.linkPreview.domain) + '</div>'
         var previewDesc = a.linkPreview.description
-          ? '<div class="link-preview-desc">' + escapeHtml(a.linkPreview.description.slice(0, 120)) + '</div>'
+          ? '<div class="link-preview-desc">' + escapeHtml(a.linkPreview.description.length > 256 ? a.linkPreview.description.slice(0, 256) + '…' : a.linkPreview.description) + '</div>'
           : ''
         linkPreviewHtml =
           '<a href="' + a.linkPreview.url + '" target="_blank" class="link-preview">' +

@@ -365,6 +365,7 @@ const PLATFORM_CONFIDENCE: Record<SocialPlatform, number> = {
   youtube: 0.4,
   facebook: 0.45,
   x: 0.4,
+  spotify: 0.7,
   other: 0.3
 }
 

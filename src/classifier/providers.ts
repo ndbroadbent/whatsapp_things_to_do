@@ -30,8 +30,14 @@ interface OpenAIResponse {
 }
 
 interface GoogleAIResponse {
-  candidates: Array<{ content: { parts: Array<{ text: string }>; role: string } }>
-  usageMetadata: { promptTokenCount: number; candidatesTokenCount: number; totalTokenCount: number }
+  candidates: Array<{
+    content: { parts: Array<{ text: string }>; role: string }
+  }>
+  usageMetadata: {
+    promptTokenCount: number
+    candidatesTokenCount: number
+    totalTokenCount: number
+  }
 }
 
 /**
@@ -128,7 +134,10 @@ async function callOpenAICompatible(
   try {
     const response = await httpFetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.apiKey}` },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.apiKey}`
+      },
       body: JSON.stringify(body)
     })
 
@@ -199,7 +208,10 @@ async function callProvider(
     default:
       return {
         ok: false,
-        error: { type: 'invalid_response', message: `Unknown provider: ${providerConfig.provider}` }
+        error: {
+          type: 'invalid_response',
+          message: `Unknown provider: ${providerConfig.provider}`
+        }
       }
   }
 

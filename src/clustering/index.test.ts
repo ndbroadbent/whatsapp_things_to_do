@@ -55,10 +55,18 @@ describe('clusterActivities', () => {
           image: { stock: 'biking', mediaKey: 'cycling', preferStock: false }
         }),
         createActivity('Go swimming', {
-          image: { stock: 'swimming', mediaKey: 'swimming', preferStock: false }
+          image: {
+            stock: 'swimming',
+            mediaKey: 'swimming',
+            preferStock: false
+          }
         }),
         createActivity('Visit a restaurant', {
-          image: { stock: 'restaurant', mediaKey: 'restaurant', preferStock: false }
+          image: {
+            stock: 'restaurant',
+            mediaKey: 'restaurant',
+            preferStock: false
+          }
         })
       ]
 
@@ -90,10 +98,18 @@ describe('clusterActivities', () => {
     it('should NOT cluster same activity with different countries', () => {
       const activities = [
         createActivity('Go kayaking', {
-          image: { stock: 'kayaking', mediaKey: 'kayaking', preferStock: false }
+          image: {
+            stock: 'kayaking',
+            mediaKey: 'kayaking',
+            preferStock: false
+          }
         }),
         createActivity('Go kayaking in Mexico', {
-          image: { stock: 'kayaking mexico', mediaKey: 'kayaking', preferStock: true },
+          image: {
+            stock: 'kayaking mexico',
+            mediaKey: 'kayaking',
+            preferStock: true
+          },
           country: 'Mexico'
         })
       ]
@@ -106,11 +122,19 @@ describe('clusterActivities', () => {
     it('should cluster same activity with same city', () => {
       const activities = [
         createActivity('Hike in Queenstown', {
-          image: { stock: 'hiking queenstown', mediaKey: 'hiking', preferStock: true },
+          image: {
+            stock: 'hiking queenstown',
+            mediaKey: 'hiking',
+            preferStock: true
+          },
           city: 'Queenstown'
         }),
         createActivity('Go hiking in Queenstown', {
-          image: { stock: 'hiking queenstown', mediaKey: 'hiking', preferStock: true },
+          image: {
+            stock: 'hiking queenstown',
+            mediaKey: 'hiking',
+            preferStock: true
+          },
           city: 'Queenstown'
         })
       ]
@@ -147,12 +171,20 @@ describe('clusterActivities', () => {
     it('should cluster by placeName', () => {
       const activities = [
         createActivity('Visit Eiffel Tower', {
-          image: { stock: 'eiffel tower paris', mediaKey: 'landmark', preferStock: true },
+          image: {
+            stock: 'eiffel tower paris',
+            mediaKey: 'landmark',
+            preferStock: true
+          },
           placeName: 'Eiffel Tower',
           city: 'Paris'
         }),
         createActivity('Go to the Eiffel Tower', {
-          image: { stock: 'eiffel tower paris', mediaKey: 'landmark', preferStock: true },
+          image: {
+            stock: 'eiffel tower paris',
+            mediaKey: 'landmark',
+            preferStock: true
+          },
           placeName: 'Eiffel Tower',
           city: 'Paris'
         })
@@ -167,12 +199,20 @@ describe('clusterActivities', () => {
     it('should NOT cluster different placeNames in same city', () => {
       const activities = [
         createActivity('Visit Louvre', {
-          image: { stock: 'louvre museum', mediaKey: 'museum', preferStock: true },
+          image: {
+            stock: 'louvre museum',
+            mediaKey: 'museum',
+            preferStock: true
+          },
           placeName: 'Louvre Museum',
           city: 'Paris'
         }),
         createActivity('Visit Eiffel Tower', {
-          image: { stock: 'eiffel tower', mediaKey: 'landmark', preferStock: true },
+          image: {
+            stock: 'eiffel tower',
+            mediaKey: 'landmark',
+            preferStock: true
+          },
           placeName: 'Eiffel Tower',
           city: 'Paris'
         })
@@ -188,12 +228,20 @@ describe('clusterActivities', () => {
     it('should cluster by placeQuery when placeName is null', () => {
       const activities = [
         createActivity('Visit The Coffee Club', {
-          image: { stock: 'coffee shop auckland', mediaKey: 'cafe', preferStock: true },
+          image: {
+            stock: 'coffee shop auckland',
+            mediaKey: 'cafe',
+            preferStock: true
+          },
           placeQuery: 'The Coffee Club Auckland',
           city: 'Auckland'
         }),
         createActivity('Go to Coffee Club', {
-          image: { stock: 'coffee shop auckland', mediaKey: 'cafe', preferStock: true },
+          image: {
+            stock: 'coffee shop auckland',
+            mediaKey: 'cafe',
+            preferStock: true
+          },
           placeQuery: 'The Coffee Club Auckland',
           city: 'Auckland'
         })
@@ -263,7 +311,14 @@ describe('clusterActivities', () => {
         }),
         createActivity('Hike', {
           image: { stock: 'hiking', mediaKey: 'hiking', preferStock: false },
-          messages: [{ id: 3, sender: 'Alice', timestamp: new Date(), message: 'Hike again' }]
+          messages: [
+            {
+              id: 3,
+              sender: 'Alice',
+              timestamp: new Date(),
+              message: 'Hike again'
+            }
+          ]
         })
       ]
 
@@ -279,15 +334,36 @@ describe('clusterActivities', () => {
       const activities = [
         createActivity('Hike', {
           image: { stock: 'hiking', mediaKey: 'hiking', preferStock: false },
-          messages: [{ id: 1, sender: 'A', timestamp: new Date('2024-01-15'), message: 'Hike' }]
+          messages: [
+            {
+              id: 1,
+              sender: 'A',
+              timestamp: new Date('2024-01-15'),
+              message: 'Hike'
+            }
+          ]
         }),
         createActivity('Hike', {
           image: { stock: 'hiking', mediaKey: 'hiking', preferStock: false },
-          messages: [{ id: 2, sender: 'B', timestamp: new Date('2024-06-20'), message: 'Hike' }]
+          messages: [
+            {
+              id: 2,
+              sender: 'B',
+              timestamp: new Date('2024-06-20'),
+              message: 'Hike'
+            }
+          ]
         }),
         createActivity('Hike', {
           image: { stock: 'hiking', mediaKey: 'hiking', preferStock: false },
-          messages: [{ id: 3, sender: 'C', timestamp: new Date('2024-03-10'), message: 'Hike' }]
+          messages: [
+            {
+              id: 3,
+              sender: 'C',
+              timestamp: new Date('2024-03-10'),
+              message: 'Hike'
+            }
+          ]
         })
       ]
 
@@ -339,7 +415,11 @@ describe('clusterActivities', () => {
           city: 'Auckland'
         }),
         createActivity('Another generic activity', {
-          image: { stock: 'something else', mediaKey: null, preferStock: false },
+          image: {
+            stock: 'something else',
+            mediaKey: null,
+            preferStock: false
+          },
           city: 'Auckland'
         })
       ]

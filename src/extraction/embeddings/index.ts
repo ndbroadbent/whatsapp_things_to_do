@@ -328,7 +328,10 @@ export function findSemanticCandidates(
     for (const match of topMatches) {
       const existing = candidateMap.get(match.id)
       if (!existing || match.similarity > existing.similarity) {
-        candidateMap.set(match.id, { similarity: match.similarity, query: queryText })
+        candidateMap.set(match.id, {
+          similarity: match.similarity,
+          query: queryText
+        })
       }
     }
   }

@@ -161,7 +161,11 @@ function findEditionWithCover(
 function buildResultWithEdition(
   doc: OpenLibraryDoc,
   workId: string,
-  validEdition: { editionId: string; coverId: number; format: string | undefined }
+  validEdition: {
+    editionId: string
+    coverId: number
+    format: string | undefined
+  }
 ): OpenLibraryResult {
   return {
     workId,

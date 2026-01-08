@@ -28,12 +28,18 @@ vi.mock('../http', () => ({
     const errorText = await response.text()
     return {
       ok: false,
-      error: { type: 'network', message: `API error ${response.status}: ${errorText}` }
+      error: {
+        type: 'network',
+        message: `API error ${response.status}: ${errorText}`
+      }
     }
   },
   handleNetworkError: (error: unknown) => {
     const message = error instanceof Error ? error.message : String(error)
-    return { ok: false, error: { type: 'network', message: `Network error: ${message}` } }
+    return {
+      ok: false,
+      error: { type: 'network', message: `Network error: ${message}` }
+    }
   },
   emptyResponseError: () => ({
     ok: false,

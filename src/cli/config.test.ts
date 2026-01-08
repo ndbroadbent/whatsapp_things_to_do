@@ -280,7 +280,10 @@ describe('config', () => {
       const oldPath = join(tempDir, 'user-settings.json')
       await writeFile(
         oldPath,
-        JSON.stringify({ homeCountry: 'Australia', timezone: 'Australia/Sydney' })
+        JSON.stringify({
+          homeCountry: 'Australia',
+          timezone: 'Australia/Sydney'
+        })
       )
 
       const result = await migrateFromUserSettings(tempDir, configPath)
@@ -295,7 +298,10 @@ describe('config', () => {
       const oldPath = join(tempDir, 'user-settings.json')
       await writeFile(
         oldPath,
-        JSON.stringify({ homeCountry: 'Old Country', timezone: 'Old/Timezone' })
+        JSON.stringify({
+          homeCountry: 'Old Country',
+          timezone: 'Old/Timezone'
+        })
       )
       await saveConfig({ homeCountry: 'New Country' }, configPath)
 

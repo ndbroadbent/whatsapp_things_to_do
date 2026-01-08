@@ -67,8 +67,8 @@ describe('resolve-links command', () => {
         a.link?.query?.toLowerCase().includes('oppenheimer')
     )
 
-    // If classifier detected it as a movie, it should have a resolved URL
-    if (oppenheimer?.link?.type === 'movie') {
+    // If classifier detected it as a movie/media, it should have a resolved URL
+    if (oppenheimer?.link?.type === 'movie' || oppenheimer?.link?.type === 'media') {
       expect(oppenheimer.resolvedUrl).toBeDefined()
       // Should resolve to IMDb or Wikipedia
       expect(oppenheimer.resolvedUrl).toMatch(/imdb\.com|wikipedia\.org/i)

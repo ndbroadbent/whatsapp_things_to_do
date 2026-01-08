@@ -1,0 +1,163 @@
+{
+	"externalIds": [
+		{
+			"name": "imdb",
+			"wikidataProperty": "P345",
+			"urlTemplate": "https://www.imdb.com/title/{id}/"
+		},
+		{
+			"name": "tmdb_movie",
+			"wikidataProperty": "P4947",
+			"urlTemplate": "https://www.themoviedb.org/movie/{id}"
+		},
+		{
+			"name": "tmdb_tv",
+			"wikidataProperty": "P4983",
+			"urlTemplate": "https://www.themoviedb.org/tv/{id}"
+		},
+		{
+			"name": "letterboxd",
+			"wikidataProperty": "P6127",
+			"urlTemplate": "https://letterboxd.com/film/{id}/"
+		},
+		{ "name": "netflix", "wikidataProperty": "P1874", "urlTemplate": null },
+		{
+			"name": "bgg",
+			"wikidataProperty": "P2339",
+			"urlTemplate": "https://boardgamegeek.com/boardgame/{id}"
+		},
+		{
+			"name": "steam",
+			"wikidataProperty": "P1733",
+			"urlTemplate": "https://store.steampowered.com/app/{id}"
+		},
+		{
+			"name": "igdb",
+			"wikidataProperty": "P5794",
+			"urlTemplate": "https://www.igdb.com/games/{id}"
+		},
+		{
+			"name": "gog",
+			"wikidataProperty": "P2725",
+			"urlTemplate": "https://www.gog.com/game/{id}"
+		},
+		{
+			"name": "musicbrainz_artist",
+			"wikidataProperty": "P434",
+			"urlTemplate": "https://musicbrainz.org/artist/{id}"
+		},
+		{
+			"name": "musicbrainz_release_group",
+			"wikidataProperty": "P436",
+			"urlTemplate": "https://musicbrainz.org/release-group/{id}"
+		},
+		{
+			"name": "musicbrainz_release",
+			"wikidataProperty": "P5813",
+			"urlTemplate": "https://musicbrainz.org/release/{id}"
+		},
+		{
+			"name": "spotify_artist",
+			"wikidataProperty": "P1902",
+			"urlTemplate": "https://open.spotify.com/artist/{id}"
+		},
+		{
+			"name": "spotify_album",
+			"wikidataProperty": "P2205",
+			"urlTemplate": "https://open.spotify.com/album/{id}"
+		},
+		{
+			"name": "spotify_show",
+			"wikidataProperty": "P5916",
+			"urlTemplate": "https://open.spotify.com/show/{id}"
+		},
+		{
+			"name": "discogs_artist",
+			"wikidataProperty": "P2722",
+			"urlTemplate": "https://www.discogs.com/artist/{id}"
+		},
+		{
+			"name": "discogs_release",
+			"wikidataProperty": "P1954",
+			"urlTemplate": "https://www.discogs.com/release/{id}"
+		},
+		{
+			"name": "goodreads",
+			"wikidataProperty": "P2969",
+			"urlTemplate": "https://www.goodreads.com/book/show/{id}"
+		},
+		{
+			"name": "openlibrary",
+			"wikidataProperty": "P648",
+			"urlTemplate": "https://openlibrary.org/works/{id}"
+		},
+		{
+			"name": "google_books",
+			"wikidataProperty": "P675",
+			"urlTemplate": "https://books.google.com/books?id={id}"
+		},
+		{ "name": "isbn13", "wikidataProperty": "P212", "urlTemplate": null },
+		{ "name": "isbn10", "wikidataProperty": "P957", "urlTemplate": null },
+		{
+			"name": "apple_podcasts",
+			"wikidataProperty": "P5842",
+			"urlTemplate": "https://podcasts.apple.com/podcast/id{id}"
+		},
+		{ "name": "nintendo_na", "wikidataProperty": "P8084", "urlTemplate": null },
+		{
+			"name": "nintendo_eu",
+			"wikidataProperty": "P12418",
+			"urlTemplate": null
+		},
+		{
+			"name": "playstation_na",
+			"wikidataProperty": "P5944",
+			"urlTemplate": null
+		},
+		{
+			"name": "playstation_eu",
+			"wikidataProperty": "P5971",
+			"urlTemplate": null
+		},
+		{ "name": "xbox", "wikidataProperty": "P5885", "urlTemplate": null },
+		{
+			"name": "official_website",
+			"wikidataProperty": "P856",
+			"urlTemplate": "{id}"
+		}
+	],
+	"linkPreviewPriority": [
+		"imdb",
+		"steam",
+		"bgg",
+		"spotify_album",
+		"spotify_artist",
+		"spotify_show",
+		"tmdb_movie",
+		"tmdb_tv",
+		"letterboxd",
+		"goodreads",
+		"apple_podcasts",
+		"official_website"
+	],
+	"entityTypeRoots": {
+		"movie": [11424, 506240, 24862, 93204, 202866, 25484440],
+		"tv_show": [5398426, 1259759, 63952888],
+		"media": [
+			11424, 506240, 24862, 93204, 202866, 25484440, 5398426, 1259759, 63952888
+		],
+		"web_series": [526877],
+		"video_game": [7889, 209163, 7058673],
+		"physical_game": [131436, 3244175, 1643932, 142714, 15716674, 734698],
+		"game": [
+			7889, 209163, 7058673, 131436, 3244175, 1643932, 142714, 15716674, 734698
+		],
+		"book": [571, 7725634, 8261, 49084, 277759, 747381],
+		"comic": [1760610, 725377, 14406742, 8274],
+		"theatre": [25379, 2743, 58483083],
+		"album": [482994, 208569, 222910, 209939, 169930],
+		"song": [7366, 105543609, 134556],
+		"podcast": [24634210, 61855877],
+		"artist": [215380]
+	}
+}

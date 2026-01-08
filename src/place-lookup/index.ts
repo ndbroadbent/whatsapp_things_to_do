@@ -79,15 +79,24 @@ function handleApiStatus(
   apiName: string
 ): Result<PlaceLookupResult> | null {
   if (data.status === 'OVER_QUERY_LIMIT') {
-    return { ok: false, error: { type: 'quota', message: `Google ${apiName} API quota exceeded` } }
+    return {
+      ok: false,
+      error: { type: 'quota', message: `Google ${apiName} API quota exceeded` }
+    }
   }
   if (data.status === 'REQUEST_DENIED') {
-    return { ok: false, error: { type: 'auth', message: data.error_message ?? 'Request denied' } }
+    return {
+      ok: false,
+      error: { type: 'auth', message: data.error_message ?? 'Request denied' }
+    }
   }
   if (data.status !== 'OK' || data.results.length === 0) {
     return {
       ok: false,
-      error: { type: 'invalid_response', message: `No results found for: ${query}` }
+      error: {
+        type: 'invalid_response',
+        message: `No results found for: ${query}`
+      }
     }
   }
   return null // Status OK, continue processing
@@ -98,7 +107,10 @@ function handleApiStatus(
  */
 function wrapNetworkError(error: unknown): Result<PlaceLookupResult> {
   const message = error instanceof Error ? error.message : String(error)
-  return { ok: false, error: { type: 'network', message: `Network error: ${message}` } }
+  return {
+    ok: false,
+    error: { type: 'network', message: `Network error: ${message}` }
+  }
 }
 
 /**
@@ -127,7 +139,10 @@ async function fetchGoogleApi(
   if (!response.ok) {
     return {
       ok: false,
-      error: { type: 'network', message: `API error ${response.status}: ${await response.text()}` }
+      error: {
+        type: 'network',
+        message: `API error ${response.status}: ${await response.text()}`
+      }
     }
   }
 

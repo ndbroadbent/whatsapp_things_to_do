@@ -153,7 +153,11 @@ describe('scrapeYouTube', () => {
         keywords: ['pasta', 'cooking', 'easy recipe'],
         thumbnail: {
           thumbnails: [
-            { url: 'https://i.ytimg.com/vi/oQ-Vc_xQrZk/default.jpg', width: 120, height: 90 },
+            {
+              url: 'https://i.ytimg.com/vi/oQ-Vc_xQrZk/default.jpg',
+              width: 120,
+              height: 90
+            },
             {
               url: 'https://i.ytimg.com/vi/oQ-Vc_xQrZk/maxresdefault.jpg',
               width: 1280,
@@ -179,7 +183,9 @@ describe('scrapeYouTube', () => {
 
     it('extracts metadata from mock HTML', async () => {
       const mockFetch = async () =>
-        new Response(mockHtml, { status: 200 }) as unknown as globalThis.Response
+        new Response(mockHtml, {
+          status: 200
+        }) as unknown as globalThis.Response
       const result = await scrapeYouTube('https://youtube.com/watch?v=oQ-Vc_xQrZk', {
         fetch: mockFetch as unknown as typeof fetch
       })
@@ -201,7 +207,9 @@ describe('scrapeYouTube', () => {
 
     it('handles short URLs by extracting video ID', async () => {
       const mockFetch = async () =>
-        new Response(mockHtml, { status: 200 }) as unknown as globalThis.Response
+        new Response(mockHtml, {
+          status: 200
+        }) as unknown as globalThis.Response
       const result = await scrapeYouTube('https://youtu.be/oQ-Vc_xQrZk', {
         fetch: mockFetch as unknown as typeof fetch
       })

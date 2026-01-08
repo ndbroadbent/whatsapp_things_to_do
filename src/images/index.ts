@@ -50,7 +50,13 @@ export {
   type PixabayImageCandidate,
   type PixabayImageMatch
 } from './pixabay-filter'
-export type { ImageFetchConfig, ImageMeta, ImageMetadata, ImageResult, ImageSource } from './types'
+export type {
+  ImageFetchConfig,
+  ImageMeta,
+  ImageMetadata,
+  ImageResult,
+  ImageSource
+} from './types'
 export { fetchWikipediaImage } from './wikipedia'
 export {
   filterWikipediaImages,
@@ -143,7 +149,9 @@ async function matchToImageResult(
   match: MediaLibraryMatch,
   config: ImageFetchConfig
 ): Promise<ImageResult | null> {
-  const imageUrl = buildImageUrl(match, 700, { localPath: config.mediaLibraryPath })
+  const imageUrl = buildImageUrl(match, 700, {
+    localPath: config.mediaLibraryPath
+  })
   const meta = await loadImageMeta(match, config)
 
   if (!meta) {
@@ -333,7 +341,9 @@ async function getMediaIndex(config: ImageFetchConfig): Promise<MediaIndex | nul
   }
 
   // Load and cache
-  cachedMediaIndex = await loadMediaIndex({ localPath: config.mediaLibraryPath })
+  cachedMediaIndex = await loadMediaIndex({
+    localPath: config.mediaLibraryPath
+  })
   mediaIndexPath = currentPath
 
   return cachedMediaIndex

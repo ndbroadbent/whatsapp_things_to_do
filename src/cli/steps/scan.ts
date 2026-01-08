@@ -65,7 +65,10 @@ export function stepScan(ctx: PipelineContext, options?: ScanOptions): ScanResul
   }
 
   // Get messages from parse step (uses cache if available)
-  const parseResult = stepParse(ctx, { maxMessages: options?.maxMessages, quiet: options?.quiet })
+  const parseResult = stepParse(ctx, {
+    maxMessages: options?.maxMessages,
+    quiet: options?.quiet
+  })
 
   // Scan for candidates
   if (!options?.quiet) {

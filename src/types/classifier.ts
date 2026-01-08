@@ -51,8 +51,6 @@ export interface ClassifiedLinkHints {
   readonly type: EntityType
   /** Canonical title/name to search for (e.g., "The Matrix", "Project Hail Mary") */
   readonly query: string
-  /** URL if user provided one directly (rare - usually resolved later) */
-  readonly url: string | null
 }
 
 export interface ClassifiedActivity {

@@ -24,16 +24,25 @@ vi.mock('../../http', () => ({
       }
     }
     if (response.status === 401) {
-      return { ok: false, error: { type: 'auth', message: `Authentication failed: ${errorText}` } }
+      return {
+        ok: false,
+        error: { type: 'auth', message: `Authentication failed: ${errorText}` }
+      }
     }
     return {
       ok: false,
-      error: { type: 'network', message: `API error ${response.status}: ${errorText}` }
+      error: {
+        type: 'network',
+        message: `API error ${response.status}: ${errorText}`
+      }
     }
   },
   handleNetworkError: (error: unknown) => {
     const message = error instanceof Error ? error.message : String(error)
-    return { ok: false, error: { type: 'network', message: `Network error: ${message}` } }
+    return {
+      ok: false,
+      error: { type: 'network', message: `Network error: ${message}` }
+    }
   },
   emptyResponseError: () => ({
     ok: false,
@@ -128,7 +137,10 @@ describe('Embeddings Module', () => {
 
       const messages = [{ id: 1, content: 'Test message' }]
 
-      await messageEmbeddings(messages, { apiKey: 'test-key', model: 'text-embedding-ada-002' })
+      await messageEmbeddings(messages, {
+        apiKey: 'test-key',
+        model: 'text-embedding-ada-002'
+      })
 
       const call = mockFetch.mock.calls[0] as [string, { body: string }]
       const body = JSON.parse(call[1].body) as { model: string }
@@ -203,7 +215,9 @@ describe('Embeddings Module', () => {
         content: `Message ${i + 1}`
       }))
 
-      await messageEmbeddings(messages, { apiKey: 'test-key' }, undefined, { batchSize: 100 })
+      await messageEmbeddings(messages, { apiKey: 'test-key' }, undefined, {
+        batchSize: 100
+      })
 
       // Should make 3 API calls (100 + 100 + 50)
       expect(mockFetch).toHaveBeenCalledTimes(3)
@@ -220,7 +234,9 @@ describe('Embeddings Module', () => {
         content: `Message ${i + 1}`
       }))
 
-      await messageEmbeddings(messages, { apiKey: 'test-key' }, undefined, { batchSize: 5000 })
+      await messageEmbeddings(messages, { apiKey: 'test-key' }, undefined, {
+        batchSize: 5000
+      })
 
       // Should still batch at max 2048
       const call = mockFetch.mock.calls[0] as [string, { body: string }]
@@ -381,7 +397,9 @@ describe('Embeddings Module', () => {
         createParsedMessage(2, 'Random message that is long enough')
       ]
 
-      const result = await extractCandidatesByEmbeddings(messages, { apiKey: 'test-key' })
+      const result = await extractCandidatesByEmbeddings(messages, {
+        apiKey: 'test-key'
+      })
 
       expect(result.ok).toBe(true)
       // Should have called API once for messages (queries use pre-computed embeddings)
@@ -417,7 +435,9 @@ describe('Embeddings Module', () => {
 
       const messages = [createParsedMessage(1, 'Test message content')]
 
-      const result = await extractCandidatesByEmbeddings(messages, { apiKey: 'test-key' })
+      const result = await extractCandidatesByEmbeddings(messages, {
+        apiKey: 'test-key'
+      })
 
       expect(result.ok).toBe(false)
     })

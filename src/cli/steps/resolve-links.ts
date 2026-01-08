@@ -26,6 +26,7 @@ const LINK_TYPE_TO_ENTITY_TYPE: Record<string, EntityType> = {
   movie: 'movie',
   book: 'book',
   board_game: 'physical_game',
+  physical_game: 'physical_game',
   tv_show: 'tv_show',
   video_game: 'video_game',
   album: 'album',
@@ -39,7 +40,6 @@ const LINK_TYPE_TO_ENTITY_TYPE: Record<string, EntityType> = {
 interface ResolveLinkStats {
   readonly activitiesProcessed: number
   readonly withLinkHints: number
-  readonly withDirectUrl: number
   readonly resolved: number
   readonly failed: number
   readonly skipped: number
@@ -112,11 +112,6 @@ async function resolveActivityLink(
     return null
   }
 
-  // If URL is provided directly, skip resolution (will be used as-is)
-  if (link.url) {
-    return null
-  }
-
   // Check if link type is resolvable
   if (!link.type || !isResolvableLinkType(link.type)) {
     return null
@@ -159,7 +154,6 @@ export async function stepResolveLinks(
       stats: stats ?? {
         activitiesProcessed: cached.length,
         withLinkHints: 0,
-        withDirectUrl: 0,
         resolved: 0,
         failed: 0,
         skipped: 0
@@ -173,7 +167,6 @@ export async function stepResolveLinks(
     const stats: ResolveLinkStats = {
       activitiesProcessed: 0,
       withLinkHints: 0,
-      withDirectUrl: 0,
       resolved: 0,
       failed: 0,
       skipped: 0
@@ -181,20 +174,21 @@ export async function stepResolveLinks(
     pipelineCache.setStage('resolve_links_stats', stats)
     pipelineCache.setStage('resolved_links', [])
     pipelineCache.setStage('resolved_entities', [])
-    return { activities: [], fromCache: false, stats, resolvedEntities: new Map() }
+    return {
+      activities: [],
+      fromCache: false,
+      stats,
+      resolvedEntities: new Map()
+    }
   }
 
   // Count activities with link hints
   const withLinkHints = activities.filter((a) => a.link !== null).length
-  const withDirectUrl = activities.filter((a) => a.link?.url).length
   const needsResolution = activities.filter(
-    (a) => a.link && !a.link.url && a.link.type && isResolvableLinkType(a.link.type)
+    (a) => a.link?.type && isResolvableLinkType(a.link.type)
   )
 
   logger.log(`\n🔗 Resolving links for ${needsResolution.length} activities...`)
-  if (withDirectUrl > 0) {
-    logger.log(`   📎 ${withDirectUrl} have direct URLs (will use as-is)`)
-  }
 
   const config = buildResolverConfig(apiCache, options)
 
@@ -218,14 +212,6 @@ export async function stepResolveLinks(
         } as GeocodedActivity
       }
 
-      // If activity has direct URL, use it
-      if (activity.link?.url) {
-        return {
-          ...activity,
-          resolvedUrl: activity.link.url
-        } as GeocodedActivity
-      }
-
       // No resolution needed or possible
       return activity
     },
@@ -245,13 +231,12 @@ export async function stepResolveLinks(
 
   // Calculate stats
   const resolved = resolvedActivities.filter((a) => a.resolvedUrl).length
-  const skipped = withLinkHints - withDirectUrl - needsResolution.length
+  const skipped = withLinkHints - needsResolution.length
   const failed = needsResolution.length - resolvedEntities.size
 
   const stats: ResolveLinkStats = {
     activitiesProcessed: activities.length,
     withLinkHints,
-    withDirectUrl,
     resolved,
     failed,
     skipped
@@ -266,12 +251,14 @@ export async function stepResolveLinks(
   if (resolvedEntities.size > 0) {
     logger.log(`   🌐 ${resolvedEntities.size} resolved via entity search`)
   }
-  if (withDirectUrl > 0) {
-    logger.log(`   📎 ${withDirectUrl} used direct URLs`)
-  }
   if (failed > 0) {
     logger.log(`   ⚠️  ${failed} could not be resolved`)
   }
 
-  return { activities: resolvedActivities, fromCache: false, stats, resolvedEntities }
+  return {
+    activities: resolvedActivities,
+    fromCache: false,
+    stats,
+    resolvedEntities
+  }
 }

@@ -427,7 +427,9 @@ describe('extractActivityLinks', () => {
         ])
       ]
 
-      const result = extractActivityLinks(messages, { includeGenericWebsites: true })
+      const result = extractActivityLinks(messages, {
+        includeGenericWebsites: true
+      })
 
       expect(result.links.length).toBeGreaterThan(0)
     })

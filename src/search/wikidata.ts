@@ -9,7 +9,12 @@ import { generateCacheKey } from '../caching/key'
 import type { ResponseCache } from '../caching/types'
 import { type HttpResponse, httpFetch } from '../http'
 import type { EntityType, WikidataResult } from './types'
-import { DEFAULT_TIMEOUT, DEFAULT_USER_AGENT, WIKIDATA_TYPE_QIDS } from './types'
+import {
+  DEFAULT_TIMEOUT,
+  DEFAULT_USER_AGENT,
+  WIKIDATA_PROPERTY_IDS,
+  WIKIDATA_TYPE_QIDS
+} from './types'
 
 const SPARQL_ENDPOINT = 'https://query.wikidata.org/sparql'
 
@@ -33,10 +38,18 @@ export interface WikidataSearchConfig {
 }
 
 /**
- * Build SPARQL query for entity search.
+ * Shorthand references to Wikidata property IDs for SPARQL query.
+ * Uses WIKIDATA_PROPERTY_IDS as the single source of truth.
+ */
+const P = WIKIDATA_PROPERTY_IDS
+
+/**
+ * Build SPARQL query for entity search using text search.
+ * Uses mwapi:search for fuzzy matching instead of exact rdfs:label match.
+ * Includes external IDs for building canonical URLs to preferred sources.
  */
 function buildSparqlQuery(title: string, category: EntityType): string {
-  // Escape quotes in title
+  // Escape quotes in title for SPARQL string
   const escapedTitle = title.replace(/"/g, '\\"').replace(/'/g, "\\'")
 
   // Build type filter if we have type QIDs for this category
@@ -47,15 +60,32 @@ function buildSparqlQuery(title: string, category: EntityType): string {
     typeClause = `${typeFilter} ?item wdt:P31/wdt:P279* ?type .`
   }
 
+  // Use MediaWiki API search for fuzzy matching (handles variations like "3" vs "III")
+  // Include sitelinks count for ranking (popularity signal)
   return `
-    SELECT ?item ?itemLabel ?itemDescription ?image ?article WHERE {
-      ?item rdfs:label "${escapedTitle}"@en .
+    SELECT ?item ?itemLabel ?itemDescription ?image ?article ?sitelinks
+           ?imdbId ?steamId ?bggId ?spotifyArtistId ?spotifyAlbumId ?musicbrainzRgId
+    WHERE {
+      SERVICE wikibase:mwapi {
+        bd:serviceParam wikibase:endpoint "www.wikidata.org";
+                        wikibase:api "EntitySearch";
+                        mwapi:search "${escapedTitle}";
+                        mwapi:language "en".
+        ?item wikibase:apiOutputItem mwapi:item.
+      }
       ${typeClause}
       OPTIONAL { ?item wdt:P18 ?image . }
       OPTIONAL {
         ?article schema:about ?item ;
                  schema:isPartOf <https://en.wikipedia.org/> .
       }
+      OPTIONAL { ?item wikibase:sitelinks ?sitelinks . }
+      OPTIONAL { ?item wdt:${P.imdb} ?imdbId . }
+      OPTIONAL { ?item wdt:${P.steam} ?steamId . }
+      OPTIONAL { ?item wdt:${P.bgg} ?bggId . }
+      OPTIONAL { ?item wdt:${P.spotify_artist} ?spotifyArtistId . }
+      OPTIONAL { ?item wdt:${P.spotify_album} ?spotifyAlbumId . }
+      OPTIONAL { ?item wdt:${P.musicbrainz_release_group} ?musicbrainzRgId . }
       SERVICE wikibase:label { bd:serviceParam wikibase:language "en" . }
     }
     LIMIT 5
@@ -71,42 +101,149 @@ interface SparqlBinding {
   itemDescription?: { value: string }
   image?: { value: string }
   article?: { value: string }
+  sitelinks?: { value: string }
+  // External IDs
+  imdbId?: { value: string }
+  steamId?: { value: string }
+  bggId?: { value: string }
+  spotifyArtistId?: { value: string }
+  spotifyAlbumId?: { value: string }
+  musicbrainzRgId?: { value: string }
+}
+
+/**
+ * Extract external IDs from a SPARQL binding.
+ */
+function extractExternalIds(binding: SparqlBinding): WikidataResult['externalIds'] {
+  const externalIds: NonNullable<WikidataResult['externalIds']> = {}
+
+  if (binding.imdbId?.value) externalIds.imdbId = binding.imdbId.value
+  if (binding.steamId?.value) externalIds.steamId = binding.steamId.value
+  if (binding.bggId?.value) externalIds.bggId = binding.bggId.value
+  if (binding.spotifyArtistId?.value) externalIds.spotifyArtistId = binding.spotifyArtistId.value
+  if (binding.spotifyAlbumId?.value) externalIds.spotifyAlbumId = binding.spotifyAlbumId.value
+  if (binding.musicbrainzRgId?.value)
+    externalIds.musicbrainzReleaseGroupId = binding.musicbrainzRgId.value
+
+  return Object.keys(externalIds).length > 0 ? externalIds : undefined
+}
+
+/**
+ * Extract label from binding, with fallback to Wikipedia title.
+ * The wikibase:label service sometimes returns QID instead of actual label.
+ */
+function extractLabel(binding: SparqlBinding): string {
+  const rawLabel = binding.itemLabel?.value ?? ''
+
+  // Check if label looks like a QID (e.g., "Q64441774")
+  if (/^Q\d+$/.test(rawLabel)) {
+    // Try to extract label from Wikipedia article URL
+    // e.g., "https://en.wikipedia.org/wiki/Baldur%27s_Gate_3" -> "Baldur's Gate 3"
+    const wikiUrl = binding.article?.value
+    if (wikiUrl) {
+      const match = wikiUrl.match(/\/wiki\/([^/]+)$/)
+      if (match?.[1]) {
+        return decodeURIComponent(match[1]).replace(/_/g, ' ')
+      }
+    }
+    // Return empty string if we can't extract a proper label
+    return ''
+  }
+
+  return rawLabel
+}
+
+/**
+ * Score how well a label matches the search title.
+ * Higher score = better match.
+ */
+function scoreMatch(label: string, searchTitle: string): number {
+  const normalizedLabel = label.toLowerCase().trim()
+  const normalizedSearch = searchTitle.toLowerCase().trim()
+
+  // Exact match (best)
+  if (normalizedLabel === normalizedSearch) return 100
+
+  // Label starts with search (e.g., "Oppenheimer (2023 film)" for "Oppenheimer")
+  if (normalizedLabel.startsWith(normalizedSearch)) return 80
+
+  // Search starts with label (e.g., searching "The Matrix Reloaded" matches "The Matrix")
+  if (normalizedSearch.startsWith(normalizedLabel)) return 60
+
+  // Label contains search
+  if (normalizedLabel.includes(normalizedSearch)) return 40
+
+  // No match
+  return 0
+}
+
+/**
+ * Convert a SPARQL binding to a WikidataResult with sitelinks count.
+ */
+function bindingToResult(
+  binding: SparqlBinding
+): { result: WikidataResult; sitelinks: number } | null {
+  const label = extractLabel(binding)
+  if (!label) return null
+
+  const sitelinks = binding.sitelinks?.value ? parseInt(binding.sitelinks.value, 10) : 0
+
+  return {
+    result: {
+      qid: binding.item.value.split('/').pop() ?? '',
+      label,
+      description: binding.itemDescription?.value,
+      imageUrl: binding.image?.value,
+      wikipediaUrl: binding.article?.value,
+      externalIds: extractExternalIds(binding)
+    },
+    sitelinks
+  }
 }
 
 /**
  * Parse SPARQL query results into WikidataResult.
+ * Ranks by: title match quality (high weight) + sitelinks count (medium weight).
+ * External IDs have NO influence on ranking - they're just a bonus after finding the right entity.
  */
-function parseResults(bindings: SparqlBinding[]): WikidataResult | null {
+function parseResults(bindings: SparqlBinding[], searchTitle: string): WikidataResult | null {
   if (!bindings || bindings.length === 0) {
     return null
   }
 
-  // Prefer results with image or Wikipedia article
+  // Convert all bindings to results with scores
+  const scoredResults: {
+    result: WikidataResult
+    titleScore: number
+    sitelinks: number
+  }[] = []
+
   for (const binding of bindings) {
-    const qid = binding.item.value.split('/').pop() ?? ''
-    const label = binding.itemLabel?.value ?? ''
-    const description = binding.itemDescription?.value
-    const imageUrl = binding.image?.value
-    const wikipediaUrl = binding.article?.value
+    const parsed = bindingToResult(binding)
+    if (!parsed) continue
 
-    if (imageUrl || wikipediaUrl) {
-      return { qid, label, description, imageUrl, wikipediaUrl }
-    }
+    const titleScore = scoreMatch(parsed.result.label, searchTitle)
+    scoredResults.push({
+      result: parsed.result,
+      titleScore,
+      sitelinks: parsed.sitelinks
+    })
   }
 
-  // Return first result even without image/wiki
-  const firstBinding = bindings[0]
-  if (!firstBinding) {
-    return null
-  }
+  if (scoredResults.length === 0) return null
 
-  return {
-    qid: firstBinding.item.value.split('/').pop() ?? '',
-    label: firstBinding.itemLabel?.value ?? '',
-    description: firstBinding.itemDescription?.value,
-    imageUrl: firstBinding.image?.value,
-    wikipediaUrl: firstBinding.article?.value
-  }
+  // Sort by: title match (high weight) + sitelinks (medium weight)
+  // Title match: 0-100, Sitelinks: typically 0-200
+  // Entities with 0 sitelinks get heavy penalty - they're not notable
+  scoredResults.sort((a, b) => {
+    const aSitelinksBonus = a.sitelinks === 0 ? -500 : Math.min(a.sitelinks, 100)
+    const bSitelinksBonus = b.sitelinks === 0 ? -500 : Math.min(b.sitelinks, 100)
+    const aScore = a.titleScore * 10 + aSitelinksBonus
+    const bScore = b.titleScore * 10 + bSitelinksBonus
+    return bScore - aScore
+  })
+
+  return scoredResults[0]?.result ?? null
 }
 
 /**
@@ -114,6 +251,7 @@ function parseResults(bindings: SparqlBinding[]): WikidataResult | null {
  */
 async function executeSparql(
   query: string,
+  searchTitle: string,
   config: WikidataSearchConfig
 ): Promise<WikidataResult | null> {
   const fetchFn: FetchFn = config.customFetch ?? httpFetch
@@ -141,7 +279,7 @@ async function executeSparql(
       }
     }
 
-    return parseResults(data.results?.bindings ?? [])
+    return parseResults(data.results?.bindings ?? [], searchTitle)
   } catch {
     return null
   }
@@ -176,10 +314,10 @@ export async function searchWikidata(
     }
 
     // Execute query and cache result
-    const result = await executeSparql(query, config)
+    const result = await executeSparql(query, title, config)
     await config.cache.set(cacheKey, { data: result, cachedAt: Date.now() })
     return result
   }
 
-  return executeSparql(query, config)
+  return executeSparql(query, title, config)
 }

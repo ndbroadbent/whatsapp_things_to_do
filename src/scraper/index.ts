@@ -14,14 +14,20 @@ import { scrapeAirbnb } from './airbnb'
 import { scrapeEventbrite } from './eventbrite'
 import { scrapeGeneric } from './generic'
 import { scrapeReddit } from './reddit'
+import { scrapeSpotify } from './spotify'
 import { scrapeTikTok } from './tiktok'
 import type { ScrapedMetadata, ScrapeOutcome, ScraperConfig } from './types'
 import { scrapeYouTube } from './youtube'
 
 export { extractRedditPostId, isRedditUrl, scrapeReddit } from './reddit'
+export { parseSpotifyUrl, scrapeSpotify } from './spotify'
 export { extractTikTokVideoId, resolveTikTokUrl, scrapeTikTok } from './tiktok'
 export type { ScrapedMetadata, ScrapeOutcome, ScraperConfig } from './types'
-export { buildYouTubeUrl, extractYouTubeVideoId, scrapeYouTube } from './youtube'
+export {
+  buildYouTubeUrl,
+  extractYouTubeVideoId,
+  scrapeYouTube
+} from './youtube'
 
 /** Domains that block automated requests - don't even try */
 const BLOCKLISTED_DOMAINS = [
@@ -95,6 +101,9 @@ export function detectPlatform(url: string): SocialPlatform {
   if (matchesDomain(lower, 'reddit.com', 'redd.it')) {
     return 'reddit'
   }
+  if (matchesDomain(lower, 'spotify.com', 'open.spotify.com')) {
+    return 'spotify'
+  }
 
   return 'other'
 }
@@ -117,7 +126,11 @@ export async function scrapeUrl(url: string, config: ScraperConfig = {}): Promis
   if (isBlocklisted(url)) {
     return {
       ok: false,
-      error: { type: 'blocked', message: 'Domain blocks automated requests', url }
+      error: {
+        type: 'blocked',
+        message: 'Domain blocks automated requests',
+        url
+      }
     }
   }
 
@@ -139,11 +152,18 @@ export async function scrapeUrl(url: string, config: ScraperConfig = {}): Promis
     case 'reddit':
       return scrapeReddit(url, config)
 
+    case 'spotify':
+      return scrapeSpotify(url, config)
+
     // Google Maps URLs are handled by geocoder, not scraper
     case 'google_maps':
       return {
         ok: false,
-        error: { type: 'unsupported', message: 'Google Maps handled by geocoder', url }
+        error: {
+          type: 'unsupported',
+          message: 'Google Maps handled by geocoder',
+          url
+        }
       }
 
     // All other URLs: use generic scraper (OG tags + JSON-LD)
@@ -182,7 +202,10 @@ export async function scrapeUrls(
 export async function scrapeActivityLinks(
   urls: readonly string[],
   config: ScraperConfig = {}
-): Promise<{ successful: Map<string, ScrapedMetadata>; failed: Map<string, string> }> {
+): Promise<{
+  successful: Map<string, ScrapedMetadata>
+  failed: Map<string, string>
+}> {
   const successful = new Map<string, ScrapedMetadata>()
   const failed = new Map<string, string>()
 

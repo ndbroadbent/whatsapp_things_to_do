@@ -135,7 +135,9 @@ describe('createAIUsageRecords', () => {
   })
 
   it('should include metadata if provided', () => {
-    const records = createAIUsageRecords('gpt-5-mini', 100, 50, { batchId: '123' })
+    const records = createAIUsageRecords('gpt-5-mini', 100, 50, {
+      batchId: '123'
+    })
     expect(records[0]?.metadata).toEqual({ batchId: '123' })
   })
 
@@ -318,7 +320,10 @@ describe('groupByResource', () => {
     const grouped = groupByResource(records)
 
     expect(grouped.ai_input_token).toEqual({ quantity: 1500, costMicros: 150 })
-    expect(grouped.google_places_lookup).toEqual({ quantity: 5, costMicros: 85_000 })
+    expect(grouped.google_places_lookup).toEqual({
+      quantity: 5,
+      costMicros: 85_000
+    })
   })
 })
 

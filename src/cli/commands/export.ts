@@ -105,7 +105,11 @@ export async function cmdExport(args: CLIArgs, logger: Logger): Promise<void> {
     }
 
     case 'json': {
-      const metadata = { inputFile: args.input, messageCount: 0, version: VERSION }
+      const metadata = {
+        inputFile: args.input,
+        messageCount: 0,
+        version: VERSION
+      }
       const json = exportToJSON(filtered, metadata)
       await writeFile(outputPath, json)
       logger.success(`Exported ${filtered.length} activities to ${outputPath}`)

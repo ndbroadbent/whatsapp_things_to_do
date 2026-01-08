@@ -113,7 +113,11 @@ function runHeuristics(
   ctx: PipelineContext,
   messages: readonly ParsedMessage[],
   minConfidence?: number
-): { candidates: readonly CandidateMessage[]; stats: FilterStats; fromCache: boolean } {
+): {
+  candidates: readonly CandidateMessage[]
+  stats: FilterStats
+  fromCache: boolean
+} {
   const { pipelineCache, logger } = ctx
 
   // Check cache
@@ -231,7 +235,10 @@ export async function cmdFilter(args: CLIArgs, logger: Logger): Promise<void> {
     // Both: heuristics + embeddings
     const heuristicsResult = runHeuristics(ctx, parseResult.messages, args.minConfidence)
 
-    let embeddingsResult: { candidates: readonly CandidateMessage[]; fromCache: boolean }
+    let embeddingsResult: {
+      candidates: readonly CandidateMessage[]
+      fromCache: boolean
+    }
     const apiKey = process.env.OPENAI_API_KEY
 
     if (apiKey) {

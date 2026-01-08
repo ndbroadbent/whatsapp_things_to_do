@@ -208,7 +208,10 @@ export class StepRunner {
 
     const { stepResolveLinks } = await import('./resolve-links')
     const result = await stepResolveLinks(this.ctx, activities)
-    return { activities: result.activities, resolvedEntities: result.resolvedEntities }
+    return {
+      activities: result.activities,
+      resolvedEntities: result.resolvedEntities
+    }
   }
 
   private async runScrapePreviews(): Promise<StepOutputs['scrapePreviews']> {

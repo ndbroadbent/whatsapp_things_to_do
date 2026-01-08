@@ -39,7 +39,11 @@ describe('Aggregation Module', () => {
         createActivity({
           id: 1,
           activity: 'Dinner at Italian Place',
-          image: { stock: 'italian dinner rome', mediaKey: 'dinner', preferStock: false },
+          image: {
+            stock: 'italian dinner rome',
+            mediaKey: 'dinner',
+            preferStock: false
+          },
           placeName: 'Trattoria Roma',
           city: 'Rome',
           country: 'Italy'
@@ -60,19 +64,31 @@ describe('Aggregation Module', () => {
         createActivity({
           id: 1,
           activity: 'pottery class',
-          image: { stock: 'pottery class', mediaKey: 'pottery', preferStock: false },
+          image: {
+            stock: 'pottery class',
+            mediaKey: 'pottery',
+            preferStock: false
+          },
           city: 'Auckland'
         }),
         createActivity({
           id: 2,
           activity: 'Pottery Class',
-          image: { stock: 'pottery class', mediaKey: 'pottery', preferStock: false },
+          image: {
+            stock: 'pottery class',
+            mediaKey: 'pottery',
+            preferStock: false
+          },
           city: 'Auckland'
         }),
         createActivity({
           id: 3,
           activity: 'pottery classes',
-          image: { stock: 'pottery class', mediaKey: 'pottery', preferStock: false },
+          image: {
+            stock: 'pottery class',
+            mediaKey: 'pottery',
+            preferStock: false
+          },
           city: 'Auckland'
         })
       ]
@@ -91,7 +107,11 @@ describe('Aggregation Module', () => {
         createActivity({
           id: 1,
           activity: 'Go hiking in NZ',
-          image: { stock: 'hiking trail queenstown', mediaKey: 'hiking', preferStock: true },
+          image: {
+            stock: 'hiking trail queenstown',
+            mediaKey: 'hiking',
+            preferStock: true
+          },
           city: 'Queenstown',
           country: 'New Zealand'
         }),
@@ -116,13 +136,21 @@ describe('Aggregation Module', () => {
         createActivity({
           id: 1,
           activity: 'pottery class',
-          image: { stock: 'pottery class', mediaKey: 'pottery', preferStock: false },
+          image: {
+            stock: 'pottery class',
+            mediaKey: 'pottery',
+            preferStock: false
+          },
           city: 'Auckland'
         }),
         createActivity({
           id: 2,
           activity: 'cooking class',
-          image: { stock: 'cooking class', mediaKey: 'cooking', preferStock: false },
+          image: {
+            stock: 'cooking class',
+            mediaKey: 'cooking',
+            preferStock: false
+          },
           city: 'Auckland'
         }),
         createActivity({
@@ -144,14 +172,22 @@ describe('Aggregation Module', () => {
         createActivity({
           id: 1,
           activity: 'Dinner at Kazuya',
-          image: { stock: 'dinner kazuya auckland', mediaKey: 'restaurant', preferStock: true },
+          image: {
+            stock: 'dinner kazuya auckland',
+            mediaKey: 'restaurant',
+            preferStock: true
+          },
           placeName: 'Kazuya Restaurant',
           city: 'Auckland'
         }),
         createActivity({
           id: 2,
           activity: 'Try Kazuya',
-          image: { stock: 'kazuya restaurant', mediaKey: 'restaurant', preferStock: true },
+          image: {
+            stock: 'kazuya restaurant',
+            mediaKey: 'restaurant',
+            preferStock: true
+          },
           placeName: 'Kazuya',
           city: 'Auckland'
         })
@@ -168,25 +204,52 @@ describe('Aggregation Module', () => {
         createActivity({
           id: 1,
           activity: 'pottery class',
-          image: { stock: 'pottery class', mediaKey: 'pottery', preferStock: false },
+          image: {
+            stock: 'pottery class',
+            mediaKey: 'pottery',
+            preferStock: false
+          },
           messages: [
-            { id: 1, sender: 'Alice', timestamp: new Date('2022-01-15'), message: 'pottery' }
+            {
+              id: 1,
+              sender: 'Alice',
+              timestamp: new Date('2022-01-15'),
+              message: 'pottery'
+            }
           ]
         }),
         createActivity({
           id: 2,
           activity: 'Pottery Class',
-          image: { stock: 'pottery class', mediaKey: 'pottery', preferStock: false },
+          image: {
+            stock: 'pottery class',
+            mediaKey: 'pottery',
+            preferStock: false
+          },
           messages: [
-            { id: 2, sender: 'Bob', timestamp: new Date('2023-06-20'), message: 'pottery' }
+            {
+              id: 2,
+              sender: 'Bob',
+              timestamp: new Date('2023-06-20'),
+              message: 'pottery'
+            }
           ]
         }),
         createActivity({
           id: 3,
           activity: 'pottery classes',
-          image: { stock: 'pottery class', mediaKey: 'pottery', preferStock: false },
+          image: {
+            stock: 'pottery class',
+            mediaKey: 'pottery',
+            preferStock: false
+          },
           messages: [
-            { id: 3, sender: 'Charlie', timestamp: new Date('2024-12-01'), message: 'pottery' }
+            {
+              id: 3,
+              sender: 'Charlie',
+              timestamp: new Date('2024-12-01'),
+              message: 'pottery'
+            }
           ]
         })
       ]
@@ -205,27 +268,49 @@ describe('Aggregation Module', () => {
         createActivity({
           id: 1,
           activity: 'Dinner at Sidart',
-          image: { stock: 'sidart restaurant auckland', mediaKey: 'restaurant', preferStock: true },
+          image: {
+            stock: 'sidart restaurant auckland',
+            mediaKey: 'restaurant',
+            preferStock: true
+          },
           placeName: 'Sidart',
           city: 'Auckland',
           messages: [
-            { id: 1, sender: 'Alice', timestamp: new Date('2022-01-01'), message: 'Try Sidart' }
+            {
+              id: 1,
+              sender: 'Alice',
+              timestamp: new Date('2022-01-01'),
+              message: 'Try Sidart'
+            }
           ]
         }),
         createActivity({
           id: 2,
           activity: 'dinner at Sidart',
-          image: { stock: 'sidart restaurant auckland', mediaKey: 'restaurant', preferStock: true },
+          image: {
+            stock: 'sidart restaurant auckland',
+            mediaKey: 'restaurant',
+            preferStock: true
+          },
           placeName: 'Sidart',
           city: 'Auckland',
           messages: [
-            { id: 2, sender: 'Bob', timestamp: new Date('2023-01-01'), message: 'Sidart is great' }
+            {
+              id: 2,
+              sender: 'Bob',
+              timestamp: new Date('2023-01-01'),
+              message: 'Sidart is great'
+            }
           ]
         }),
         createActivity({
           id: 3,
           activity: 'Dinner at sidart',
-          image: { stock: 'sidart restaurant auckland', mediaKey: 'restaurant', preferStock: true },
+          image: {
+            stock: 'sidart restaurant auckland',
+            mediaKey: 'restaurant',
+            preferStock: true
+          },
           placeName: 'Sidart',
           city: 'Auckland',
           messages: [
@@ -255,21 +340,33 @@ describe('Aggregation Module', () => {
       const act1 = createActivity({
         id: 1,
         activity: 'pottery class',
-        image: { stock: 'pottery class', mediaKey: 'pottery', preferStock: false },
+        image: {
+          stock: 'pottery class',
+          mediaKey: 'pottery',
+          preferStock: false
+        },
         funScore: 4.0,
         interestingScore: 3.0
       })
       const act2 = createActivity({
         id: 2,
         activity: 'Pottery Class',
-        image: { stock: 'pottery class', mediaKey: 'pottery', preferStock: false },
+        image: {
+          stock: 'pottery class',
+          mediaKey: 'pottery',
+          preferStock: false
+        },
         funScore: 3.0,
         interestingScore: 2.0
       })
       const act3 = createActivity({
         id: 3,
         activity: 'pottery classes',
-        image: { stock: 'pottery class', mediaKey: 'pottery', preferStock: false },
+        image: {
+          stock: 'pottery class',
+          mediaKey: 'pottery',
+          preferStock: false
+        },
         funScore: 3.5,
         interestingScore: 2.5
       })
@@ -288,21 +385,39 @@ describe('Aggregation Module', () => {
         createActivity({
           id: 1,
           activity: 'pottery class',
-          image: { stock: 'pottery class auckland', mediaKey: 'pottery', preferStock: false },
+          image: {
+            stock: 'pottery class auckland',
+            mediaKey: 'pottery',
+            preferStock: false
+          },
           city: 'Auckland',
           country: 'New Zealand',
           messages: [
-            { id: 1, sender: 'Alice', timestamp: new Date('2022-01-01'), message: 'pottery class' }
+            {
+              id: 1,
+              sender: 'Alice',
+              timestamp: new Date('2022-01-01'),
+              message: 'pottery class'
+            }
           ]
         }),
         createActivity({
           id: 2,
           activity: 'Pottery Class',
-          image: { stock: 'pottery class wellington', mediaKey: 'pottery', preferStock: false },
+          image: {
+            stock: 'pottery class wellington',
+            mediaKey: 'pottery',
+            preferStock: false
+          },
           city: 'Wellington',
           country: 'New Zealand',
           messages: [
-            { id: 2, sender: 'Bob', timestamp: new Date('2024-01-01'), message: 'Pottery Class' }
+            {
+              id: 2,
+              sender: 'Bob',
+              timestamp: new Date('2024-01-01'),
+              message: 'Pottery Class'
+            }
           ]
         })
       ]
@@ -313,6 +428,104 @@ describe('Aggregation Module', () => {
       // First occurrence is the primary
       expect(result[0]?.activity).toBe('pottery class')
       expect(result[0]?.city).toBe('Auckland')
+    })
+
+    it('does not group activities with different link hints', () => {
+      // "Go to the cinema" (generic, no link) vs "Watch Oppenheimer" (specific movie)
+      // Both have same mediaKey "movie night" but different links - should NOT merge
+      const activities = [
+        createActivity({
+          id: 201,
+          activity: 'Go to the cinema',
+          image: {
+            stock: 'movie theatre cinema',
+            mediaKey: 'movie night',
+            preferStock: false
+          },
+          link: null
+        }),
+        createActivity({
+          id: 204,
+          activity: 'Watch Oppenheimer',
+          image: {
+            stock: 'cinema movie projector',
+            mediaKey: 'movie night',
+            preferStock: false
+          },
+          link: { type: 'movie', query: 'Oppenheimer' }
+        })
+      ]
+
+      const result = aggregateActivities(activities)
+
+      expect(result).toHaveLength(2)
+      expect(result.find((r) => r.activity === 'Go to the cinema')).toBeDefined()
+      expect(result.find((r) => r.activity === 'Watch Oppenheimer')).toBeDefined()
+    })
+
+    it('does not group activities with different link queries', () => {
+      // "Watch Oppenheimer" vs "Watch The Bear" - different movies, should NOT merge
+      const activities = [
+        createActivity({
+          id: 204,
+          activity: 'Watch Oppenheimer',
+          image: {
+            stock: 'cinema movie',
+            mediaKey: 'movie night',
+            preferStock: false
+          },
+          link: { type: 'movie', query: 'Oppenheimer' }
+        }),
+        createActivity({
+          id: 286,
+          activity: 'Watch The Bear',
+          image: {
+            stock: 'chef kitchen drama',
+            mediaKey: 'movie night',
+            preferStock: false
+          },
+          link: { type: 'tv_show', query: 'The Bear' }
+        })
+      ]
+
+      const result = aggregateActivities(activities)
+
+      expect(result).toHaveLength(2)
+    })
+
+    it('groups activities with identical link hints', () => {
+      // Two mentions of watching Oppenheimer - should merge
+      const activities = [
+        createActivity({
+          id: 204,
+          activity: 'Watch Oppenheimer',
+          image: {
+            stock: 'cinema movie',
+            mediaKey: 'movie night',
+            preferStock: false
+          },
+          link: { type: 'movie', query: 'Oppenheimer' }
+        }),
+        createActivity({
+          id: 250,
+          activity: 'watch oppenheimer',
+          image: {
+            stock: 'movie theater',
+            mediaKey: 'movie night',
+            preferStock: false
+          },
+          link: { type: 'movie', query: 'Oppenheimer' }
+        })
+      ]
+
+      const result = aggregateActivities(activities)
+
+      expect(result).toHaveLength(1)
+      expect(result[0]).toBeDefined()
+      // TypeScript knows result[0] exists after toHaveLength(1) check
+      if (result[0]) {
+        expect(getMentionCount(result[0])).toBe(2)
+      }
     })
   })
 
@@ -394,32 +607,56 @@ describe('Aggregation Module', () => {
         createActivity({
           id: 1,
           activity: 'Activity A',
-          image: { stock: 'activity a', mediaKey: 'thing-a', preferStock: false }
+          image: {
+            stock: 'activity a',
+            mediaKey: 'thing-a',
+            preferStock: false
+          }
         }),
         createActivity({
           id: 2,
           activity: 'activity a',
-          image: { stock: 'activity a', mediaKey: 'thing-a', preferStock: false }
+          image: {
+            stock: 'activity a',
+            mediaKey: 'thing-a',
+            preferStock: false
+          }
         }),
         createActivity({
           id: 3,
           activity: 'Activity B',
-          image: { stock: 'activity b', mediaKey: 'thing-b', preferStock: false }
+          image: {
+            stock: 'activity b',
+            mediaKey: 'thing-b',
+            preferStock: false
+          }
         }),
         createActivity({
           id: 4,
           activity: 'activity b',
-          image: { stock: 'activity b', mediaKey: 'thing-b', preferStock: false }
+          image: {
+            stock: 'activity b',
+            mediaKey: 'thing-b',
+            preferStock: false
+          }
         }),
         createActivity({
           id: 5,
           activity: 'Activity C',
-          image: { stock: 'activity c', mediaKey: 'thing-c', preferStock: false }
+          image: {
+            stock: 'activity c',
+            mediaKey: 'thing-c',
+            preferStock: false
+          }
         }),
         createActivity({
           id: 6,
           activity: 'activity c',
-          image: { stock: 'activity c', mediaKey: 'thing-c', preferStock: false }
+          image: {
+            stock: 'activity c',
+            mediaKey: 'thing-c',
+            preferStock: false
+          }
         })
       ]
 

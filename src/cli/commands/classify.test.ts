@@ -34,7 +34,11 @@ describe('toOutputActivity', () => {
       city: null,
       region: null,
       country: 'New Zealand',
-      image: { stock: 'hiking gorge trail New Zealand', mediaKey: 'hiking', preferStock: true }
+      image: {
+        stock: 'hiking gorge trail New Zealand',
+        mediaKey: 'hiking',
+        preferStock: true
+      }
     })
 
     const output: ClassifyOutputActivity = toOutputActivity(activity)
@@ -87,7 +91,11 @@ describe('toOutputActivity', () => {
           message: "Let's watch a movie"
         }
       ],
-      image: { stock: 'movie cinema entertainment', mediaKey: 'cinema', preferStock: false }
+      image: {
+        stock: 'movie cinema entertainment',
+        mediaKey: 'cinema',
+        preferStock: false
+      }
     })
 
     const output = toOutputActivity(activity)
@@ -101,9 +109,24 @@ describe('toOutputActivity', () => {
     const activity: ClassifiedActivity = createActivity({
       activity: 'go hiking',
       messages: [
-        { id: 1, sender: 'Alice', timestamp: new Date('2024-01-01'), message: 'lets hike' },
-        { id: 2, sender: 'Bob', timestamp: new Date('2024-06-01'), message: 'hiking?' },
-        { id: 3, sender: 'Charlie', timestamp: new Date('2024-12-01'), message: 'hike time' }
+        {
+          id: 1,
+          sender: 'Alice',
+          timestamp: new Date('2024-01-01'),
+          message: 'lets hike'
+        },
+        {
+          id: 2,
+          sender: 'Bob',
+          timestamp: new Date('2024-06-01'),
+          message: 'hiking?'
+        },
+        {
+          id: 3,
+          sender: 'Charlie',
+          timestamp: new Date('2024-12-01'),
+          message: 'hike time'
+        }
       ]
     })
 
@@ -143,7 +166,11 @@ describe('buildClassifyOutput', () => {
         placeName: 'Alps',
         region: 'Alps',
         country: 'Switzerland',
-        image: { stock: 'mountain hiking alps switzerland', mediaKey: 'hiking', preferStock: true }
+        image: {
+          stock: 'mountain hiking alps switzerland',
+          mediaKey: 'hiking',
+          preferStock: true
+        }
       })
     ]
 
@@ -178,7 +205,11 @@ describe('buildClassifyOutput', () => {
         placeName: 'Some Restaurant',
         city: 'Auckland',
         country: 'New Zealand',
-        image: { stock: 'restaurant dining food', mediaKey: 'restaurant', preferStock: false }
+        image: {
+          stock: 'restaurant dining food',
+          mediaKey: 'restaurant',
+          preferStock: false
+        }
       })
     ]
 

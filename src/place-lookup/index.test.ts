@@ -146,7 +146,10 @@ describe('Geocoder Module', () => {
         json: async () => createPlacesResponse(41.9, 12.5, 'Rome, Italy', 'Rome')
       })
 
-      await lookupPlace('Rome', { apiKey: 'test-key', defaultCountry: 'Italy' })
+      await lookupPlace('Rome', {
+        apiKey: 'test-key',
+        defaultCountry: 'Italy'
+      })
 
       expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('region=it'))
     })
@@ -168,7 +171,9 @@ describe('Geocoder Module', () => {
         json: async () => createPlacesResponse(0, 0, '', '', 'ZERO_RESULTS')
       })
 
-      const result = await lookupPlace('NonexistentPlace12345', { apiKey: 'test-key' })
+      const result = await lookupPlace('NonexistentPlace12345', {
+        apiKey: 'test-key'
+      })
 
       expect(result.ok).toBe(false)
       if (!result.ok) {
@@ -250,7 +255,9 @@ describe('Geocoder Module', () => {
 
       const activities = [createActivity(1, 'Italian Restaurant', 'Rome')]
 
-      const results = await lookupActivityPlaces(activities, { apiKey: 'test-key' })
+      const results = await lookupActivityPlaces(activities, {
+        apiKey: 'test-key'
+      })
 
       expect(results).toHaveLength(1)
       expect(results[0]?.latitude).toBeCloseTo(41.9, 2)
@@ -266,7 +273,9 @@ describe('Geocoder Module', () => {
         'Check this out! https://maps.google.com/maps?q=41.9028,12.4964'
       )
 
-      const results = await lookupActivityPlaces([activity], { apiKey: 'test-key' })
+      const results = await lookupActivityPlaces([activity], {
+        apiKey: 'test-key'
+      })
 
       expect(results[0]?.latitude).toBeCloseTo(41.9028, 2)
       expect(results[0]?.longitude).toBeCloseTo(12.4964, 2)
@@ -278,7 +287,9 @@ describe('Geocoder Module', () => {
     it('handles goo.gl/maps URLs', async () => {
       const activity = createActivity(1, 'Place', undefined, 'https://goo.gl/maps/xyz?q=40.7,-74.0')
 
-      const results = await lookupActivityPlaces([activity], { apiKey: 'test-key' })
+      const results = await lookupActivityPlaces([activity], {
+        apiKey: 'test-key'
+      })
 
       // Should attempt to extract from URL pattern
       expect(results).toHaveLength(1)
@@ -300,7 +311,9 @@ describe('Geocoder Module', () => {
 
       const activity = createActivity(1, 'Eiffel Tower Paris', 'Some Unknown Place')
 
-      const results = await lookupActivityPlaces([activity], { apiKey: 'test-key' })
+      const results = await lookupActivityPlaces([activity], {
+        apiKey: 'test-key'
+      })
 
       expect(results[0]?.latitude).toBeCloseTo(48.8, 1)
       expect(results[0]?.placeLookupSource).toBe('places_api')
@@ -315,7 +328,9 @@ describe('Geocoder Module', () => {
 
       const activity = createActivity(1, 'Unknown', 'Unknown Location')
 
-      const results = await lookupActivityPlaces([activity], { apiKey: 'test-key' })
+      const results = await lookupActivityPlaces([activity], {
+        apiKey: 'test-key'
+      })
 
       expect(results).toHaveLength(1)
       expect(results[0]?.latitude).toBeUndefined()
@@ -325,7 +340,9 @@ describe('Geocoder Module', () => {
     it('handles activities without location', async () => {
       const activity = createActivity(1, 'Some activity')
 
-      const results = await lookupActivityPlaces([activity], { apiKey: 'test-key' })
+      const results = await lookupActivityPlaces([activity], {
+        apiKey: 'test-key'
+      })
 
       expect(results).toHaveLength(1)
       expect(results[0]?.latitude).toBeUndefined()
@@ -345,7 +362,9 @@ describe('Geocoder Module', () => {
         createActivity(3, 'Place Three', 'London')
       ]
 
-      const results = await lookupActivityPlaces(activities, { apiKey: 'test-key' })
+      const results = await lookupActivityPlaces(activities, {
+        apiKey: 'test-key'
+      })
 
       expect(results).toHaveLength(3)
       expect(mockFetch).toHaveBeenCalledTimes(3)
@@ -358,7 +377,11 @@ describe('Geocoder Module', () => {
     it('counts activities with coordinates', () => {
       const activities: GeocodedActivity[] = [
         createTestGeo({ activity: 'Place 1', latitude: 41.9, longitude: 12.5 }),
-        createTestGeo({ activity: 'Place 2', latitude: 40.7, longitude: -74.0 }),
+        createTestGeo({
+          activity: 'Place 2',
+          latitude: 40.7,
+          longitude: -74.0
+        }),
         createTestGeo({ activity: 'No coords' })
       ]
 
@@ -378,7 +401,11 @@ describe('Geocoder Module', () => {
     it('filters to only geocoded activities', () => {
       const activities: GeocodedActivity[] = [
         createTestGeo({ activity: 'Place 1', latitude: 41.9, longitude: 12.5 }),
-        createTestGeo({ activity: 'Place 2', latitude: 40.7, longitude: -74.0 }),
+        createTestGeo({
+          activity: 'Place 2',
+          latitude: 40.7,
+          longitude: -74.0
+        }),
         createTestGeo({ activity: 'No coords' })
       ]
 
@@ -422,7 +449,11 @@ describe('Geocoder Module', () => {
 
     it('handles single geocoded activity', () => {
       const activities: GeocodedActivity[] = [
-        createTestGeo({ activity: 'Single place', latitude: 41.9, longitude: 12.5 })
+        createTestGeo({
+          activity: 'Single place',
+          latitude: 41.9,
+          longitude: 12.5
+        })
       ]
 
       const center = calculateCenter(activities)

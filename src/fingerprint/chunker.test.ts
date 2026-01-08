@@ -215,8 +215,12 @@ describe('generateChunkFingerprint', () => {
     const messagesModified = [...messages]
     messagesModified[2] = createMessage(3, new Date('2024-01-03T10:00:00Z'), 'User', 'DIFFERENT')
 
-    const fp1 = generateChunkFingerprint(messages, monthStart, { sampleSize: 2 })
-    const fp2 = generateChunkFingerprint(messagesModified, monthStart, { sampleSize: 2 })
+    const fp1 = generateChunkFingerprint(messages, monthStart, {
+      sampleSize: 2
+    })
+    const fp2 = generateChunkFingerprint(messagesModified, monthStart, {
+      sampleSize: 2
+    })
 
     // With sample size 2, only first 2 messages matter, so fingerprints should match
     // BUT count is included and both have 5 messages
@@ -233,8 +237,12 @@ describe('generateChunkFingerprint', () => {
       createMessage(2, new Date('2024-01-20T10:00:00Z'), 'Bob', 'Extra')
     ]
 
-    const fp1 = generateChunkFingerprint(messages1, monthStart, { includeCount: false })
-    const fp2 = generateChunkFingerprint(messages2, monthStart, { includeCount: false })
+    const fp1 = generateChunkFingerprint(messages1, monthStart, {
+      includeCount: false
+    })
+    const fp2 = generateChunkFingerprint(messages2, monthStart, {
+      includeCount: false
+    })
 
     // First message is same, sample size includes only 1 message
     // Without count, they should be same

@@ -331,7 +331,11 @@ async function exportFormat(
     }
 
     case 'json': {
-      const metadata = { inputFile: basename(inputFile), messageCount: 0, version: VERSION }
+      const metadata = {
+        inputFile: basename(inputFile),
+        messageCount: 0,
+        version: VERSION
+      }
       const json = exportToJSON(activities, metadata)
       const jsonPath = join(outputDir, 'activities.json')
       await writeFile(jsonPath, json)

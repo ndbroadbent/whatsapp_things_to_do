@@ -84,7 +84,9 @@ describe('scrapeEventbrite', () => {
   describe('successful scraping', () => {
     it('extracts metadata from event page', async () => {
       const mockFetch = async () =>
-        new Response(MOCK_HTML, { status: 200 }) as unknown as globalThis.Response
+        new Response(MOCK_HTML, {
+          status: 200
+        }) as unknown as globalThis.Response
       const result = await scrapeEventbrite(
         'https://www.eventbrite.com/e/auckland-food-festival-tickets-123456789012',
         { fetch: mockFetch as unknown as typeof fetch }
@@ -121,7 +123,9 @@ describe('scrapeEventbrite', () => {
         </html>
       `
       const mockFetch = async () =>
-        new Response(noOrgHtml, { status: 200 }) as unknown as globalThis.Response
+        new Response(noOrgHtml, {
+          status: 200
+        }) as unknown as globalThis.Response
       const result = await scrapeEventbrite(
         'https://www.eventbrite.com/e/meetup-tickets-111222333444',
         { fetch: mockFetch as unknown as typeof fetch }
@@ -149,7 +153,9 @@ describe('scrapeEventbrite', () => {
         </html>
       `
       const mockFetch = async () =>
-        new Response(arrayImageHtml, { status: 200 }) as unknown as globalThis.Response
+        new Response(arrayImageHtml, {
+          status: 200
+        }) as unknown as globalThis.Response
       const result = await scrapeEventbrite(
         'https://www.eventbrite.com/e/concert-tickets-555666777888',
         { fetch: mockFetch as unknown as typeof fetch }
@@ -172,7 +178,9 @@ describe('scrapeEventbrite', () => {
         </html>
       `
       const mockFetch = async () =>
-        new Response(ogOnlyHtml, { status: 200 }) as unknown as globalThis.Response
+        new Response(ogOnlyHtml, {
+          status: 200
+        }) as unknown as globalThis.Response
       const result = await scrapeEventbrite(
         'https://www.eventbrite.com/e/yoga-tickets-999888777666',
         { fetch: mockFetch as unknown as typeof fetch }

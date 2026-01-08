@@ -88,7 +88,11 @@ export async function scrapeAirbnb(
     if (!listingId) {
       return {
         ok: false,
-        error: { type: 'parse', message: 'Could not extract listing ID from URL', url }
+        error: {
+          type: 'parse',
+          message: 'Could not extract listing ID from URL',
+          url
+        }
       }
     }
 

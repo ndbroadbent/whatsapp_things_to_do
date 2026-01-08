@@ -26,7 +26,9 @@ describe('TikTok Scraper Integration', () => {
   describe('resolveTikTokUrl', () => {
     it('resolves short URL to canonical URL with video ID', async () => {
       const shortUrl = 'https://vt.tiktok.com/ZS6myoDYu/'
-      const result = await resolveTikTokUrl(shortUrl, { fetch: recorder.fetch })
+      const result = await resolveTikTokUrl(shortUrl, {
+        fetch: recorder.fetch
+      })
 
       expect(result.canonicalUrl).toContain('tiktok.com')
       expect(result.canonicalUrl).toContain('/video/')
@@ -58,10 +60,11 @@ describe('TikTok Scraper Integration', () => {
         expect(result.metadata.categories).toContain('Singing & Instruments')
         expect(result.metadata.categories).toContain('Talents')
 
-        // Suggested keywords (case-insensitive check)
+        // Suggested keywords from videoSuggestWordsList (case-insensitive check)
         const keywordsLower = result.metadata.suggestedKeywords.map((k) => k.toLowerCase())
-        expect(keywordsLower).toContain('classical music')
-        expect(keywordsLower).toContain('accordion')
+        // Keywords are compound phrases like "shostakovich waltz 2 accordion"
+        expect(keywordsLower.some((k) => k.includes('shostakovich'))).toBe(true)
+        expect(keywordsLower.some((k) => k.includes('waltz'))).toBe(true)
 
         // Thumbnail URL
         expect(result.metadata.imageUrl).toContain('tiktokcdn')
