@@ -36,7 +36,8 @@ jobs:
       # biome.json has "root": false to inherit from parent in worktree
       # In CI there's no parent, so we set it to true
       - name: Fix biome.json for standalone CI
-        run: sed -i 's/"root": false/"root": true/' biome.json
+        run: |
+          sed -i 's/"root": false/"root": true/' biome.json
 
       - name: Lint (Biome)
         run: bun run lint
