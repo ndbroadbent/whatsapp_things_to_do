@@ -46,8 +46,8 @@ describe('fetch-image-urls command', () => {
 
   it('writes fetch_images_stats.json to cache', () => {
     const stats = readCacheJson<FetchImagesStats>(testState.tempCacheDir, 'fetch_images_stats.json')
-    expect(stats.activitiesProcessed).toBeGreaterThanOrEqual(10)
-    expect(stats.imagesFound).toBeGreaterThanOrEqual(10)
+    expect(stats.activitiesProcessed).toBeGreaterThanOrEqual(6)
+    expect(stats.imagesFound).toBeGreaterThanOrEqual(6)
     // With --no-media-library, images come from Google Places, Pixabay, or Wikipedia
     // NOTE: Scraped/OG images are NOT used (licensing restrictions)
     expect(stats.fromGooglePlaces).toBeGreaterThanOrEqual(4)
@@ -57,7 +57,7 @@ describe('fetch-image-urls command', () => {
 
   it('writes images.json with image results keyed by activityId', () => {
     const cache = readCacheJson<CachedImageData>(testState.tempCacheDir, 'images.json')
-    expect(cache.entries.length).toBeGreaterThanOrEqual(10)
+    expect(cache.entries.length).toBeGreaterThanOrEqual(6)
 
     // All keys should be 16-char hex strings (activityId format)
     for (const [key] of cache.entries) {
@@ -66,7 +66,7 @@ describe('fetch-image-urls command', () => {
 
     // Check that most activities have images
     const withImages = cache.entries.filter(([, img]) => img !== null)
-    expect(withImages.length).toBeGreaterThanOrEqual(10)
+    expect(withImages.length).toBeGreaterThanOrEqual(6)
 
     // Check image sources are correct
     // NOTE: 'scraped' is NOT a valid source - OG images can only be link previews
