@@ -14,9 +14,9 @@ import { DEFAULT_TIMEOUT, DEFAULT_USER_AGENT } from './types'
 const SEARCH_API = 'https://openlibrary.org/search.json'
 
 /**
- * Fetch function type - compatible with both HttpResponse and standard Response.
+ * Fetch function type - returns HttpResponse which standard Response satisfies.
  */
-type FetchFn = (url: string, init?: RequestInit) => Promise<HttpResponse | Response>
+type FetchFn = (url: string, init?: RequestInit) => Promise<HttpResponse>
 
 /**
  * Configuration for Open Library search.

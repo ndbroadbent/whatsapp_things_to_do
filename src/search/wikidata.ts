@@ -20,9 +20,9 @@ import {
 const SPARQL_ENDPOINT = 'https://query.wikidata.org/sparql'
 
 /**
- * Fetch function type - compatible with both HttpResponse and standard Response.
+ * Fetch function type - returns HttpResponse which standard Response satisfies.
  */
-type FetchFn = (url: string, init?: RequestInit) => Promise<HttpResponse | Response>
+type FetchFn = (url: string, init?: RequestInit) => Promise<HttpResponse>
 
 /**
  * Configuration for Wikidata search.
