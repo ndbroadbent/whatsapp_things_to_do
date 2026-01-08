@@ -82,6 +82,7 @@
     "knip": "https://pkg.pr.new/knip@991",
     "lefthook": "^1.11.0",
     "typescript": "^5.9.3",
+    "undici-types": "^7.18.2",
     "vite": "^6.0.0",
     "vitest": "^3.0.0"
   },
