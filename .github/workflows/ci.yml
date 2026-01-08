@@ -61,11 +61,13 @@ jobs:
         run: bun run test
         env:
           CI: true
+          TZ: UTC
 
       - name: Run E2E tests
         run: bun run vitest run --config src/cli/e2e/vitest.config.ts src/cli/e2e/
         env:
           CI: true
+          TZ: UTC
 
       - name: Build
         run: bun run build
