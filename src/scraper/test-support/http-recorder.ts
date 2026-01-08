@@ -35,6 +35,16 @@ interface RecordedFixture {
  */
 type FetchInput = string | URL | { url: string }
 
+/**
+ * Options for HttpRecorder.fetchWithName.
+ */
+interface FetchWithNameOptions {
+  /** Readable fixture name (e.g., "wikidata-blood-clocktower") */
+  fixtureName: string
+  /** Request init options */
+  init?: RequestInit | undefined
+}
+
 export class HttpRecorder {
   private fixturesDir: string
 
@@ -47,9 +57,45 @@ export class HttpRecorder {
 
   /**
    * Get a fetch function that records/replays HTTP requests.
+   * Uses URL-based fixture naming (can be ugly for long URLs).
    */
   get fetch(): FetchFn {
     return this.handleRequest.bind(this) as FetchFn
+  }
+
+  /**
+   * Create a fetch function with a custom fixture name.
+   * Use this for requests with long URLs (e.g., SPARQL queries).
+   *
+   * @example
+   * const result = await resolveEntity('Blood on the Clocktower', 'physical_game', {
+   *   customFetch: recorder.createNamedFetch('wikidata-blood-clocktower')
+   * })
+   */
+  createNamedFetch(fixtureName: string): FetchFn {
+    return ((input: FetchInput, init?: RequestInit) =>
+      this.fetchWithName(input, { fixtureName, init })) as FetchFn
+  }
+
+  /**
+   * Fetch with a custom fixture name for readable filenames.
+   * Use this for requests with long URLs (e.g., SPARQL queries).
+   */
+  async fetchWithName(input: FetchInput, options: FetchWithNameOptions): Promise<Response> {
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+    const method = options.init?.method ?? 'GET'
+    const hash = this.hashString(url).slice(0, 8)
+    const fixturePath = join(
+      this.fixturesDir,
+      `${method.toLowerCase()}_${options.fixtureName}_${hash}.json.gz`
+    )
+
+    // Check for fixture
+    if (existsSync(fixturePath)) {
+      return this.replay(fixturePath, true)
+    }
+
+    return this.record(url, method, input, options.init, fixturePath)
   }
 
   private async handleRequest(input: FetchInput, init?: RequestInit): Promise<Response> {

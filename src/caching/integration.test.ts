@@ -339,7 +339,7 @@ describe('Cache Integration', () => {
 
       const result = await lookupActivityPlaces(suggestions, config, cache)
 
-      expect(result).toHaveLength(1)
+      expect(result.activities).toHaveLength(1)
       expect(mockFetch).toHaveBeenCalledTimes(1)
     })
 

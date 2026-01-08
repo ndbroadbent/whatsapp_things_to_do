@@ -8,10 +8,11 @@
 import { generateCacheKey } from '../caching/key'
 import type { ResponseCache } from '../caching/types'
 import { type HttpResponse, httpFetch } from '../http'
-import type { EntityType, WikidataResult } from './types'
+import type { EntityType, ExternalIdType, WikidataResult } from './types'
 import {
   DEFAULT_TIMEOUT,
   DEFAULT_USER_AGENT,
+  LINK_PREVIEW_PRIORITY,
   WIKIDATA_PROPERTY_IDS,
   WIKIDATA_TYPE_QIDS
 } from './types'
@@ -38,15 +39,17 @@ export interface WikidataSearchConfig {
 }
 
 /**
- * Shorthand references to Wikidata property IDs for SPARQL query.
- * Uses WIKIDATA_PROPERTY_IDS as the single source of truth.
+ * Convert external ID type to SPARQL variable name.
+ * e.g., "spotify_album" -> "spotifyAlbumId"
  */
-const P = WIKIDATA_PROPERTY_IDS
+function toSparqlVar(idType: ExternalIdType): string {
+  return `${idType.replace(/_([a-z])/g, (_, c) => c.toUpperCase())}Id`
+}
 
 /**
  * Build SPARQL query for entity search using text search.
  * Uses mwapi:search for fuzzy matching instead of exact rdfs:label match.
- * Includes external IDs for building canonical URLs to preferred sources.
+ * Dynamically includes all external IDs from LINK_PREVIEW_PRIORITY.
  */
 function buildSparqlQuery(title: string, category: EntityType): string {
   // Escape quotes in title for SPARQL string
@@ -60,11 +63,20 @@ function buildSparqlQuery(title: string, category: EntityType): string {
     typeClause = `${typeFilter} ?item wdt:P31/wdt:P279* ?type .`
   }
 
+  // Build external ID SELECT and OPTIONAL clauses from LINK_PREVIEW_PRIORITY
+  const externalIdVars = LINK_PREVIEW_PRIORITY.filter((id) => id !== 'official_website')
+    .map((id) => `?${toSparqlVar(id)}`)
+    .join(' ')
+
+  const externalIdOptionals = LINK_PREVIEW_PRIORITY.filter((id) => id !== 'official_website')
+    .map((id) => `OPTIONAL { ?item wdt:${WIKIDATA_PROPERTY_IDS[id]} ?${toSparqlVar(id)} . }`)
+    .join('\n      ')
+
   // Use MediaWiki API search for fuzzy matching (handles variations like "3" vs "III")
   // Include sitelinks count for ranking (popularity signal)
   return `
     SELECT ?item ?itemLabel ?itemDescription ?image ?article ?sitelinks
-           ?imdbId ?steamId ?bggId ?spotifyArtistId ?spotifyAlbumId ?musicbrainzRgId
+           ${externalIdVars}
     WHERE {
       SERVICE wikibase:mwapi {
         bd:serviceParam wikibase:endpoint "www.wikidata.org";
@@ -80,12 +92,7 @@ function buildSparqlQuery(title: string, category: EntityType): string {
                  schema:isPartOf <https://en.wikipedia.org/> .
       }
       OPTIONAL { ?item wikibase:sitelinks ?sitelinks . }
-      OPTIONAL { ?item wdt:${P.imdb} ?imdbId . }
-      OPTIONAL { ?item wdt:${P.steam} ?steamId . }
-      OPTIONAL { ?item wdt:${P.bgg} ?bggId . }
-      OPTIONAL { ?item wdt:${P.spotify_artist} ?spotifyArtistId . }
-      OPTIONAL { ?item wdt:${P.spotify_album} ?spotifyAlbumId . }
-      OPTIONAL { ?item wdt:${P.musicbrainz_release_group} ?musicbrainzRgId . }
+      ${externalIdOptionals}
       SERVICE wikibase:label { bd:serviceParam wikibase:language "en" . }
     }
     LIMIT 5
@@ -94,6 +101,7 @@ function buildSparqlQuery(title: string, category: EntityType): string {
 
 /**
  * SPARQL binding result type.
+ * External IDs are dynamically added based on LINK_PREVIEW_PRIORITY.
  */
 interface SparqlBinding {
   item: { value: string }
@@ -102,28 +110,25 @@ interface SparqlBinding {
   image?: { value: string }
   article?: { value: string }
   sitelinks?: { value: string }
-  // External IDs
-  imdbId?: { value: string }
-  steamId?: { value: string }
-  bggId?: { value: string }
-  spotifyArtistId?: { value: string }
-  spotifyAlbumId?: { value: string }
-  musicbrainzRgId?: { value: string }
+  // Dynamic external IDs (any field ending in "Id")
+  [key: string]: { value: string } | undefined
 }
 
 /**
  * Extract external IDs from a SPARQL binding.
+ * Dynamically extracts all IDs from LINK_PREVIEW_PRIORITY.
  */
 function extractExternalIds(binding: SparqlBinding): WikidataResult['externalIds'] {
   const externalIds: NonNullable<WikidataResult['externalIds']> = {}
 
-  if (binding.imdbId?.value) externalIds.imdbId = binding.imdbId.value
-  if (binding.steamId?.value) externalIds.steamId = binding.steamId.value
-  if (binding.bggId?.value) externalIds.bggId = binding.bggId.value
-  if (binding.spotifyArtistId?.value) externalIds.spotifyArtistId = binding.spotifyArtistId.value
-  if (binding.spotifyAlbumId?.value) externalIds.spotifyAlbumId = binding.spotifyAlbumId.value
-  if (binding.musicbrainzRgId?.value)
-    externalIds.musicbrainzReleaseGroupId = binding.musicbrainzRgId.value
+  for (const idType of LINK_PREVIEW_PRIORITY) {
+    if (idType === 'official_website') continue
+    const varName = toSparqlVar(idType)
+    const value = binding[varName]?.value
+    if (value) {
+      externalIds[idType] = value
+    }
+  }
 
   return Object.keys(externalIds).length > 0 ? externalIds : undefined
 }
@@ -300,12 +305,12 @@ export async function searchWikidata(
 ): Promise<WikidataResult | null> {
   const query = buildSparqlQuery(title, category)
 
-  // Check cache first
+  // Check cache first - key on actual SPARQL query so cache invalidates when query changes
   if (config.cache) {
     const cacheKey = generateCacheKey({
       service: 'wikidata',
-      model: category,
-      payload: { title }
+      model: 'sparql',
+      payload: { query }
     })
 
     const cached = await config.cache.get<WikidataResult | null>(cacheKey)

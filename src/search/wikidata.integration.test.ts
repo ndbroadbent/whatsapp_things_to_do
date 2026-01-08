@@ -25,70 +25,80 @@ describe('Wikidata Search Integration', () => {
   describe('searchWikidata', () => {
     it("finds Baldur's Gate 3 with Steam ID", async () => {
       const result = await searchWikidata("Baldur's Gate 3", 'video_game', {
-        customFetch: recorder.fetch
+        customFetch: recorder.createNamedFetch('baldurs-gate-3')
       })
 
       expect(result).not.toBeNull()
       expect(result?.label).toContain("Baldur's Gate")
-      expect(result?.externalIds?.steamId).toBe('1086940')
+      expect(result?.externalIds?.steam).toBe('1086940')
     })
 
     it('finds Interstellar with IMDB ID', async () => {
       const result = await searchWikidata('Interstellar', 'movie', {
-        customFetch: recorder.fetch
+        customFetch: recorder.createNamedFetch('interstellar')
       })
 
       expect(result).not.toBeNull()
       expect(result?.label).toContain('Interstellar')
-      expect(result?.externalIds?.imdbId).toMatch(/^tt\d+$/)
+      expect(result?.externalIds?.imdb).toMatch(/^tt\d+$/)
     })
 
     it('finds Wingspan board game with BGG ID', async () => {
       const result = await searchWikidata('Wingspan', 'physical_game', {
-        customFetch: recorder.fetch
+        customFetch: recorder.createNamedFetch('wingspan')
       })
 
       expect(result).not.toBeNull()
       expect(result?.label).toBe('Wingspan')
-      expect(result?.externalIds?.bggId).toBeDefined()
+      expect(result?.externalIds?.bgg).toBeDefined()
     })
 
     it('finds The Tortured Poets Department album with Spotify ID', async () => {
       const result = await searchWikidata('The Tortured Poets Department', 'album', {
-        customFetch: recorder.fetch
+        customFetch: recorder.createNamedFetch('tortured-poets-department')
       })
 
       expect(result).not.toBeNull()
       expect(result?.label).toContain('Tortured Poets')
       // Album may have Spotify or MusicBrainz ID
       const hasExternalId =
-        result?.externalIds?.spotifyAlbumId || result?.externalIds?.musicbrainzReleaseGroupId
+        result?.externalIds?.spotify_album || result?.externalIds?.musicbrainz_release_group
       expect(hasExternalId).toBeDefined()
     })
 
     it('finds The Matrix with IMDB ID', async () => {
       const result = await searchWikidata('The Matrix', 'movie', {
-        customFetch: recorder.fetch
+        customFetch: recorder.createNamedFetch('the-matrix')
       })
 
       expect(result).not.toBeNull()
       expect(result?.label).toBe('The Matrix')
-      expect(result?.externalIds?.imdbId).toBe('tt0133093')
+      expect(result?.externalIds?.imdb).toBe('tt0133093')
     })
 
     it('finds Catan board game with BGG ID', async () => {
       const result = await searchWikidata('Catan', 'physical_game', {
-        customFetch: recorder.fetch
+        customFetch: recorder.createNamedFetch('catan')
       })
 
       expect(result).not.toBeNull()
       expect(result?.label).toMatch(/Catan/i)
-      expect(result?.externalIds?.bggId).toBeDefined()
+      expect(result?.externalIds?.bgg).toBeDefined()
+    })
+
+    it('finds Blood on the Clocktower with BGG ID', async () => {
+      const result = await searchWikidata('Blood on the Clocktower', 'physical_game', {
+        customFetch: recorder.createNamedFetch('blood-on-clocktower')
+      })
+
+      expect(result).not.toBeNull()
+      expect(result?.label).toMatch(/Blood on the Clocktower/i)
+      expect(result?.externalIds?.bgg).toBeDefined()
     })
 
     it('returns null for non-existent entity', async () => {
       const result = await searchWikidata('xyznonexistententity123', 'movie', {
-        customFetch: recorder.fetch
+        customFetch: recorder.createNamedFetch('nonexistent')
       })
 
       expect(result).toBeNull()
@@ -96,7 +106,7 @@ describe('Wikidata Search Integration', () => {
 
     it('finds The Bear (2022 TV series, not episode)', async () => {
       const result = await searchWikidata('The Bear', 'tv_show', {
-        customFetch: recorder.fetch
+        customFetch: recorder.createNamedFetch('the-bear')
       })
 
       expect(result).not.toBeNull()
@@ -104,18 +114,18 @@ describe('Wikidata Search Integration', () => {
       expect(result?.qid).toBe('Q112761982')
       expect(result?.label).toBe('The Bear')
       expect(result?.description).toBe('American comedy television series')
-      expect(result?.externalIds?.imdbId).toBe('tt14452776')
+      expect(result?.externalIds?.imdb).toBe('tt14452776')
     })
 
     it('finds Oppenheimer (2023 film, not Norman)', async () => {
       const result = await searchWikidata('Oppenheimer', 'movie', {
-        customFetch: recorder.fetch
+        customFetch: recorder.createNamedFetch('oppenheimer')
       })
 
       expect(result).not.toBeNull()
       // Should be the 2023 Nolan film, not "Norman (2016)"
       expect(result?.label).toBe('Oppenheimer')
-      expect(result?.externalIds?.imdbId).toBe('tt15398776')
+      expect(result?.externalIds?.imdb).toBe('tt15398776')
     })
   })
 })

@@ -181,25 +181,15 @@ export interface ResolverConfig {
   userAgent?: string | undefined
   /** Request timeout in milliseconds (default: 30000) */
   timeout?: number | undefined
+  /** Custom fetch function (for testing) */
+  customFetch?: ((url: string, init?: RequestInit) => Promise<Response>) | undefined
 }
 
 /**
  * External IDs from Wikidata for building canonical URLs.
+ * Uses ExternalIdType as keys for consistency with wikidata-ids.json.
  */
-export interface WikidataExternalIds {
-  /** IMDb ID (e.g., "tt1234567") */
-  imdbId?: string | undefined
-  /** Steam application ID (e.g., "1234567") */
-  steamId?: string | undefined
-  /** BoardGameGeek ID (e.g., "12345") */
-  bggId?: string | undefined
-  /** Spotify artist ID */
-  spotifyArtistId?: string | undefined
-  /** Spotify album ID */
-  spotifyAlbumId?: string | undefined
-  /** MusicBrainz release group ID */
-  musicbrainzReleaseGroupId?: string | undefined
-}
+export type WikidataExternalIds = Partial<Record<ExternalIdType, string>>
 
 /**
  * Result from Wikidata API search.

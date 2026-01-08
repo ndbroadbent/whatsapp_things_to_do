@@ -7,10 +7,22 @@
  * - Agreement prompt: For [AGREE] candidates pointing to earlier messages
  */
 
-import { VALID_CATEGORIES } from '../categories'
 import type { ScrapedMetadata } from '../scraper/types'
-import { VALID_LINK_TYPES } from '../search/types'
 import type { CandidateMessage, ContextMessage } from '../types'
+import {
+  buildJsonSchemaSection,
+  buildLocationSection,
+  buildUserContextSection,
+  SHARED_CATEGORIES_SECTION,
+  SHARED_COMPOUND_SECTION,
+  SHARED_EXAMPLES,
+  SHARED_IMAGE_SECTION,
+  SHARED_INCLUDE_RULES,
+  SHARED_LINK_SECTION,
+  SHARED_NORMALIZATION,
+  SHARED_SKIP_RULES,
+  SHARED_TENSE_RULES
+} from './prompt-sections'
 
 // Re-export parsing function (types re-exported from ./index.ts)
 export { parseClassificationResponse } from './response-parser'
@@ -136,125 +148,6 @@ export interface ClassificationContext {
 }
 
 // ============================================================================
-// SHARED PROMPT SECTIONS
-// ============================================================================
-
-function buildUserContextSection(context: ClassificationContext): string {
-  const timezoneInfo = context.timezone ? `\nTimezone: ${context.timezone}` : ''
-  return `USER CONTEXT:
-Home country: ${context.homeCountry}${timezoneInfo}`
-}
-
-const SHARED_INCLUDE_RULES = `INCLUDE (output these):
-- Named places: restaurants, cafes, food trucks, bars, venues, parks, trails
-- Specific activities: hiking, kayaking, concerts, movies, shows
-- Travel plans: trips, destinations, hotels, Airbnb
-- Events: festivals, markets, concerts, exhibitions
-- Things to do: hobbies, experiences, skills, sports, games
-- Generic but actionable: "Let's go to a cafe" (specific type of place)`
-
-const SHARED_SKIP_RULES = `SKIP (don't output):
-- Vague: "wanna go out?", "do something fun", "go somewhere"
-- Logistics: "leave at 3:50pm", "skip the nachos"
-- Questions: "where should we go?"
-- Links without clear discussion about visiting/attending
-- Errands: groceries, vet, mechanic, cleaning
-- Work/appointments/chores
-- Romantic/intimate, adult content
-- Sad or stressful: funerals, hospitals, work deadlines, financial worries
-- Sensitive: potential secrets, embarrassing messages, offensive content, or illegal activities
-- Unclear references: "go there again" (where?), "check it out" (what?)`
-
-function buildJsonSchemaSection(includeOffset: boolean): string {
-  const offsetField = includeOffset
-    ? `    "off": <message_offset: 0 if activity is in >>> message, -1 for immediately before, -2 for two before, etc.>,\n`
-    : ''
-
-  return `OUTPUT FORMAT:
-Return JSON array with ONLY activities worth saving. Skip non-activities entirely. Return [] if none found.
-
-\`\`\`json
-[
-  {
-    "msg": <message_id>,
-${offsetField}    "title": "<activity description, under 100 chars, fix any typos (e.g., 'ballon'→'balloon')>",
-    "fun": <0.0-5.0 how fun/enjoyable>,
-    "int": <0.0-5.0 how interesting/unique>,
-    "cat": "<category>",
-
-    // Location fields (top-level, for geocoding + images)
-    "wikiName": "<Wikipedia topic for things like bands, board games, concepts>",
-    "placeName": "<canonical named place - valid Wikipedia title (e.g., 'Waiheke Island', 'Mount Fuji')>",
-    "placeQuery": "<specific named business for Google Places (e.g., 'Dice Goblin Auckland') - NOT generic searches>",
-    "city": "<city name>",
-    "region": "<state/province>",
-    "country": "<country>",
-
-    // Image hints (REQUIRED - stock is always required, mediaKey is optional)
-    "image": {
-      "stock": "<stock photo query - ALWAYS REQUIRED (e.g., 'hot air balloon cappadocia sunrise')>",
-      "mediaKey": "<media library key (e.g., 'hot air balloon', 'restaurant')>",
-      "preferStock": <true if stock query is more specific than generic mediaKey>
-    },
-
-    // Link hints (for resolving media entities to canonical URLs) - use for movies, books, games, music, etc.
-    "link": {
-      "type": "<${VALID_LINK_TYPES.join('|')}>",
-      "query": "<canonical title (e.g., 'The Matrix', 'Project Hail Mary', 'Wingspan')>"
-    }
-  }
-]
-\`\`\`
-
-(OMIT fields that would be null - don't include them. placeName and placeQuery are mutually exclusive - prefer placeName for canonical places.)`
-}
-
-const SHARED_IMAGE_SECTION = `IMAGE HINTS:
-image.stock: ALWAYS REQUIRED - specific stock photo query with location context when relevant.
-image.mediaKey: Media library key (e.g., "hot air balloon", "restaurant").
-image.preferStock: true if stock is more specific than mediaKey (e.g., "balloon in Cappadocia" vs generic balloon).`
-
-const SHARED_LINK_SECTION = `LINK HINTS (specific media titles only): Types: ${VALID_LINK_TYPES.join(', ')}
-- "watch Oppenheimer" → link:{type:"movie", query:"Oppenheimer"}
-- "watch The Bear" → link:{type:"tv_show", query:"The Bear"}
-- "play Wingspan" → link:{type:"physical_game", query:"Wingspan"}
-- "play Baldur's Gate 3" → link:{type:"video_game", query:"Baldur's Gate 3"}
-Use "media" when UNSURE if movie or TV show. Use "game" when UNSURE if video game or board game.
-DON'T use for: generic ("go to movies"), places (use placeName), bands (use wikiName).`
-
-function buildLocationSection(homeCountry: string): string {
-  return `LOCATION FIELDS (only if explicitly mentioned):
-wikiName: Wikipedia topic for bands/games/concepts (NOT movies/books - use link).
-placeName: Canonical place with Wikipedia article (e.g., "Waiheke Island"). Mutually exclusive with placeQuery.
-placeQuery: SPECIFIC named business for Google Places (e.g., "Dice Goblin Auckland"). NOT generic searches.
-city/region/country: For ambiguous names, assume ${homeCountry}.`
-}
-
-const SHARED_CATEGORIES_SECTION = `CATEGORIES: ${VALID_CATEGORIES.join(', ')}
-("other" should be used only as a last resort. Only use it if no other category applies.)`
-
-const SHARED_NORMALIZATION = `NORMALIZATION:
-- Distinct categories: cafe≠restaurant, bar≠restaurant
-- KEEP mediaKey specificity: "glow worm cave" not "cave", "hot air balloon" not "balloon"
-- Disambiguation: "play pool"→"billiards" (cue game), "swim in pool"→"swimming pool"`
-
-const SHARED_COMPOUND_SECTION = `COMPOUND vs MULTIPLE: For complex activities that one JSON object can't fully represent (e.g., "Go to Iceland and see the aurora"), emit ONE object. For truly separate activities, emit multiple objects.`
-
-// Examples from IMAGES.md - used by both suggestion and agreement prompts
-const SHARED_EXAMPLES = `EXAMPLES:
-1. "let's go to Paris" → city:"Paris", country:"France", cat:"travel", image:{stock:"paris france eiffel tower", mediaKey:"city", preferStock:true}
-2. "trip to Waiheke" → placeName:"Waiheke Island", region:"Auckland", country:"New Zealand", image:{stock:"waiheke island beach vineyard", mediaKey:"island", preferStock:true}
-3. "board games at Dice Goblin" → placeQuery:"Dice Goblin Auckland", cat:"gaming", image:{stock:"board game cafe meetup", mediaKey:"board game", preferStock:true}
-4. "see Infected Mushroom in Auckland" → wikiName:"Infected Mushroom", city:"Auckland", cat:"music", image:{stock:"psytrance rave edm concert", mediaKey:"concert", preferStock:true}
-5. "visit geothermal park in Rotorua" → city:"Rotorua", cat:"nature", image:{stock:"rotorua mud pools geyser geothermal", mediaKey:"geothermal park", preferStock:true}
-6. "watch The Matrix" → cat:"entertainment", link:{type:"movie", query:"The Matrix"}, image:{stock:"movie night popcorn", mediaKey:"movie night"}
-7. "watch Severance" (unsure if movie/TV) → cat:"entertainment", link:{type:"media", query:"Severance"}, image:{stock:"tv show streaming", mediaKey:"movie night"}
-8. "play Exploding Kittens" (unsure if video/board game) → cat:"gaming", link:{type:"game", query:"Exploding Kittens"}, image:{stock:"card game friends", mediaKey:"card game"}
-9. "go to the theatre" → cat:"entertainment", image:{stock:"theatre stage performance", mediaKey:"theatre"}
-10. "hot air balloon ride" (generic) → cat:"experiences", image:{stock:"hot air balloon sunrise", mediaKey:"hot air balloon"}
-11. "hot air balloon in Turkey" → country:"Turkey", cat:"experiences", image:{stock:"cappadocia hot air balloon sunrise", mediaKey:"hot air balloon", preferStock:true}`
-
-// ============================================================================
 // SUGGESTION PROMPT (regular candidates)
 // ============================================================================
 
@@ -276,7 +169,7 @@ ${formatted}
 
   return `GOAL: Extract "things to do" from chat history - activities, places, and plans worth putting on a map or list.
 
-${buildUserContextSection(context)}
+${buildUserContextSection(context.homeCountry, context.timezone)}
 
 WHY THESE MESSAGES:
 You're seeing messages pre-filtered by heuristics (regex patterns like "let's go", "we should try") and semantic search (embeddings). We intentionally cast a wide net - you'll see some false positives. Your job is to identify the real activities worth saving.
@@ -289,6 +182,8 @@ CRITICAL: Only extract activities that are IN the >>> message itself. Context is
 - RIGHT: >>> "Paintball. Saturday?" → extract paintball (activity is in the candidate itself)
 
 URLs may have [URL_META: {...}] with scraped metadata - use this to understand what links are about.
+
+${SHARED_TENSE_RULES}
 
 ${SHARED_INCLUDE_RULES}
 
@@ -338,7 +233,7 @@ ${formatted}
 
   return `GOAL: Extract activities that the user is agreeing to or expressing enthusiasm about.
 
-${buildUserContextSection(context)}
+${buildUserContextSection(context.homeCountry, context.timezone)}
 
 These are AGREEMENT messages - phrases like "sounds great!", "I'm keen!", "let's do it!". Your job is to find WHAT they are agreeing to by looking at the messages BEFORE the >>> candidate.
 
@@ -351,6 +246,8 @@ For each activity found, use:
 If you can't find a clear activity in the context before the agreement, skip it entirely.
 
 URLs may have [URL_META: {...}] with scraped metadata - use this to understand what links are about.
+
+${SHARED_TENSE_RULES}
 
 ${SHARED_INCLUDE_RULES}
 

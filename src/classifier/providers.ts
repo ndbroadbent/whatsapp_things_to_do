@@ -13,7 +13,7 @@ import { EMPTY_LLM_USAGE } from '../types'
 import { DEFAULT_MODELS } from './models'
 
 /** Result from a provider call including usage data */
-export interface ProviderResult {
+interface ProviderResult {
   readonly text: string
   readonly usage: LlmUsage
 }

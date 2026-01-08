@@ -76,12 +76,15 @@ describe('classify command', () => {
     expect(whaleSafari?.city?.toLowerCase()).toContain('auckland')
     expect(whaleSafari?.country).toBe('New Zealand')
 
-    // Check Prinzhorn art collection
-    const prinzhorn = activities.find((a) => a.activity.toLowerCase().includes('prinzhorn'))
-    expect(prinzhorn).toBeDefined()
-    expect(prinzhorn?.category).toBeOneOf(['culture', 'arts'])
-    expect(prinzhorn?.messages[0]?.sender).toBe('Alice Smith')
-    expect(prinzhorn?.country).toBe('Germany')
+    // Check Prinzhorn art collection - may have both suggestion and agreement
+    const prinzhornActivities = activities.filter((a) =>
+      a.activity.toLowerCase().includes('prinzhorn')
+    )
+    expect(prinzhornActivities.length).toBeGreaterThanOrEqual(1)
+    const prinzhornSenders = prinzhornActivities.flatMap((a) => a.messages.map((m) => m.sender))
+    expect(prinzhornSenders).toContain('Alice Smith')
+    expect(prinzhornActivities.every((a) => a.country === 'Germany')).toBe(true)
+    expect(prinzhornActivities.every((a) => ['culture', 'arts'].includes(a.category))).toBe(true)
 
     // Check Bay of Islands
     const bayOfIslands = activities.find((a) => a.activity.toLowerCase().includes('bay of islands'))
@@ -277,6 +280,30 @@ describe('classify command', () => {
     // The original message only had the tinyurl - no mention of Yellowstone
     expect(yellowstone?.messages[0]?.message).toContain('tinyurl.com')
     expect(yellowstone?.messages[0]?.message).not.toContain('Yellowstone')
+  })
+
+  it('rejects present-moment errands (not activity suggestions)', () => {
+    const activities = readCacheJson<ClassifiedActivity[]>(
+      testState.tempCacheDir,
+      'classifications.json'
+    )
+
+    // "I'm going to farmers" - present tense, doing right now, not a suggestion
+    const farmersActivity = activities.find(
+      (a) =>
+        a.activity.toLowerCase().includes('farmers') ||
+        a.placeQuery?.toLowerCase().includes('farmers')
+    )
+    expect(farmersActivity).toBeUndefined()
+
+    // "I'm going here to get some containers" + Google Maps link - current errand
+    const storageActivity = activities.find(
+      (a) =>
+        a.activity.toLowerCase().includes('storage') ||
+        a.activity.toLowerCase().includes('container') ||
+        a.placeQuery?.toLowerCase().includes('storage')
+    )
+    expect(storageActivity).toBeUndefined()
   })
 
   it('classifies activities with correct categories', () => {

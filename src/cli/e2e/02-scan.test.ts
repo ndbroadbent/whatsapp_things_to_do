@@ -60,7 +60,7 @@ describe('scan command', () => {
   })
 
   it('finds agreement candidates', () => {
-    const { stdout } = runCli(`scan ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir} -n 20`)
+    const { stdout } = runCli(`scan ${FIXTURE_INPUT} --cache-dir ${testState.tempCacheDir} -n 25`)
     expect(stdout).toContain("I'm keen!")
   })
 

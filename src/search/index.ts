@@ -15,13 +15,14 @@ import { tryHeuristicMatch } from './heuristics'
 import { type OpenLibrarySearchConfig, searchOpenLibrary } from './openlibrary'
 import type {
   EntityType,
+  ExternalIdType,
   GoogleSearchResult,
   OpenLibraryResult,
   ResolvedEntity,
   ResolverConfig,
   WikidataResult
 } from './types'
-import { DEFAULT_USER_AGENT, EXTERNAL_ID_URL_TEMPLATES } from './types'
+import { DEFAULT_USER_AGENT, EXTERNAL_ID_URL_TEMPLATES, LINK_PREVIEW_PRIORITY } from './types'
 import { searchWikidata, type WikidataSearchConfig } from './wikidata'
 
 export {
@@ -49,6 +50,21 @@ export * from './types'
 // Re-export functions for direct use
 export { searchWikidata } from './wikidata'
 
+/** Preferred external ID sources by entity type (first match wins) */
+const PREFERRED_EXTERNAL_IDS: Partial<Record<EntityType, ExternalIdType[]>> = {
+  movie: ['imdb', 'tmdb_movie', 'letterboxd'],
+  tv_show: ['imdb', 'tmdb_tv'],
+  media: ['imdb', 'tmdb_movie', 'tmdb_tv'],
+  video_game: ['steam', 'igdb', 'gog'],
+  physical_game: ['bgg'],
+  game: ['steam', 'bgg', 'igdb'],
+  album: ['spotify_album'],
+  song: ['spotify_album'],
+  podcast: ['spotify_show', 'apple_podcasts'],
+  artist: ['spotify_artist'],
+  book: ['goodreads', 'openlibrary', 'google_books']
+}
+
 /**
  * Build canonical URL from Wikidata external IDs based on entity type.
  * Returns the preferred URL for the entity type, falling back to Wikipedia.
@@ -56,42 +72,25 @@ export { searchWikidata } from './wikidata'
 function buildCanonicalUrlFromExternalIds(
   result: WikidataResult,
   type: EntityType
-): { url: string; externalIds: Partial<Record<string, string>> } {
-  const externalIds: Partial<Record<string, string>> = {}
+): { url: string; externalIds: Partial<Record<ExternalIdType, string>> } {
+  const externalIds: Partial<Record<ExternalIdType, string>> = {}
   let url: string | null = null
 
-  // Extract external IDs and build preferred URL based on entity type
   if (result.externalIds) {
-    const { imdbId, steamId, bggId, spotifyAlbumId, musicbrainzReleaseGroupId } = result.externalIds
-
-    // Movies and TV shows: prefer IMDB
-    if ((type === 'movie' || type === 'tv_show') && imdbId) {
-      externalIds.imdb = imdbId
-      url = `https://www.imdb.com/title/${imdbId}/`
+    // Copy all external IDs
+    for (const [key, value] of Object.entries(result.externalIds)) {
+      if (value) externalIds[key as ExternalIdType] = value
     }
 
-    // Video games: prefer Steam
-    if (type === 'video_game' && steamId) {
-      externalIds.steam = steamId
-      url = `https://store.steampowered.com/app/${steamId}`
-    }
-
-    // Board games: prefer BoardGameGeek
-    if (type === 'physical_game' && bggId) {
-      externalIds.bgg = bggId
-      url = `https://boardgamegeek.com/boardgame/${bggId}`
-    }
-
-    // Albums: prefer Spotify
-    if (type === 'album' && spotifyAlbumId) {
-      externalIds.spotify_album = spotifyAlbumId
-      url = `https://open.spotify.com/album/${spotifyAlbumId}`
-    }
-
-    // Albums fallback: MusicBrainz
-    if (type === 'album' && !url && musicbrainzReleaseGroupId) {
-      externalIds.musicbrainz_release_group = musicbrainzReleaseGroupId
-      url = `https://musicbrainz.org/release-group/${musicbrainzReleaseGroupId}`
+    // Find preferred URL based on entity type
+    const preferredIds = PREFERRED_EXTERNAL_IDS[type] ?? []
+    for (const idType of preferredIds) {
+      const idValue = result.externalIds[idType]
+      const template = EXTERNAL_ID_URL_TEMPLATES[idType]
+      if (idValue && template) {
+        url = template.replace('{id}', idValue)
+        break
+      }
     }
   }
 
@@ -216,11 +215,21 @@ async function tryWikidataStage(
   const wikidataConfig: WikidataSearchConfig = {
     cache: config.cache,
     userAgent,
-    timeout
+    timeout,
+    customFetch: config.customFetch
   }
 
   const result = await searchWikidata(query, type, wikidataConfig)
-  if (result && (result.imageUrl || result.wikipediaUrl)) {
+  if (!result) {
+    return null
+  }
+
+  // Accept result if it has image, Wikipedia URL, OR any external ID from LINK_PREVIEW_PRIORITY
+  // (these sources have good OG images for link previews)
+  const hasExternalId =
+    result.externalIds && LINK_PREVIEW_PRIORITY.some((idType) => result.externalIds?.[idType])
+
+  if (result.imageUrl || result.wikipediaUrl || hasExternalId) {
     return wikidataToEntity(result, query, type)
   }
 
