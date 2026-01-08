@@ -14,5 +14,6 @@
     "src/cli/e2e/vitest.config.ts",
     "src/cli/e2e/helpers.ts"
   ],
+  "ignoreDependencies": ["undici-types"],
   "exclude": ["unresolved"]
 }
