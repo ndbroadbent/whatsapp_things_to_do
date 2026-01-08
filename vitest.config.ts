@@ -18,7 +18,8 @@ export default defineConfig(({ mode }) => ({
 		},
 	],
 	test: {
-		env: loadEnv(mode, process.cwd(), ""),
+		// Don't load .env in CI - tests must use fixture cache only
+		env: process.env.CI === "true" ? {} : loadEnv(mode, process.cwd(), ""),
 		globals: true,
 		include: ["src/**/*.test.ts", "tests/**/*.test.ts"],
 		exclude: ["src/cli/e2e/**/*.test.ts", "node_modules/**"],
