@@ -6,6 +6,7 @@
  */
 
 import type { ResponseCache } from '../caching/types'
+import type { FetchFn } from '../scraper/types'
 
 /**
  * Entity type categories for resolution.
@@ -182,7 +183,7 @@ export interface ResolverConfig {
   /** Request timeout in milliseconds (default: 30000) */
   timeout?: number | undefined
   /** Custom fetch function (for testing) */
-  customFetch?: ((url: string, init?: RequestInit) => Promise<Response>) | undefined
+  customFetch?: FetchFn | undefined
 }
 
 /**

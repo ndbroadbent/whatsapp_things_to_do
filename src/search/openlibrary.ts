@@ -7,16 +7,12 @@
 
 import { generateCacheKey } from '../caching/key'
 import type { ResponseCache } from '../caching/types'
-import { type HttpResponse, httpFetch } from '../http'
+import { httpFetch } from '../http'
+import type { FetchFn } from '../scraper/types'
 import type { OpenLibraryResult } from './types'
 import { DEFAULT_TIMEOUT, DEFAULT_USER_AGENT } from './types'
 
 const SEARCH_API = 'https://openlibrary.org/search.json'
-
-/**
- * Fetch function type - returns HttpResponse which standard Response satisfies.
- */
-type FetchFn = (url: string, init?: RequestInit) => Promise<HttpResponse>
 
 /**
  * Configuration for Open Library search.

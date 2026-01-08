@@ -5,9 +5,23 @@
  */
 
 /**
- * Fetch function type for dependency injection.
+ * Minimal response interface that both standard Response and Bun's Response satisfy.
+ * Avoids Bun's BunResponseOverride type conflicts.
  */
-export type FetchFn = typeof fetch
+interface FetchResponse {
+  readonly ok: boolean
+  readonly status: number
+  readonly headers: { get(name: string): string | null }
+  text(): Promise<string>
+  json(): Promise<unknown>
+  arrayBuffer(): Promise<ArrayBuffer>
+}
+
+/**
+ * Fetch function type for dependency injection.
+ * Uses explicit interface to avoid Bun type conflicts.
+ */
+export type FetchFn = (url: string, init?: RequestInit) => Promise<FetchResponse>
 
 /**
  * Configuration for the scraper.

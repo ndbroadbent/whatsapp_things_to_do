@@ -4,6 +4,7 @@
  * Types for looking up places and getting coordinates.
  */
 
+import type { FetchFn } from '../scraper/types'
 import type { ClassifiedActivity } from './classifier'
 
 export type PlaceLookupSource = 'google_maps_url' | 'places_api' | 'geocoding_api'
@@ -50,7 +51,7 @@ export interface PlaceLookupConfig {
   readonly regionBias?: string | undefined
   readonly defaultCountry?: string | undefined
   /** Custom fetch function for testing */
-  readonly fetch?: typeof fetch | undefined
+  readonly fetch?: FetchFn | undefined
 }
 
 export interface PlaceLookupResult {

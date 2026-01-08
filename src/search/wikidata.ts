@@ -7,7 +7,8 @@
 
 import { generateCacheKey } from '../caching/key'
 import type { ResponseCache } from '../caching/types'
-import { type HttpResponse, httpFetch } from '../http'
+import { httpFetch } from '../http'
+import type { FetchFn } from '../scraper/types'
 import type { EntityType, ExternalIdType, WikidataResult } from './types'
 import {
   DEFAULT_TIMEOUT,
@@ -18,11 +19,6 @@ import {
 } from './types'
 
 const SPARQL_ENDPOINT = 'https://query.wikidata.org/sparql'
-
-/**
- * Fetch function type - returns HttpResponse which standard Response satisfies.
- */
-type FetchFn = (url: string, init?: RequestInit) => Promise<HttpResponse>
 
 /**
  * Configuration for Wikidata search.
